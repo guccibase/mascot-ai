@@ -113,8 +113,9 @@ const TRACK_KEYS = new Set([
   "guiding",
 ]);
 
-function normalizeHex(input: string, fallback: string) {
-  const m = input?.trim().match(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
+function normalizeHex(input: unknown, fallback: string) {
+  if (typeof input !== "string") return fallback;
+  const m = input.trim().match(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
   if (!m) return fallback;
   const s = m[1]!;
   if (s.length === 3) {

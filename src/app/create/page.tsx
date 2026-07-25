@@ -18,7 +18,7 @@ import {
 import type { GeneratedMascot } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const DEFAULT_KEYS = ["idle", "wave", "happy", "thinking", "celebrate"];
+const DEFAULT_KEYS = ["idle", "wave", "happy"];
 
 export default function CreatePage() {
   const [name, setName] = useState("");
@@ -94,8 +94,8 @@ export default function CreatePage() {
       toast.error("Pick at least one gesture");
       return;
     }
-    if (allGestures.length > 8) {
-      toast.error("Keep it to 8 gestures max for quality");
+    if (allGestures.length > 6) {
+      toast.error("Keep it to 6 gestures max for quality");
       return;
     }
 
@@ -122,9 +122,7 @@ export default function CreatePage() {
       }
       const { _meta, ...mascot } = data;
       setResult(mascot);
-      toast.success(
-        `${mascot.name} ready · ${_meta?.model ?? "model"} · Lyra craft`
-      );
+      toast.success(`${mascot.name} is ready — try the poses`);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Generation failed");
@@ -240,7 +238,7 @@ export default function CreatePage() {
                 {loading ? (
                   <>
                     <Loader2 className="size-4 animate-spin" />
-                    Lyra craft · GPT-5.6 Sol — bible then poses…
+                    Generating your mascot studio…
                   </>
                 ) : (
                   <>
@@ -250,9 +248,9 @@ export default function CreatePage() {
                 )}
               </Button>
               <p className="text-center text-xs text-[var(--brand-muted)]">
-                Two-pass Lyra-grade generation (1–3 min). Prefer 4–6 gestures.{" "}
-                <Link href="/studio/lyra" className="underline underline-offset-2">
-                  Study Lyra
+                Usually ~30–45 seconds.{" "}
+                <Link href="/#examples" className="underline underline-offset-2">
+                  See examples
                 </Link>
               </p>
             </div>
@@ -268,7 +266,7 @@ export default function CreatePage() {
                   </p>
                 </div>
                 <Badge variant="outline" className="border-white/15">
-                  {allGestures.length}/8
+                  {allGestures.length}/6
                 </Badge>
               </div>
 

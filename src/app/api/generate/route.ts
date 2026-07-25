@@ -1,41 +1,45 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
-import {
-  BIBLE_SYSTEM_PROMPT,
-  LYRA_CRAFT_SYSTEM_PROMPT,
-} from "@/lib/generate-system-prompt";
 import { runMascotModel } from "@/lib/openai-mascot";
 import { normalizeGeneratedMascot } from "@/lib/studio-utils";
-import type { GenerateRequest, GeneratedMascot } from "@/lib/types";
+import type {
+  GenerateRequest,
+  GeneratedGesture,
+  GeneratedMascot,
+  StudioInstrument,
+  ThemeSwatch,
+} from "@/lib/types";
 
 export const runtime = "nodejs";
-export const maxDuration = 300;
+export const maxDuration = 120;
 
-function looksLikePack(value: unknown): value is GeneratedMascot {
-  if (!value || typeof value !== "object") return false;
-  const v = value as GeneratedMascot;
-  return (
-    typeof v.name === "string" &&
-    typeof v.tagline === "string" &&
-    typeof v.accent === "string" &&
-    !!v.themes &&
-    typeof v.themes === "object" &&
-    Array.isArray(v.gestures) &&
-    v.gestures.length > 0 &&
-    v.gestures.every(
-      (g) =>
-        typeof g?.key === "string" &&
-        typeof g?.svg === "string" &&
-        g.svg.includes("<svg")
-    )
-  );
-}
+const PACK_INSTRUCTIONS = `You design production animated SVG mascot studios in the Lyra craft: product-as-instrument anatomy, whole-performance gestures, SMIL bounce/blink, elegant Bezier silhouette. JSON only.`;
+
+const SVG_INSTRUCTIONS = `You draw ONE production gesture SVG for an existing mascot studio (Lyra craft).
+Return JSON: {"key":string,"label":string,"cat":string,"tip":string,"use":string,"track":boolean,"delight":boolean,"signal":number,"svg":string}
+SVG rules:
+- viewBox 0 0 420 520, class ms-root, xmlns set
+- include ms-hit transparent rect, contact shadow, ms-glow-halo, ms-eyes, ms-signal-fan (7-9 pieces), click bounce begin=ms-hit.click
+- transparent bg; paint with provided theme hexes (top/mid/base/core/features) literally
+- keep same silhouette as the bible; change pose/face/prop/instrument energy only
+- compact paths; JSON only`;
+
+type BiblePack = {
+  name: string;
+  tagline: string;
+  product?: string;
+  accent: string;
+  glowLabel?: string;
+  instrument: StudioInstrument;
+  themes: Record<string, ThemeSwatch>;
+  silhouette: string;
+  metaphor?: string;
+};
 
 function parseJsonObject(raw: string): unknown {
   try {
     return JSON.parse(raw);
   } catch {
-    // Some models wrap JSON in residual prose — extract first object
     const start = raw.indexOf("{");
     const end = raw.lastIndexOf("}");
     if (start >= 0 && end > start) {
@@ -43,6 +47,29 @@ function parseJsonObject(raw: string): unknown {
     }
     throw new Error("Model returned invalid JSON");
   }
+}
+
+function isBible(value: unknown): value is BiblePack {
+  if (!value || typeof value !== "object") return false;
+  const v = value as BiblePack;
+  return (
+    typeof v.name === "string" &&
+    typeof v.tagline === "string" &&
+    typeof v.accent === "string" &&
+    !!v.themes?.primary &&
+    !!v.instrument?.label &&
+    typeof v.silhouette === "string"
+  );
+}
+
+function isGesture(value: unknown): value is GeneratedGesture {
+  if (!value || typeof value !== "object") return false;
+  const g = value as GeneratedGesture;
+  return (
+    typeof g.key === "string" &&
+    typeof g.svg === "string" &&
+    g.svg.includes("<svg")
+  );
 }
 
 export async function POST(req: Request) {
@@ -61,8 +88,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const name = body.name?.trim();
-  const description = body.description?.trim();
+  const name = typeof body.name === "string" ? body.name.trim() : "";
+  const description =
+    typeof body.description === "string" ? body.description.trim() : "";
   const gestures = body.gestures ?? [];
 
   if (!name || !description) {
@@ -71,105 +99,129 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
-  if (gestures.length < 1 || gestures.length > 8) {
+  if (gestures.length < 1 || gestures.length > 6) {
     return NextResponse.json(
-      { error: "Select between 1 and 8 gestures" },
+      { error: "Select between 1 and 6 gestures" },
       { status: 400 }
     );
   }
 
   const openai = new OpenAI({ apiKey });
-  const product = body.productContext?.trim();
-  const personality = body.personality?.trim();
+  const product =
+    typeof body.productContext === "string"
+      ? body.productContext.trim()
+      : undefined;
+  const personality =
+    typeof body.personality === "string"
+      ? body.personality.trim()
+      : undefined;
+  const started = Date.now();
 
   try {
-    /* ── Phase 1: Lyra-grade character bible ── */
-    const bibleInput = [
-      `Lock a production CHARACTER BIBLE in the Lyra craft language.`,
-      `Name: ${name}`,
-      `Description: ${description}`,
-      product ? `Product context: ${product}` : null,
-      personality ? `Personality: ${personality}` : null,
-      `Gestures that must be performable (write gestureNotes for each):`,
-      JSON.stringify(
-        gestures.map((g) => ({
+    /* Phase 1 — fast character lock (no SVGs) */
+    const bibleRun = await runMascotModel({
+      openai,
+      instructions: PACK_INSTRUCTIONS,
+      input: [
+        `Return JSON character bible (NO svg fields):`,
+        `{`,
+        `  "name","tagline","product","accent","glowLabel",`,
+        `  "metaphor","silhouette",`,
+        `  "instrument":{"label","description","lowLabel","midLabel","highLabel","defaultValue","ramp":[5 hex violet→amber]},`,
+        `  "themes":{"primary":{"name","top","mid","base","core","stage","features"},"night":{…},"dune":{…}}`,
+        `}`,
+        ``,
+        `Name: ${name}`,
+        `Description: ${description}`,
+        product ? `Product: ${product}` : null,
+        personality ? `Personality: ${personality}` : null,
+        `Gestures to support: ${gestures.map((g) => g.key).join(", ")}`,
+        `Invent a product INSTRUMENT in the anatomy (like Lyra's delivery tail). JSON only.`,
+      ]
+        .filter(Boolean)
+        .join("\n"),
+      maxOutputTokens: 2500,
+      reasoningEffort: "low",
+    });
+
+    const bible = parseJsonObject(bibleRun.text);
+    if (!isBible(bible)) {
+      return NextResponse.json(
+        { error: "Failed to lock character bible", model: bibleRun.model },
+        { status: 502 }
+      );
+    }
+
+    const primary = bible.themes.primary;
+
+    /* Phase 2 — draw every gesture in parallel */
+    const gestureResults = await Promise.all(
+      gestures.map(async (g) => {
+        const run = await runMascotModel({
+          openai,
+          instructions: SVG_INSTRUCTIONS,
+          input: [
+            `Draw gesture "${g.key}" for mascot ${bible.name}.`,
+            `Bible: ${JSON.stringify({
+              name: bible.name,
+              metaphor: bible.metaphor,
+              silhouette: bible.silhouette,
+              instrument: bible.instrument,
+              theme: primary,
+              accent: bible.accent,
+            })}`,
+            `Gesture metadata (keep exactly): ${JSON.stringify(g)}`,
+            `track=${g.key === "idle" || g.key === "listening" || g.key === "thinking"}`,
+            `delight=${["celebrate", "love", "wave", "proud", "bravo"].includes(g.key)}`,
+            `signal hint: idle~68, celebrate~95, sad/oops~20`,
+            `Return JSON for this one gesture only.`,
+          ].join("\n"),
+          maxOutputTokens: 4500,
+          reasoningEffort: "low",
+        });
+
+        const parsed = parseJsonObject(run.text);
+        if (!isGesture(parsed)) {
+          throw new Error(`Failed SVG for gesture "${g.key}"`);
+        }
+
+        return {
           key: g.key,
           label: g.label,
           cat: g.cat,
           tip: g.tip,
           use: g.use,
-        })),
-        null,
-        2
-      ),
-      `Think like Lyra: invent a product INSTRUMENT in the anatomy (9 pieces), not a sticker.`,
-      `Return JSON only.`,
-    ]
-      .filter(Boolean)
-      .join("\n\n");
+          track: parsed.track,
+          delight: parsed.delight,
+          signal: parsed.signal,
+          svg: parsed.svg,
+          _model: run.model,
+        } satisfies GeneratedGesture & { _model: string };
+      })
+    );
 
-    const bibleRun = await runMascotModel({
-      openai,
-      instructions: BIBLE_SYSTEM_PROMPT,
-      input: bibleInput,
-      maxOutputTokens: 8000,
-      reasoningEffort: "high",
-    });
-    const bible = parseJsonObject(bibleRun.text);
+    const pack: GeneratedMascot = {
+      name,
+      tagline: bible.tagline,
+      product: bible.product ?? product,
+      accent: bible.accent,
+      glowLabel: bible.glowLabel,
+      instrument: bible.instrument,
+      themes: bible.themes,
+      gestures: gestureResults.map(({ _model: _m, ...g }) => g),
+    };
 
-    /* ── Phase 2: Full studio pack — Lyra SVG craft ── */
-    const packInput = [
-      `Author the full production mascot STUDIO PACK in Lyra's exact craft.`,
-      `Canonical reference: Lyra (Orator AI) — instrument-driven silhouette, whole-performance gestures, SMIL bounce/blink, spectrogram ramp, grain+halo, ms-eyes + ms-signal-fan.`,
-      ``,
-      `CHARACTER BIBLE (obey this — do not redesign the silhouette):`,
-      JSON.stringify(bible, null, 2),
-      ``,
-      `User brief:`,
-      `Name: ${name}`,
-      `Description: ${description}`,
-      product ? `Product: ${product}` : null,
-      personality ? `Personality: ${personality}` : null,
-      ``,
-      `Gestures to author (keep keys/labels/cats/tips/uses exactly; set track/delight/signal; draw a COMPLETE production SVG each):`,
-      JSON.stringify(gestures, null, 2),
-      ``,
-      `Hard requirements:`,
-      `- 5 themes (primary + 4 alternates), plumage-only; ramp stays violet→amber family`,
-      `- Every SVG: ms-root, ms-hit, ms-glow-halo, ms-eyes, ms-signal-fan (7–9 pieces), click bounce on ms-hit, contact shadow, transparent bg`,
-      `- Theme paints use literal hex from themes.primary top/mid/base/core/features`,
-      `- Quality bar = Lyra, not emoji. Return one JSON pack.`,
-    ]
-      .filter((line) => line !== null)
-      .join("\n");
-
-    const packRun = await runMascotModel({
-      openai,
-      instructions: LYRA_CRAFT_SYSTEM_PROMPT,
-      input: packInput,
-      maxOutputTokens: 64000,
-      reasoningEffort: "high",
-    });
-
-    const parsed = parseJsonObject(packRun.text);
-    if (!looksLikePack(parsed)) {
-      return NextResponse.json(
-        {
-          error: "Model returned an incomplete mascot pack",
-          model: packRun.model,
-        },
-        { status: 502 }
-      );
-    }
-
-    const result = normalizeGeneratedMascot({ ...parsed, name }, gestures);
+    const result = normalizeGeneratedMascot(pack, gestures);
+    const model =
+      gestureResults[0]?._model ?? bibleRun.model;
 
     return NextResponse.json({
       ...result,
       _meta: {
-        model: packRun.model,
+        model,
         bibleModel: bibleRun.model,
-        craft: "lyra",
+        craft: "lyra-parallel",
+        elapsedMs: Date.now() - started,
       },
     });
   } catch (err) {
