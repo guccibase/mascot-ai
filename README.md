@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MascotAI
 
-## Getting Started
+Animated SVG mascot studios for web and mobile apps — the same craft as **Lyra**, **Sol**, **Bud**, and **Fanous**.
 
-First, run the development server:
+## Setup
 
 ```bash
+npm install
+cp .env.local.example .env.local   # add OPENAI_API_KEY
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Routes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `/` — landing + example gallery
+- `/studio/lyra` · `/studio/sol` · `/studio/bud` · `/studio/fanous` — interactive example studios
+- `/create` — describe a mascot, pick gestures, generate + download SVG
+- `POST /api/generate` — two-pass Lyra-craft generation via **GPT-5.6 Sol** (Responses API, high reasoning)
 
-## Learn More
+## Generation
 
-To learn more about Next.js, take a look at the following resources:
+1. Character bible (product metaphor + instrument anatomy)
+2. Full SVG studio pack in Lyra’s engineering style (`ms-eyes`, `ms-signal-fan`, SMIL bounce, spectrogram ramp)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Set in `.env.local`:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+OPENAI_API_KEY=sk-...
+OPENAI_MASCOT_MODEL=gpt-5.6-sol
+```
 
-## Deploy on Vercel
+If the OpenAI project lacks Sol access, the API automatically falls back to `gpt-5.5` → `gpt-5.4`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Notes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Example studios live in `src/components/mascots/` (ported from the original root JSX files).
+- Never commit `.env.local`.
