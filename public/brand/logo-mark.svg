@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none" role="img" aria-label="MascotAI">
+  <!-- Friendly AI mascot mark: gold character on transparent bg -->
+  <g transform="translate(64 70)">
+    <!-- Ears -->
+    <circle cx="-38" cy="-8" r="11" fill="#F5B34F"/>
+    <circle cx="38" cy="-8" r="11" fill="#F5B34F"/>
+    <!-- Head -->
+    <circle cx="0" cy="0" r="42" fill="#F5B34F"/>
+    <!-- Antenna -->
+    <line x1="0" y1="-42" x2="0" y2="-58" stroke="#F5B34F" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="0" cy="-62" r="6.5" fill="#F5B34F"/>
+    <!-- Eyes -->
+    <ellipse cx="-14" cy="-4" rx="11" ry="14" fill="#F7F3EA"/>
+    <ellipse cx="14" cy="-4" rx="11" ry="14" fill="#F7F3EA"/>
+    <circle cx="-14" cy="-2" r="5.5" fill="#12141C"/>
+    <circle cx="14" cy="-2" r="5.5" fill="#12141C"/>
+    <!-- Smile -->
+    <path d="M-12 14 Q0 24 12 14" stroke="#12141C" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+    <!-- AI sparkle -->
+    <path d="M28 -28 L30.2 -22.5 L36 -20.5 L30.2 -18.5 L28 -13 L25.8 -18.5 L20 -20.5 L25.8 -22.5 Z" fill="#F7F3EA"/>
+  </g>
+</svg>
