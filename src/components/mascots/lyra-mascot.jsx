@@ -2,25 +2,25 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 
 /* ============================================================
-   LYRA — the lyrebird. Mascot for Orator AI, a speech
+   LYRA, the lyrebird. Mascot for Orator AI, a speech
    coaching app.
 
-   Why a lyrebird: the animal kingdom's best vocal mimic — it
-   reproduces any sound it hears, which is what a communication
+   Why a lyrebird: it's the animal kingdom's best vocal mimic,
+   reproducing any sound it hears, which is what a communication
    coach does. The name nods to the lyre (rhetoric, music) and
    stays short and pronounceable across locales.
 
    The tail is an INSTRUMENT, not an illustration:
    · exactly NINE feather paths
-   · one 0–100 "delivery" input drives every feather's spread
+   · one 0 to 100 "delivery" input drives every feather's spread
      angle, length and colour
-   · colours come from ONE fixed spectrogram ramp — the same
+   · colours come from ONE fixed spectrogram ramp, the same
      ramp the product uses for every score, gauge and waveform
      (violet = flat delivery → amber = commanding delivery)
    · the score is spring-animated in JS each frame, so the fan
      sweeps smoothly with zero CSS-transform pitfalls
    · a nine-bar waveform strip under the stage renders from the
-     SAME computeFeathers() output — mascot and UI read one
+     SAME computeFeathers() output, so mascot and UI read one
      data source
 
    Engineering carried over from the other mascots:
@@ -50,7 +50,7 @@ const rgba = (c, a) => {
 };
 
 /* ============================================================
-   THE SPECTROGRAM RAMP — the product's single source of colour
+   THE SPECTROGRAM RAMP: the product's single source of colour
    truth. Flat delivery sits in violet; commanding delivery
    burns amber. Reuse rampColor() for every gauge & waveform.
    ============================================================ */
@@ -64,7 +64,7 @@ const rampColor = (score) => {
 const rampCSS = `linear-gradient(90deg, ${RAMP.join(", ")})`;
 
 /* ============================================================
-   THE TAIL — nine feathers, one input.
+   THE TAIL: nine feathers, one input.
    Feather i (0..8): spread angle, length and colour all derive
    from the animated score. Outer feathers (0 and 8) are the
    lyrebird's signature curled "lyre" pair.
@@ -81,7 +81,7 @@ function computeFeathers(score) {
     const magDroop = 180 - Math.abs(side) * 38;        // hanging limp past the mic
     const magSpread = Math.abs(side) * 94;             // proud display arc
     const angle = sgn * (magDroop + (magSpread - magDroop) * e);
-    /* inner plumes gather before they fan — and no feather ever
+    /* inner plumes gather before they fan, and no feather ever
        crosses to the other side, so the sweep stays symmetric */
     const gather = 1 - 0.45 * Math.pow(Math.sin(Math.PI * e), 2) * (1 - Math.abs(side));
     const outer = i === 0 || i === 8;
@@ -96,7 +96,7 @@ const plumeD = (L) =>
   `M0,0 C-5,${-L * 0.3} -6.2,${-L * 0.72} -1.8,${-L} ` +
   `C-0.6,${-L - 3} 0.6,${-L - 3} 1.8,${-L} ` +
   `C6.2,${-L * 0.72} 5,${-L * 0.3} 0,0 Z`;
-/* the signature curled lyre feather — an S that hooks inward */
+/* the signature curled lyre feather: an S that hooks inward */
 const lyreD = (L, dir) =>
   `M0,0 C${15 * dir},${-L * 0.26} ${19 * dir},${-L * 0.62} ${9 * dir},${-L * 0.86} ` +
   `C${3 * dir},${-L * 1.0} ${-7 * dir},${-L * 1.02} ${-12 * dir},${-L * 0.9}`;
@@ -204,7 +204,7 @@ const SVG_CSS = `
 `;
 
 /* ============================================================
-   GESTURE LIBRARY — 22 coaching performances
+   GESTURE LIBRARY: 22 coaching performances
    score: when set, selecting the gesture retargets the tail
    eq:    feathers pulse like a live equaliser
    ============================================================ */
@@ -212,7 +212,7 @@ const GESTURES = [
   /* ------------- core ------------- */
   {
     key: "idle", label: "Idle", cat: "Core", use: "Home · session start",
-    tip: "Perched and present — blinks, breathes, eyes follow your cursor. Tail sits at the live score.",
+    tip: "Perched and present. She blinks, breathes and follows your cursor while the tail holds the live score.",
     eyeL: "open", eyeR: "open", beak: "closed", track: true,
   },
   {
@@ -223,30 +223,30 @@ const GESTURES = [
   },
   {
     key: "analyzing", label: "Analyzing", cat: "Core", use: "Scoring your take",
-    tip: "Reading the take — gaze up, motes ticking while the model listens back.",
+    tip: "Gaze up, motes ticking while the model listens back to your take.",
     look: [4, -6],
     eyeL: "open", eyeR: "open", brow: "oneUp", beak: "closed", prop: "sparks",
   },
   {
     key: "mimic", label: "Mimic", cat: "Core", use: "Playback · demonstration",
-    tip: "Her superpower — she repeats your line: your waveform in grey, hers in amber, note-perfect.",
+    tip: "Her superpower. She repeats your line note-perfect: your waveform in grey, hers in amber.",
     eyeL: "arch", eyeR: "open", beak: "open", prop: "mimicFx",
   },
   {
     key: "record", label: "Recording", cat: "Core", use: "Take in progress",
-    tip: "Capturing — a red pulse above her, tail reading your voice live.",
+    tip: "A red pulse sits above her while the tail reads your voice live.",
     eq: true,
     eyeL: "open", eyeR: "open", beak: "closed", prop: "recDot",
   },
   {
     key: "ready", label: "Ready", cat: "Core", use: "Countdown to record",
-    tip: "Poised — three beats light up, then you're on.",
+    tip: "Poised. Three beats light up, then you're on.",
     bow: -2,
     eyeL: "open", eyeR: "open", beak: "closed", prop: "readyDots",
   },
   {
     key: "bravo", label: "Bravo", cat: "Core", use: "Nailed take",
-    tip: "Applause — wings meet, sparkles fly, and the tail snaps to full display.",
+    tip: "Wings meet and sparkles fly. The tail snaps to full display.",
     score: 100, wings: "clap",
     eyeL: "arch", eyeR: "arch", beak: "smile", prop: "clapFx",
   },
@@ -254,21 +254,21 @@ const GESTURES = [
   /* ------------- coaching ------------- */
   {
     key: "breathe", label: "Breathe", cat: "Coaching", use: "Pre-talk calm",
-    tip: "Box-breath pacing — a soft ring swells and settles around her; follow it.",
+    tip: "Box-breath pacing. A soft ring swells and settles around her; follow it.",
     eyeL: "arch", eyeR: "arch", beak: "closed", prop: "breathFx",
   },
   {
     key: "tempo", label: "Tempo", cat: "Coaching", use: "Pacing drill",
-    tip: "A metronome keeps the beat beside her — slow your cadence to the tick.",
+    tip: "A metronome keeps the beat beside her. Slow your cadence to the tick.",
     eyeL: "open", eyeR: "open", beak: "closed", look: [5, 0], prop: "metronome",
   },
   {
     key: "warmup", label: "Warm-up", cat: "Coaching", use: "Vocal scales",
-    tip: "Do–re–mi — beak parted, a ladder of notes climbing away.",
+    tip: "Do-re-mi. Beak parted, a ladder of notes climbing away.",
     eyeL: "arch", eyeR: "arch", beak: "open", prop: "scales",
   },
   {
-    key: "fillers", label: "Filler alert", cat: "Coaching", use: '"um" caught — gently',
+    key: "fillers", label: "Filler alert", cat: "Coaching", use: '"um" caught, gently',
     tip: "One brow up, a wing raised: pause instead. The dots hang where the um was.",
     wings: "raise",
     eyeL: "open", eyeR: "small", brow: "oneUp", beak: "closed", prop: "dots",
@@ -276,58 +276,58 @@ const GESTURES = [
 
   {
     key: "eyeContact", label: "Eye contact", cat: "Coaching", use: "Gaze drill",
-    tip: "Locked in — she holds your gaze inside the frame; hold hers back.",
+    tip: "She holds your gaze inside the frame. Hold hers back.",
     eyeL: "wide", eyeR: "wide", beak: "closed", prop: "gazeFrame",
   },
   {
-    key: "project", label: "Project", cat: "Coaching", use: "Louder — fill the room",
-    tip: "Crescendo — beak open, the wedge widens, arcs carry to the back row.",
+    key: "project", label: "Project", cat: "Coaching", use: "Louder, fill the room",
+    tip: "Beak wide open. The wedge widens and the arcs carry to the back row.",
     eyeL: "open", eyeR: "open", brow: "up", beak: "open", prop: "crescendo",
   },
   {
     key: "whisper", label: "Soften", cat: "Coaching", use: "Bring it down",
-    tip: "Almost a whisper — wing lifted to the beak, the smallest arcs.",
+    tip: "Wing lifted to the beak, the arcs at their smallest. Almost a whisper.",
     eyeL: "arch", eyeR: "open", beak: "closed", prop: "hush",
   },
   {
     key: "pause", label: "The pause", cat: "Coaching", use: "Hold the beat",
-    tip: "Say nothing — one suspended beat breathing above her, then the reward.",
+    tip: "Say nothing. One suspended beat breathes above her, then the reward.",
     wings: "raise",
     eyeL: "sleep", eyeR: "sleep", beak: "closed", prop: "holdBeat",
   },
   {
     key: "timesUp", label: "Time's up", cat: "Coaching", use: "Pitch timer done",
-    tip: "Wrap it — the clock hits twelve, two urgent ticks, eyes a touch wide.",
+    tip: "Wrap it up. Clock hits twelve, two urgent ticks, eyes a touch wide.",
     eyeL: "wide", eyeR: "wide", brow: "up", beak: "closed", look: [5, -2], prop: "clockUp",
   },
 
   /* ------------- moods ------------- */
   {
     key: "proud", label: "Proud", cat: "Moods", use: "Personal best",
-    tip: "Full lyre display — chin up, tail wide and amber, tips sparkling.",
+    tip: "Chin up, tail wide and amber, tips sparkling. The full lyre display.",
     score: 96, bow: -4,
     eyeL: "arch", eyeR: "arch", beak: "smile", prop: "tipSpark",
   },
   {
     key: "powerPose", label: "Power pose", cat: "Moods", use: "Confidence builder",
-    tip: "Wings on hips, chin up, tail at 85 — two minutes of this before you walk on.",
+    tip: "Wings on hips, chin up, tail at 85. Two minutes of this before you walk on.",
     score: 85, bow: -5, wings: "hips",
     eyeL: "arch", eyeR: "arch", beak: "smile",
   },
   {
     key: "milestone", label: "Milestone", cat: "Moods", use: "Streak · level up",
-    tip: "Confetti in ramp colours and a full display — the big one.",
+    tip: "Confetti in ramp colours over a full display. This is the big one.",
     score: 100, wings: "clap",
     eyeL: "arch", eyeR: "arch", beak: "smile", prop: "confetti",
   },
   {
     key: "encourage", label: "Encourage", cat: "Moods", use: "Mid-streak nudge",
-    tip: "A wing extended to you — warm eyes, you've got this.",
+    tip: "A wing extended toward you, warm eyes. You've got this.",
     wings: "point",
     eyeL: "arch", eyeR: "open", beak: "smile", prop: "heart",
   },
   {
-    key: "oops", label: "Oops", cat: "Moods", use: "Rough take — kindly",
+    key: "oops", label: "Oops", cat: "Moods", use: "Rough take, kindly",
     tip: "Tail settles to violet, one bead of sweat. Coaching, never shaming.",
     score: 16,
     eyeL: "sad", eyeR: "sad", brow: "sad", beak: "frown", prop: "sweat",
@@ -465,7 +465,7 @@ function Props({ g, p, score }) {
         </g>
       );
     case "mimicFx":
-      /* your line in grey — her repeat in ramp-amber, same shape */
+      /* your line in grey, her repeat in ramp-amber, same shape */
       return (
         <g strokeLinecap="round" fill="none">
           <path className="lv-tick" d="M232,286 Q240,296 232,306" stroke={warm} strokeWidth="4" />
@@ -663,12 +663,12 @@ function LyraSVG({ p, glow, paused, gesture, score, svgRef, eyesRef }) {
       viewBox="0 0 420 520"
       width="100%"
       role="img"
-      aria-label={`Lyra the lyrebird — ${g.label}, delivery ${Math.round(score)}`}
+      aria-label={`Lyra the lyrebird: ${g.label}, delivery ${Math.round(score)}`}
       className={`lv-svg lv-g-${gesture}`}
       style={{ "--g": glow, cursor: "pointer" }}
       {...(paused ? { "data-paused": "1" } : {})}
     >
-      <title>Lyra — Orator AI's lyrebird coach</title>
+      <title>Lyra, the lyrebird coach for Orator AI</title>
       <style>{SVG_CSS}</style>
 
       <defs>
@@ -705,7 +705,7 @@ function LyraSVG({ p, glow, paused, gesture, score, svgRef, eyesRef }) {
           <g transform={`rotate(${g.bow || 0})`}>
             <g transform="translate(-210,-492)">
               <g id="lv-hit" filter="url(#lv-grain)">
-                {/* halo — tinted by the live score */}
+                {/* halo, tinted by the live score */}
                 <ellipse className="lv-glow" cx="210" cy="300" rx="150" ry="140"
                   fill="url(#lv-glowG)" />
 
@@ -851,6 +851,33 @@ const SPARK_PATHS = {
 };
 
 /* ============================================================
+   POSE SOURCE
+   Lets the build snapshot every pose exactly as the studio draws
+   it at its defaults, so the remix pipeline edits real markup
+   instead of guessing at it. Read by scripts, never by the app.
+   ============================================================ */
+export const POSE_SOURCE = {
+  slug: "lyra",
+  poses: GESTURES.map((g) => ({
+    key: g.key,
+    label: g.label,
+    cat: g.cat,
+    tip: g.tip,
+    use: g.use,
+    track: !!g.track,
+    signal: g.score ?? 68,
+  })),
+  renderPose: (key) => (
+    <LyraSVG
+      p={derive(THEMES.slate)}
+      glow={0.4}
+      gesture={key}
+      score={byKey(key).score ?? 68}
+    />
+  ),
+};
+
+/* ============================================================
    STUDIO SHELL
    ============================================================ */
 export default function LyraStudio() {
@@ -863,7 +890,6 @@ export default function LyraStudio() {
   const [score, setScore] = useState(68);
   const sAnim = useAnimatedNumber(score);
   const [sparks, setSparks] = useState([]);
-  const [copied, setCopied] = useState(false);
   const svgRef = useRef(null);
   const eyesRef = useRef(null);
   const timers = useRef([]);
@@ -909,7 +935,7 @@ export default function LyraStudio() {
     if (eyesRef.current) eyesRef.current.style.transform = "translate(0,0)";
   }, [gesture]);
 
-  /* tap burst — notes & sparks in ramp colours */
+  /* tap burst: notes & sparks in ramp colours */
   const delight = useCallback(() => {
     const burst = Array.from({ length: 12 }, (_, i) => {
       const a = (i / 12) * Math.PI * 2 + Math.random() * 0.5;
@@ -933,37 +959,6 @@ export default function LyraStudio() {
     return () => clearInterval(iv);
   }, [gesture, paused, delight]);
 
-  /* export */
-  const buildExport = useCallback(() => {
-    const node = svgRef.current.cloneNode(true);
-    node.setAttribute("class", `lv-svg lv-g-${gesture}`);
-    node.setAttribute("width", "420");
-    node.setAttribute("height", "520");
-    node.removeAttribute("data-paused");
-    const eyes = node.querySelector(".lv-eyes");
-    if (eyes) eyes.style.transform = "";
-    return '<?xml version="1.0" encoding="UTF-8"?>\n' +
-      new XMLSerializer().serializeToString(node);
-  }, [gesture]);
-
-  const downloadSVG = useCallback(() => {
-    const blob = new Blob([buildExport()], { type: "image/svg+xml" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `lyra-${gesture}-${Math.round(score)}.svg`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [buildExport, gesture, score]);
-
-  const copySVG = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(buildExport());
-      setCopied(true);
-      later(() => setCopied(false), 1400);
-    } catch (e) { /* clipboard unavailable */ }
-  }, [buildExport]);
-
   const zone = score < 34 ? "Flat" : score < 67 ? "Building" : "Commanding";
   const swatchBg = (t) =>
     `linear-gradient(135deg, ${t.body} 0 62%, ${t.breast} 62% 82%, ${t.mic} 82% 100%)`;
@@ -972,7 +967,7 @@ export default function LyraStudio() {
     <div className="ly-root">
       <style>{SHELL_CSS}</style>
 
-      <header className="max-w-6xl mx-auto px-5 pt-8 pb-2 flex items-center gap-4">
+      <header className="max-w-6xl mx-auto px-5 pt-4 pb-2 flex items-center gap-4 sm:pt-6">
         <div style={{
           width: 52, height: 52, borderRadius: 16, background: rgba(AMBER, 0.13),
           border: `1px solid ${rgba(AMBER, 0.4)}`, display: "grid", placeItems: "center",
@@ -991,7 +986,7 @@ export default function LyraStudio() {
             Lyra <span style={{ color: AMBER }}>·</span> Orator AI
           </h1>
           <p style={{ fontSize: 13, color: "#B5AC9A" }}>
-            The lyrebird speech coach — her tail is the product's waveform
+            The lyrebird speech coach. Her tail is the product's waveform
           </p>
         </div>
       </header>
@@ -1046,8 +1041,8 @@ export default function LyraStudio() {
           </div>
 
           <p style={{ fontSize: 12.5, color: "#B5AC9A", textAlign: "center" }}>
-            drag Delivery — the tail and the strip read the same nine values &nbsp;·&nbsp;
-            tap — bounce &amp; notes &nbsp;·&nbsp; her eyes follow your cursor
+            drag Delivery: the tail and the strip read the same nine values &nbsp;·&nbsp;
+            tap for a bounce &amp; notes &nbsp;·&nbsp; her eyes follow your cursor
           </p>
         </section>
 
@@ -1068,7 +1063,7 @@ export default function LyraStudio() {
               <span>Flat · violet</span><span>Building</span><span>Commanding · amber</span>
             </div>
             <p style={{ fontSize: 11.5, color: "#8D8472", marginTop: 7, lineHeight: 1.5 }}>
-              One 0–100 input drives all nine feathers' spread, length and colour — on the same
+              One 0 to 100 input drives all nine feathers' spread, length and colour. Same
               spectrogram ramp as every score, gauge and waveform in Orator.
             </p>
           </div>
@@ -1111,7 +1106,7 @@ export default function LyraStudio() {
 
           <div>
             <div className="ly-eyebrow mb-3">Theme <span style={{ color: "#8D8472",
-              textTransform: "none", letterSpacing: 0 }}>— plumage only; the ramp is brand-fixed</span></div>
+              textTransform: "none", letterSpacing: 0 }}>(plumage only; the ramp is brand-fixed)</span></div>
             <div className="flex flex-wrap gap-2 items-center">
               {Object.entries(THEMES).map(([k, t]) => (
                 <button key={k} title={t.name}
@@ -1161,15 +1156,8 @@ export default function LyraStudio() {
             </button>
           </div>
 
-          <div className="flex gap-3">
-            <button className="ly-btn flex-1" onClick={downloadSVG}>Download SVG</button>
-            <button className="ly-btn ghost flex-1" onClick={copySVG}>
-              {copied ? "Copied ✓" : "Copy SVG code"}
-            </button>
-          </div>
           <p style={{ fontSize: 11.5, color: "#8D8472", lineHeight: 1.5 }}>
-            Exports the selected pose at the current delivery score — the filename carries both,
-            one file per app state.
+            Examples are for browsing. Build your own to download and export.
           </p>
         </section>
       </main>
