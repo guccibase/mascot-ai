@@ -2,13 +2,13 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 
 /* ============================================================
-   FANOUS — animated lantern mascot studio for an Islamic app
-   v3 — traced 1:1 against the reference artwork
+   FANOUS: animated lantern mascot studio for an Islamic app
+   v3, traced 1:1 against the reference artwork
    • Resting face IS the artwork's wink; smooth bell dome;
      chunky mitten arms tucked behind the body; stadium rings
    • All shape-critical animations are SMIL (<animateTransform>)
      so they render identically in every browser AND inside the
-     exported .svg — no CSS transform-origin traps
+     exported .svg, with no CSS transform-origin traps
    • Idle: float, blink, arm sway, glow pulse, ground shadow
      Hover: wave · Tap: grin + squash-bounce + wave burst
      (tap even works inside the exported SVG when inlined)
@@ -154,12 +154,12 @@ const Band = ({ x, y, w, h, p, depth }) => (
      smile a touch right of center
    ============================================================ */
 /* ============================================================
-   GESTURE LIBRARY — 30 poses
+   GESTURE LIBRARY: 30 poses
    Every pose is a whole performance: arms, eyes, brows, mouth,
    gaze, posture, glow, face tint and a prop.
 
    SHOULDERS. The artwork's own arms sit at different heights
-   (L y331, R y303) because one is up and one is down — that
+   (L y331, R y303) because one is up and one is down. That
    asymmetry is why mirrored poses used to come out uneven.
    So only `idle` uses the traced pivots; every other pose uses
    a symmetric pair and mirrors one path onto the other, which
@@ -188,19 +188,19 @@ const GESTURES = [
   /* ---------------- core ---------------- */
   {
     key: "idle", label: "Idle", cat: "Core", use: "Home screen", art: true,
-    tip: "Resting companion — floats, blinks, sways, follows your cursor.",
+    tip: "Resting companion. He floats, blinks, sways and follows your cursor.",
     armL: "M0,0 Q-46.4,-35.7 -58.8,-47.6", armR: "M0,0 Q34.8,51.3 34.3,45.8",
     eyeL: "arch", eyeR: "open", mouth: "smile", track: true,
   },
   {
     key: "wave", label: "Wave", cat: "Core", use: "Hello · goodbye",
-    tip: "Waving — one palm up and flapping, the other resting.",
+    tip: "One palm up and flapping, the other resting.",
     armL: A.raise, armR: A.down, wave: true,
     eyeL: "arch", eyeR: "open", mouth: "smile",
   },
   {
     key: "happy", label: "Happy", cat: "Core", use: "Good news",
-    tip: "Plain contentment — both eyes creased shut, an easy grin.",
+    tip: "Both eyes creased shut and an easy grin. Plain contentment.",
     armL: A.down, armR: mir(A.down),
     eyeL: "arch", eyeR: "arch", mouth: "grin",
   },
@@ -222,68 +222,68 @@ const GESTURES = [
   /* ---------------- prayer ---------------- */
   {
     key: "salaam", label: "Salaam", cat: "Prayer", use: "App open · onboarding",
-    tip: "Greeting — palm raised, eyes softly closed, a respectful bow.",
+    tip: "He raises a palm, closes his eyes and bows.",
     armL: A.raise, armR: mir(A.down),
     eyeL: "arch", eyeR: "arch", mouth: "smile", bow: 6,
   },
   {
     key: "dua", label: "Dua", cat: "Prayer", use: "After a prayer is logged",
-    tip: "Supplication — both palms raised dead level, eyes closed, light rising.",
+    tip: "With both palms raised dead level and his eyes closed, the light rises.",
     armL: A.upWide, armR: mir(A.upWide),
     eyeL: "arch", eyeR: "arch", mouth: "serene", prop: "rays",
   },
   {
     key: "adhan", label: "Adhan", cat: "Prayer", use: "Prayer time alert",
-    tip: "The alert — eyes wide, mouth open, the bell ringing out as he rocks.",
+    tip: "He rocks as the bell rings out, mouth open, eyes wide.",
     armL: A.out, armR: mir(A.out),
     eyeL: "wide", eyeR: "wide", brow: "up", mouth: "o", prop: "rings", sway: true,
   },
   {
     key: "calling", label: "Call to prayer", cat: "Prayer", use: "Muezzin · adhan playing",
-    tip: "Calling out — hands cupped either side of the mouth, voice carrying.",
+    tip: "Hands cupped either side of the mouth, voice carrying.",
     armL: A.tuck, armR: mir(A.tuck),
     eyeL: "arch", eyeR: "arch", brow: "up", mouth: "open", prop: "call",
   },
   {
     key: "qibla", label: "Qibla", cat: "Prayer", use: "Compass screen",
-    tip: "Pointing the way — brows set, eyes cut to the arrow.",
+    tip: "Brows set, eyes cut to the arrow. He's pointing the way.",
     armL: A.down, armR: mir(A.out),
     eyeL: "focus", eyeR: "focus", brow: "focus", mouth: "flat",
     look: [5, 0], prop: "arrow",
   },
   {
     key: "guiding", label: "Guiding", cat: "Prayer", use: "Tutorial · next step",
-    tip: "Come this way — open palm, warm face, a soft trail of arcs.",
+    tip: "Come this way. Open palm, warm face, a soft trail of arcs.",
     armL: A.down, armR: mir(A.out),
     eyeL: "arch", eyeR: "open", mouth: "smile", look: [4, 0], prop: "beckon",
   },
   {
     key: "recite", label: "Recite", cat: "Prayer", use: "Quran · adhkar",
-    tip: "Reading — an open mushaf held up, eyes down on the page.",
+    tip: "He holds an open mushaf up, eyes down on the page.",
     armL: A.tuck, armR: mir(A.tuck),
     eyeL: "open", eyeR: "open", mouth: "serene", look: [0, 7], prop: "book",
   },
   {
     key: "dhikr", label: "Dhikr", cat: "Prayer", use: "Tasbih counter",
-    tip: "Remembrance — tasbih beads turning, eyes closed, quiet mouth.",
+    tip: "Tasbih beads turning, eyes closed, mouth quiet.",
     armL: A.tuck, armR: mir(A.tuck),
     eyeL: "arch", eyeR: "arch", mouth: "serene", prop: "beads",
   },
   {
     key: "shahada", label: "Shahada", cat: "Prayer", use: "Testimony · revert flow",
-    tip: "The testimony — index finger raised, serene face, glow lifted.",
+    tip: "Index finger raised for the testimony, face serene, glow lifted.",
     armL: A.down, armR: mir(A.upNarrow), finger: "index", fingerAt: [28, -70],
     eyeL: "arch", eyeR: "arch", mouth: "serene",
   },
   {
     key: "fasting", label: "Fasting", cat: "Prayer", use: "Ramadan · sawm",
-    tip: "Fasting — hands folded, mouth closed, crescent overhead, light banked.",
+    tip: "Hands folded and mouth closed. Crescent overhead, light banked.",
     armL: A.tuck, armR: mir(A.tuck),
     eyeL: "arch", eyeR: "arch", mouth: "tiny", prop: "fast",
   },
   {
     key: "eid", label: "Eid", cat: "Prayer", use: "Eid al-Fitr · Eid al-Adha",
-    tip: "Eid — a festival lantern in hand, crescent above, confetti down.",
+    tip: "A festival lantern in hand, crescent above, confetti coming down.",
     armL: A.upWide, armR: mir(A.tuck),
     eyeL: "arch", eyeR: "arch", mouth: "bigGrin", prop: "eid",
   },
@@ -291,72 +291,72 @@ const GESTURES = [
   /* ---------------- positive ---------------- */
   {
     key: "praise", label: "Well done", cat: "Positive", use: "Streak kept · goal met",
-    tip: "Applause — both mittens clapping, impact lines flying.",
+    tip: "Both mittens clapping, impact lines flying.",
     armL: A.tuck, armR: mir(A.tuck),
     eyeL: "arch", eyeR: "arch", mouth: "grin", prop: "clap",
   },
   {
     key: "thumbsup", label: "Thumbs up", cat: "Positive", use: "Approval · confirm",
-    tip: "Approval — a closed fist with a short, fat thumb up. Reads as a thumb, nothing else.",
+    tip: "A closed fist with a short, fat thumb up. Reads as a thumb, nothing else.",
     armL: A.down, armR: mir(A.upNarrow), finger: "thumb", fingerAt: [28, -70],
     eyeL: "arch", eyeR: "open", mouth: "grin",
   },
   {
     key: "celebrate", label: "Celebrate", cat: "Positive", use: "Milestones",
-    tip: "Celebration — arms flung wide, confetti falling, sparkles.",
+    tip: "Arms flung wide, confetti falling, sparkles everywhere.",
     armL: A.upWide, armR: mir(A.upWide),
     eyeL: "arch", eyeR: "arch", mouth: "bigGrin", prop: "confetti",
   },
   {
     key: "overjoyed", label: "Overjoyed", cat: "Positive", use: "Big win · perfect week",
-    tip: "Elation — star eyes, arms up high, bursting on the spot.",
+    tip: "Star eyes, arms up high, bursting on the spot.",
     armL: A.upHigh, armR: mir(A.upHigh),
     eyeL: "star", eyeR: "star", mouth: "bigGrin", prop: "burst",
   },
   {
     key: "grateful", label: "Grateful", cat: "Positive", use: "Thanks · shukr",
-    tip: "Gratitude — heart eyes, hands held to the chest, a heart lifting away.",
+    tip: "Heart eyes and hands held to the chest, with a heart lifting away.",
     armL: A.tuck, armR: mir(A.tuck),
     eyeL: "heart", eyeR: "heart", mouth: "serene", prop: "heart",
   },
   {
     key: "charity", label: "Charity", cat: "Positive", use: "Sadaqah · donate",
-    tip: "Giving — a coin offered on an open palm.",
+    tip: "He offers a coin on an open palm.",
     armL: A.down, armR: mir(A.out),
     eyeL: "arch", eyeR: "open", mouth: "smile", prop: "coin",
   },
 
   /* ---------------- negative ---------------- */
   {
-    key: "sad", label: "Sad", cat: "Negative", use: "Missed prayer — gently",
-    tip: "Sorry — brows peaked, frown, arms limp, one tear. Never shaming.",
+    key: "sad", label: "Sad", cat: "Negative", use: "Missed prayer, gently",
+    tip: "Brows peaked, a frown, arms limp, one tear. Never shaming.",
     armL: A.limp, armR: mir(A.limp),
     eyeL: "sad", eyeR: "sad", brow: "sad", mouth: "frown", prop: "tear",
   },
   {
     key: "angry", label: "Angry", cat: "Negative", use: "Warning · blocked",
-    tip: "Anger — brows driven down, teeth gritted, vein popping, steam off the top.",
+    tip: "Brows driven down, teeth gritted, vein popping, steam off the top.",
     armL: A.outLow, armR: mir(A.outLow), shake: true,
     eyeL: "glare", eyeR: "glare", brow: "angry", mouth: "gritted", prop: "steam",
     tint: "#E0584A", tintO: 0.22,
   },
   {
     key: "pale", label: "Pale", cat: "Negative", use: "Unwell · sync failed",
-    tip: "Gone pale — hollow eyes, wobbling mouth, cold sweat, colour drained.",
+    tip: "Gone pale. Hollow eyes, wobbling mouth, cold sweat, all the colour drained.",
     armL: A.limp, armR: mir(A.limp), drain: "pale", hatch: true,
     eyeL: "pin", eyeR: "pin", brow: "sad", mouth: "wobble",
     prop: "sweat", tint: "#8FB4D6", tintO: 0.3,
   },
   {
     key: "dying", label: "Dying", cat: "Negative", use: "Battery dead · offline",
-    tip: "The light going out — X eyes, slack jaw, grey, one wisp of smoke.",
+    tip: "The light is going out. X eyes, slack jaw, grey, one wisp of smoke.",
     armL: A.limp, armR: mir(A.limp), drain: "dead", bow: 7,
     eyeL: "xx", eyeR: "xx", mouth: "dead",
     prop: "dead", tint: "#8E9AA8", tintO: 0.34,
   },
   {
     key: "sleep", label: "Sleep", cat: "Negative", use: "Isha → Fajr",
-    tip: "Asleep — lids down, breathing slowed, glow banked, Zzz drifting.",
+    tip: "Lids down, breathing slowed, glow banked, a Zzz drifting off.",
     armL: A.limp, armR: mir(A.limp),
     eyeL: "sleep", eyeR: "sleep", mouth: "tiny", prop: "zzz",
   },
@@ -364,19 +364,19 @@ const GESTURES = [
   /* ---------------- action ---------------- */
   {
     key: "writing", label: "Writing", cat: "Action", use: "Journal · notes",
-    tip: "Writing — pen to the pad, eyes down on the line.",
+    tip: "Pen to the pad, eyes down on the line.",
     armL: A.tuck, armR: mir(A.tuck),
     eyeL: "open", eyeR: "open", mouth: "serene", look: [0, 7], prop: "pen",
   },
   {
     key: "focused", label: "Focused", cat: "Action", use: "Deep work · streak",
-    tip: "Locked in — narrowed eyes, level brows, one bead of sweat.",
+    tip: "Locked in. Narrowed eyes, level brows, one bead of sweat.",
     armL: A.tuck, armR: mir(A.tuck),
     eyeL: "focus", eyeR: "focus", brow: "focus", mouth: "flat", prop: "focusFx",
   },
   {
     key: "announce", label: "Announce", cat: "Action", use: "Updates · new feature",
-    tip: "Announcement — megaphone up, mouth wide, words carrying.",
+    tip: "Megaphone up, mouth wide, words carrying.",
     armL: A.down, armR: mir(A.tuck),
     eyeL: "arch", eyeR: "open", brow: "up", mouth: "open", prop: "mega",
   },
@@ -392,7 +392,7 @@ function Eye({ kind, x, p, dOnly, side }) {
   const line = { fill: "none", stroke: p.features, strokeWidth: 10, strokeLinecap: "round" };
   const at = `translate(${x},${EYE_Y})`;
   const s = side === "L" ? 1 : -1;   /* so lids/glares mirror correctly */
-  /* closed & happy — the artwork's own wink arch */
+  /* closed & happy: the artwork's own wink arch */
   if (kind === "arch") return <path d="M-17.9,4.5 Q0.5,-17.1 17.8,4.3" transform={at} {...line} />;
   if (kind === "sleep") return <path d="M-17.9,-5 Q0.5,16.5 17.8,-5" transform={at} {...line} />;
   if (kind === "star")
@@ -421,7 +421,7 @@ function Eye({ kind, x, p, dOnly, side }) {
     return (
       <g transform={at}>
         <ellipse cx="0" cy="0" rx="11.8" ry="17.7" fill={p.features} />
-        {/* heavy lid driving inward — the anger read */}
+        {/* heavy lid driving inward: the anger read */}
         <path d={`M${-17 * s},-16 L${16 * s},-5`} stroke={p.face} strokeWidth="15" strokeLinecap="round" />
       </g>
     );
@@ -468,7 +468,7 @@ function Mouth({ kind, p }) {
   if (kind === "smile")
     return (
       <>
-        {/* the artwork's smile — swaps to a grin on tap */}
+        {/* the artwork's smile, swapped for a grin on tap */}
         <path d="M185.7,294.2 Q210,320.5 234.3,294.5" {...s}>
           <animate attributeName="opacity" values="1;0;0;1" keyTimes="0;0.05;0.88;1"
             begin="lm-hit.click" dur="1s" fill="remove" />
@@ -664,7 +664,7 @@ function Props({ g, p }) {
         </g>
       );
     case "clap":
-      /* both mittens meeting — no finger anywhere near this */
+      /* both mittens meeting, no finger anywhere near this */
       return (
         <g>
           <FrontArm d="M110,350 Q150,382 190,382" p={p} />
@@ -718,7 +718,7 @@ function Props({ g, p }) {
     case "steam":
       return (
         <g>
-          {/* anger vein — the manga mark, unmistakable */}
+          {/* anger vein: the manga mark, unmistakable */}
           <g stroke="#E05B4A" strokeWidth="5" strokeLinecap="round" fill="none" className="lm-throb">
             <path d="M139,222 L149,232 L139,242" /><path d="M155,222 L165,232 L155,242" />
           </g>
@@ -810,7 +810,7 @@ function Props({ g, p }) {
             stroke={p.features} strokeWidth="3.5" strokeLinecap="round" opacity=".85" />
           {/* left mitten steadies the pad */}
           <FrontArm d="M114,362 Q134,380 150,380" p={p} />
-          {/* pen: gold barrel, dark nib, cap ring — scribbling on the third line */}
+          {/* pen: gold barrel, dark nib, cap ring, scribbling on the third line */}
           <g className="lm-write">
             <path d="M252,390 L284,346" stroke={acc} strokeWidth="13" strokeLinecap="round" />
             <path d="M252,390 L258,378 L266,384 Z" fill={p.features} />
@@ -845,7 +845,7 @@ function Props({ g, p }) {
 function Hand({ kind, at = [0, 0], p }) {
   const [x, y] = at;
   if (kind === "index")
-    /* shahada — round fist, one slender index rising off its leading edge */
+    /* shahada: round fist, one slender index rising off its leading edge */
     return (
       <g transform={`translate(${x},${y})`}>
         <circle cx="0" cy="0" r="17.5" fill={p.body} />
@@ -853,7 +853,7 @@ function Hand({ kind, at = [0, 0], p }) {
           strokeWidth="12.5" strokeLinecap="round" />
       </g>
     );
-  /* thumbs-up — knuckles as a horizontal slab, one short fat thumb off the corner */
+  /* thumbs-up: knuckles as a horizontal slab, one short fat thumb off the corner */
   return (
     <g transform={`translate(${x},${y}) rotate(-12)`}>
       <rect x="-20" y="-13" width="41" height="28" rx="13" fill={p.body} />
@@ -880,12 +880,12 @@ function LanternSVG({ p, glow, paused, waving, depth, gesture, svgRef, eyesRef }
       viewBox="0 0 420 520"
       width="100%"
       role="img"
-      aria-label={`Fanous the lantern mascot — ${g.label}`}
+      aria-label={`Fanous the lantern mascot: ${g.label}`}
       className={`lm-svg lm-g-${gesture} ${isWaving ? "lm-wave-on" : ""}`}
       style={{ "--g": glow, cursor: "pointer" }}
       {...(paused ? { "data-paused": "1" } : {})}
     >
-      <title>Fanous — lantern mascot</title>
+      <title>Fanous, the lantern mascot</title>
       <style>{SVG_CSS}</style>
 
       <defs>
@@ -950,7 +950,7 @@ function LanternSVG({ p, glow, paused, waving, depth, gesture, svgRef, eyesRef }
         </clipPath>
       </defs>
 
-      {/* ground shadow — squashes via SMIL around its own centre */}
+      {/* ground shadow, squashed via SMIL around its own centre */}
       <g transform="translate(210,452)">
         <ellipse className="lm-shadowO" cx="0" cy="0" rx="104" ry="10" fill="#000000">
           <animateTransform attributeName="transform" type="scale" additive="sum"
@@ -984,7 +984,7 @@ function LanternSVG({ p, glow, paused, waving, depth, gesture, svgRef, eyesRef }
               {/* halo of light */}
               <ellipse className="lm-glow" cx="210" cy="280" rx="122" ry="96" fill="url(#lm-glowG)" />
 
-              {/* mitten arms — symmetric shoulders so mirrored poses come out
+              {/* mitten arms use symmetric shoulders so mirrored poses come out
                   dead level and equal length; only `idle` keeps the artwork's
                   traced uneven pivots (its arms are meant to differ) */}
               <g transform={`translate(${(g.art ? SH_L_ART : SH_L).join(",")})`}>
@@ -1013,12 +1013,12 @@ function LanternSVG({ p, glow, paused, waving, depth, gesture, svgRef, eyesRef }
                 )}
               </g>
 
-              {/* flared base — straight trumpet sides, exactly as drawn */}
+              {/* flared base: straight trumpet sides, exactly as drawn */}
               <path d="M127.4,396.3 L292.6,396.3 L315.5,442.2 L104.5,442.2 Z"
                 fill={depth ? "url(#lm-baseG)" : p.body} />
               <path d="M135,400 L143,400 L129,438 L121,438 Z" fill="#ffffff" opacity=".1" style={dOnly} />
 
-              {/* body — barrel curve: swells at the belly, tucks into the waist */}
+              {/* body barrel curve: swells at the belly, tucks into the waist */}
               <path d="M107,190.1 L313,190.1 C316,261.8 334,268.4 334,320.5 C334,349.9 299.1,353.1 293.1,385.7 L126.9,385.7 C120.9,353.1 86,349.9 86,320.5 C86,268.4 104,261.8 107,190.1 Z"
                 fill={depth ? "url(#lm-bodyG)" : p.body} />
               <rect x="107" y="190" width="206" height="13" fill="url(#lm-aoG)" style={dOnly} />
@@ -1043,7 +1043,7 @@ function LanternSVG({ p, glow, paused, waving, depth, gesture, svgRef, eyesRef }
                   </g>
                 )}
 
-                {/* expression — the group tracks the cursor; gaze is per gesture */}
+                {/* expression: the group tracks the cursor; gaze is per gesture */}
                 <g className="lm-eyes" ref={eyesRef}>
                   <g key={g.key} className="lm-pop" transform={`translate(${look[0]},${look[1]})`}>
                     <Brows kind={g.brow} p={p} />
@@ -1059,12 +1059,12 @@ function LanternSVG({ p, glow, paused, waving, depth, gesture, svgRef, eyesRef }
                   transform="rotate(-14 163 231)" style={dOnly} />
               </g>
 
-              {/* waist ring — the thinnest, capping the body/base seam */}
+              {/* waist ring: the thinnest, capping the body/base seam */}
               <Band x={125.2} y={377.7} w={169.2} h={17.6} p={p} depth={depth} />
-              {/* foot ring — the widest and tallest */}
+              {/* foot ring: the widest and tallest */}
               <Band x={101.4} y={436.2} w={217.3} h={23.8} p={p} depth={depth} />
 
-              {/* ogee bell — flares at the rim, sweeps into a narrow neck */}
+              {/* ogee bell: flares at the rim, sweeps into a narrow neck */}
               <path d="M114.8,171.9 C114.8,137.2 200.9,94.3 200.9,91.2 L219.1,91.2 C219.1,94.3 305.2,137.2 305.2,171.9 Z"
                 fill={depth ? "url(#lm-bodyG)" : p.body} />
               <g clipPath="url(#lm-domeclip)" style={dOnly}>
@@ -1072,7 +1072,7 @@ function LanternSVG({ p, glow, paused, waving, depth, gesture, svgRef, eyesRef }
                 <ellipse className="lm-gleam" cx="210" cy="140" rx="11" ry="30" fill="#ffffff" opacity="0" />
               </g>
 
-              {/* collar ring — overhangs the bell and body */}
+              {/* collar ring overhangs the bell and body */}
               <Band x={98.3} y={172.4} w={223.5} h={21.7} p={p} depth={depth} />
 
               {/* finial ball capping the neck */}
@@ -1101,6 +1101,34 @@ const SPARK_PATHS = {
 };
 
 /* ============================================================
+   POSE SOURCE
+   Lets the build snapshot every pose exactly as the studio draws
+   it at its defaults, so the remix pipeline edits real markup
+   instead of guessing at it. Read by scripts, never by the app.
+   ============================================================ */
+export const POSE_SOURCE = {
+  slug: "fanous",
+  poses: GESTURES.map((g) => ({
+    key: g.key,
+    label: g.label,
+    cat: g.cat,
+    tip: g.tip,
+    use: g.use,
+    track: !!g.track,
+    signal: 62,
+  })),
+  renderPose: (key) => (
+    <LanternSVG
+      p={derive(THEMES.teal)}
+      glow={0.4}
+      waving={false}
+      depth={false}
+      gesture={key}
+    />
+  ),
+};
+
+/* ============================================================
    STUDIO SHELL
    ============================================================ */
 export default function FanousStudio() {
@@ -1112,7 +1140,6 @@ export default function FanousStudio() {
   const [transparent, setTransparent] = useState(true);
   const [waving, setWaving] = useState(false);
   const [sparks, setSparks] = useState([]);
-  const [copied, setCopied] = useState(false);
   const [gesture, setGesture] = useState("idle");
 
   const svgRef = useRef(null);
@@ -1190,43 +1217,6 @@ export default function FanousStudio() {
     return () => clearInterval(iv);
   }, [gesture, paused, delight]);
 
-  /* ---- export: serialize the live SVG (styles + SMIL travel with it) ---- */
-  const buildExport = useCallback(() => {
-    const node = svgRef.current.cloneNode(true);
-    node.setAttribute("class", `lm-svg lm-g-${gesture}`);
-    node.setAttribute("width", "420");
-    node.setAttribute("height", "520");
-    node.removeAttribute("data-paused");
-    const eyes = node.querySelector(".lm-eyes");
-    if (eyes) eyes.style.transform = "";
-    const armAnim = node.querySelector("#lm-armAnim");
-    if (armAnim) { armAnim.setAttribute("values", "-3;3;-3"); armAnim.setAttribute("dur", "3.6s"); }
-    return '<?xml version="1.0" encoding="UTF-8"?>\n' +
-      new XMLSerializer().serializeToString(node);
-  }, [gesture]);
-
-  const download = () => {
-    const blob = new Blob([buildExport()], { type: "image/svg+xml" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `fanous-${themeKey}.svg`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const copyCode = async () => {
-    const code = buildExport();
-    try {
-      await navigator.clipboard.writeText(code);
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = code; document.body.appendChild(ta);
-      ta.select(); document.execCommand("copy"); ta.remove();
-    }
-    setCopied(true); later(() => setCopied(false), 1600);
-  };
-
   const setCustomColor = (key) => (e) => {
     const v = e.target.value;
     setCustom({
@@ -1245,12 +1235,6 @@ export default function FanousStudio() {
   const stageBg = transparent
     ? undefined
     : `radial-gradient(120% 120% at 50% 20%, ${light(theme.stage, 0.08)}, ${theme.stage} 60%, ${dark(theme.stage, 0.25)})`;
-
-  const twinkles = [
-    { l: "12%", t: "16%", d: "0s" }, { l: "86%", t: "12%", d: ".9s" },
-    { l: "8%", t: "68%", d: "1.7s" }, { l: "90%", t: "60%", d: "2.4s" },
-    { l: "22%", t: "86%", d: "3.1s" },
-  ];
 
   return (
     <div className="min-h-screen w-full" style={{
@@ -1286,9 +1270,6 @@ export default function FanousStudio() {
         .fs-spark{animation:fs-spark .92s cubic-bezier(.2,.75,.3,1) forwards;transform-box:fill-box;transform-origin:center}
         @keyframes fs-spark{0%{opacity:0;transform:translate(0,0) scale(.35) rotate(0deg)}
           16%{opacity:1}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(var(--s)) rotate(150deg)}}
-        .fs-twinkle{position:absolute;width:10px;height:10px;pointer-events:none;
-          animation:fs-twinkle 3.6s ease-in-out infinite}
-        @keyframes fs-twinkle{0%,100%{opacity:.12;transform:scale(.6)}50%{opacity:.85;transform:scale(1)}}
         .fs-picker{appearance:none;-webkit-appearance:none;width:34px;height:34px;border:none;border-radius:999px;
           padding:0;background:none;cursor:pointer}
         .fs-picker::-webkit-color-swatch-wrapper{padding:0}
@@ -1300,7 +1281,7 @@ export default function FanousStudio() {
           background:#96a2b8;transition:all .2s}
         .fs-switch.on{background:${rgba(GOLD, 0.35)}}
         .fs-switch.on::after{left:22px;background:${light(GOLD, 0.3)}}
-        @media (prefers-reduced-motion:reduce){.fs-twinkle,.fs-spark{animation:none}}
+        @media (prefers-reduced-motion:reduce){.fs-spark{animation:none}}
       `}</style>
 
       <div className="mx-auto px-5 py-8" style={{ maxWidth: 1120 }}>
@@ -1346,14 +1327,6 @@ export default function FanousStudio() {
               onMouseMove={onTrack}
               onMouseLeave={onTrackEnd}
             >
-              {twinkles.map((t, i) => (
-                <svg key={i} className="fs-twinkle" viewBox="0 0 10 10"
-                  style={{ left: t.l, top: t.t, animationDelay: t.d }}>
-                  <path d="M5,0 L6.2,3.8 L10,5 L6.2,6.2 L5,10 L3.8,6.2 L0,5 L3.8,3.8 Z"
-                    fill={theme.accent} />
-                </svg>
-              ))}
-
               <div
                 style={{ width: "min(74vw, 360px)", position: "relative" }}
                 onMouseEnter={() => activeG.track && setWaving(true)}
@@ -1364,7 +1337,7 @@ export default function FanousStudio() {
                   p={p} glow={glow} paused={paused} depth={depth} waving={waving}
                   gesture={gesture} svgRef={svgRef} eyesRef={eyesRef}
                 />
-                {/* sparkle overlay — same coordinate space, never exported */}
+                {/* sparkle overlay: same coordinate space, never exported */}
                 <svg viewBox="0 0 420 520" className="absolute inset-0 w-full h-full"
                   style={{ pointerEvents: "none" }} aria-hidden="true">
                   {sparks.map((s) => (
@@ -1379,7 +1352,7 @@ export default function FanousStudio() {
             </div>
 
             <p className="text-center" style={{ fontSize: 12.5, color: "#8B98B0", marginTop: 14, letterSpacing: ".04em" }}>
-              hover — he waves &nbsp;·&nbsp; tap — grin, bounce &amp; sparkles &nbsp;·&nbsp; pick a gesture for app scenes
+              hover to make him wave &nbsp;·&nbsp; tap for a grin, bounce &amp; sparkles &nbsp;·&nbsp; pick a gesture for app scenes
             </p>
           </section>
 
@@ -1493,25 +1466,14 @@ export default function FanousStudio() {
               />
             </div>
 
-            <div style={{ height: 1, background: rgba(GOLD, 0.18) }} />
-
-            <div className="flex flex-wrap gap-3">
-              <button className="fs-btn fs-btn-gold" onClick={download}>Download SVG</button>
-              <button className="fs-btn fs-btn-ghost" onClick={copyCode}>
-                {copied ? "Copied ✓" : "Copy SVG code"}
-              </button>
-            </div>
-            <p style={{ fontSize: 12.5, color: "#8B98B0", lineHeight: 1.6, marginTop: -6 }}>
-              Exports a standalone <b style={{ color: "#C7D0E2" }}>animated</b> .svg with a transparent
-              background — float, blink, arm sway and glow are baked in, and the tap-to-bounce even
-              works when you inline the file in your app. An <code>&lt;img&gt;</code> tag plays the
-              idle loop automatically.
+            <p style={{ fontSize: 12.5, color: "#8B98B0", lineHeight: 1.6 }}>
+              Examples are for browsing. Build your own to download and export.
             </p>
           </section>
         </div>
 
         <footer className="text-center" style={{ fontSize: 12, color: "#6B7890", marginTop: 26 }}>
-          Fanous — the Ramadan lantern, reimagined as a friendly guide.
+          Fanous, the Ramadan lantern reimagined as a friendly guide.
         </footer>
       </div>
     </div>
