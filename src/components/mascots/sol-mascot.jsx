@@ -2,20 +2,20 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 
 /* ============================================================
-   SOL — the sunrise blob. A living drop of dawn light with a
-   face: the alarm app's buddy orb itself, given eyes.
+   SOL: the sunrise blob. A drop of dawn light with a face,
+   the alarm app's buddy orb itself, given eyes.
 
    The brief's stated risk: blob mascots are the most common
    shape in tech, so execution has to carry it. Sol's answer is
-   that everything about it is expressed as LIGHT, not as a
-   generic blob:
+   to express everything as LIGHT rather than as a generic
+   blob:
 
-   · silhouette — a soft living orb; the outline itself breathes
+   · silhouette: a soft orb whose outline breathes
    · the outline is alive: SMIL morphs the body path itself
    · a bright sun-core nucleus floats inside the drop
    · it casts a pool of light on the ground, never a shadow
    · a shimmer periodically sweeps across the surface
-   · emotions are photonic — listening ripples light outward,
+   · emotions are photonic. Listening ripples light outward,
      alarm is a flare, night is a banked ember, celebration
      splits into a prism rainbow, sadness drips light, and
      dizziness flickers like a failing bulb
@@ -23,8 +23,8 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from "react"
      brightness, so mascot and interface are one object
 
    Engineering (carried over from Fanous & Bud):
-   · shape-critical animation is SMIL only — no CSS
-     transform-box / transform-origin traps
+   · shape-critical animation is SMIL only, which keeps us out
+     of the CSS transform-box / transform-origin traps
    · CSS animations are origin-free (opacity, translate)
    · every gesture is a whole performance: body shape, core,
      eyes, brows, mouth, gaze, brightness, tint and a prop
@@ -158,7 +158,7 @@ const SVG_CSS = `
 `;
 
 /* ============================================================
-   THE BODY — a drop of light that breathes.
+   THE BODY: a drop of light that breathes.
    Two body kinds, each morphing between compatible frames
    (identical command structure: M + 6 cubics + Z) via SMIL.
    "base" is the buoyant orb;
@@ -185,38 +185,38 @@ const CLIP_D =
   "M210,435 C171.8,435 136.4,412.7 117.3,376.5 C98.2,340.3 98.2,295.7 117.3,259.5 C136.4,223.3 171.8,201 210,201 C248.2,201 283.6,223.3 302.7,259.5 C321.8,295.7 321.8,340.3 302.7,376.5 C283.6,412.7 248.2,435 210,435 Z";
 
 /* ============================================================
-   GESTURE LIBRARY — 15 light-native poses for an alarm app
+   GESTURE LIBRARY: 15 light-native poses for an alarm app
    ============================================================ */
 const GESTURES = [
   /* ------------- core ------------- */
   {
     key: "idle", label: "Idle", cat: "Core", use: "Home screen · the orb itself",
-    tip: "The living orb — breathes, blinks, shimmers, eyes follow your cursor.",
+    tip: "It breathes, blinks and shimmers, and the eyes follow your cursor.",
     body: "base", core: [322, 58],
     eyeL: "open", eyeR: "open", mouth: "smile", track: true,
   },
   {
     key: "happy", label: "Happy", cat: "Core", use: "Good news",
-    tip: "Bright — eyes creased shut, easy grin, light up a notch.",
+    tip: "Eyes creased shut, easy grin, and the light ticks up a notch.",
     body: "base", core: [318, 62],
     eyeL: "arch", eyeR: "arch", mouth: "grin",
   },
   {
     key: "thinking", label: "Thinking", cat: "Core", use: "AI planning your morning",
-    tip: "Computing — gaze up, motes of light ticking around the crown.",
+    tip: "Gaze drifts up while motes of light tick around the crown.",
     body: "base", core: [322, 58],
     eyeL: "open", eyeR: "open", brow: "oneUp", mouth: "flat",
     look: [4, -6], prop: "sparks",
   },
   {
     key: "listening", label: "Listening", cat: "Core", use: "Voice command",
-    tip: "All light — rings of light ripple outward from the body as it hears you.",
+    tip: "Rings of light ripple outward from the body as it hears you.",
     body: "base", core: [322, 58],
     eyeL: "open", eyeR: "open", mouth: "tiny", prop: "ripples",
   },
   {
     key: "talking", label: "Talking", cat: "Core", use: "AI reply · morning briefing",
-    tip: "Speaking — mouth mid-word, light arcs carrying to the side.",
+    tip: "Mouth caught mid-word, with light arcs carrying off to the side.",
     body: "base", core: [322, 58],
     eyeL: "open", eyeR: "open", brow: "up", mouth: "open", prop: "speech",
   },
@@ -224,31 +224,31 @@ const GESTURES = [
   /* ------------- alarm ------------- */
   {
     key: "flare", label: "Alarm!", cat: "Alarm", use: "Alarm firing",
-    tip: "FLARE — the core swells white-hot, rays burst, the whole drop rattles.",
+    tip: "The core swells white-hot. Rays burst and the whole drop rattles.",
     body: "base", core: [316, 76], shake: true,
     eyeL: "wide", eyeR: "wide", brow: "up", mouth: "o", prop: "flareFx",
   },
   {
     key: "sunrise", label: "Sunrise", cat: "Alarm", use: "Wake-up moment",
-    tip: "Rising — the inner sun lifts to the crown, rays fan out, a cloud drifts by.",
+    tip: "Its inner sun lifts to the crown, rays fanning out while a cloud drifts by.",
     body: "base", core: [296, 64],
     eyeL: "arch", eyeR: "arch", mouth: "smile", prop: "sunFx",
   },
   {
     key: "snooze", label: "Snooze", cat: "Alarm", use: "Snooze pressed",
-    tip: "Banked — the core sinks and dims, lids at half mast, one soft Z.",
+    tip: "The core sinks and dims. Lids at half mast, one soft Z.",
     body: "sag", core: [350, 44], tint: "#3A3560", tintO: 0.22,
     eyeL: "half", eyeR: "half", mouth: "tiny", prop: "zzz",
   },
   {
     key: "sleepy", label: "Sleepy", cat: "Alarm", use: "Wind-down reminder",
-    tip: "Melting — the drop sags, light low, a Z drifting off the crown.",
+    tip: "Sags like it's melting, light low, one Z drifting off the crown.",
     body: "sag", core: [344, 46],
     eyeL: "half", eyeR: "half", mouth: "tiny", prop: "zzz",
   },
   {
     key: "night", label: "Night", cat: "Alarm", use: "Sleep mode",
-    tip: "Ember — nearly out, a small warm coal low in the drop, crescent and stars above.",
+    tip: "Nearly out. Just a small warm coal low in the drop, crescent and stars above.",
     body: "sag", core: [362, 32], tint: "#2E2A55", tintO: 0.4,
     eyeL: "sleep", eyeR: "sleep", mouth: "tiny", prop: "nightFx",
   },
@@ -256,31 +256,31 @@ const GESTURES = [
   /* ------------- moods ------------- */
   {
     key: "celebrate", label: "Celebrate", cat: "Moods", use: "On-time streak",
-    tip: "Prism — Sol splits its own light into a little rainbow, star-eyed.",
+    tip: "Star-eyed, splitting its own light into a little rainbow.",
     body: "base", core: [314, 64],
     eyeL: "star", eyeR: "star", mouth: "bigGrin", prop: "prism",
   },
   {
     key: "grumpy", label: "Grumpy", cat: "Moods", use: "Too-early alarm",
-    tip: "Brownout — reddened, dimmed, flickering, flat lids and a frown.",
+    tip: "A brownout: reddened, dimmed and flickering, flat lids over a frown.",
     body: "base", core: [334, 48], tint: "#C2503C", tintO: 0.2, flicker: true,
     eyeL: "half", eyeR: "half", brow: "angry", mouth: "frown", prop: "fizz",
   },
   {
-    key: "sad", label: "Sad", cat: "Moods", use: "Overslept — gently",
-    tip: "Dimmed — peaked brows, a single drip of light falling. Never shaming.",
+    key: "sad", label: "Sad", cat: "Moods", use: "Overslept, gently",
+    tip: "Peaked brows and a single drip of light falling. Dimmed, never shaming.",
     body: "sag", core: [340, 46], tint: "#5A4A72", tintO: 0.16,
     eyeL: "sad", eyeR: "sad", brow: "sad", mouth: "frown", prop: "drip",
   },
   {
     key: "dizzy", label: "Dizzy", cat: "Moods", use: "Third snooze in a row",
-    tip: "Faulty bulb — the light stutters, spiral eyes, sparks orbiting the crown.",
+    tip: "Light stutters like a faulty bulb. Spiral eyes, sparks orbiting the crown.",
     body: "base", core: [322, 54], flicker: true,
     eyeL: "spiral", eyeR: "spiral", mouth: "o", prop: "orbit",
   },
   {
     key: "love", label: "Love", cat: "Moods", use: "Thanks · rating",
-    tip: "Warm — heart eyes, small hearts of light floating away.",
+    tip: "Heart eyes, and small hearts of light floating away.",
     body: "base", core: [318, 60],
     eyeL: "heart", eyeR: "heart", mouth: "smile", prop: "hearts",
   },
@@ -417,7 +417,7 @@ function Props({ g, p }) {
         </g>
       );
     case "ripples":
-      /* light rippling outward — SMIL animates the radius itself */
+      /* light rippling outward; SMIL animates the radius itself */
       return (
         <g fill="none" stroke={p.top} strokeWidth="4">
           <circle className="sd-ripple" cx="210" cy="308" r="140">
@@ -559,12 +559,12 @@ function SolSVG({ p, glow, paused, waving, gesture, svgRef, eyesRef }) {
       viewBox="0 0 420 520"
       width="100%"
       role="img"
-      aria-label={`Sol the sunrise blob — ${g.label}`}
+      aria-label={`Sol the sunrise blob: ${g.label}`}
       className={`sd-svg sd-g-${gesture} ${waving ? "sd-wave-on" : ""}`}
       style={{ "--g": glow, cursor: "pointer" }}
       {...(paused ? { "data-paused": "1" } : {})}
     >
-      <title>Sol — sunrise blob</title>
+      <title>Sol, the sunrise blob</title>
       <style>{SVG_CSS}</style>
 
       <defs>
@@ -601,7 +601,7 @@ function SolSVG({ p, glow, paused, waving, gesture, svgRef, eyesRef }) {
         </clipPath>
       </defs>
 
-      {/* Sol casts light, not shadow — a warm pool on the ground */}
+      {/* Sol casts a warm pool of light on the ground, never a shadow */}
       <g transform="translate(210,466)">
         <ellipse className="sd-poolO" cx="0" cy="0" rx="108" ry="12" fill="url(#sd-poolG)" />
         <ellipse cx="0" cy="0" rx="46" ry="5" fill={p.core} opacity=".35" />
@@ -627,7 +627,7 @@ function SolSVG({ p, glow, paused, waving, gesture, svgRef, eyesRef }) {
                 <ellipse className="sd-glow" cx="210" cy="300" rx="164" ry="158"
                   fill="url(#sd-haloG)" />
 
-                {/* the drop itself — its outline is alive */}
+                {/* the drop itself; its outline is alive */}
                 <path key={`body-${g.body}`} d={body.d} fill="url(#sd-bodyG)">
                   <animate attributeName="d" values={body.values} dur="7s"
                     repeatCount="indefinite" />
@@ -658,7 +658,7 @@ function SolSVG({ p, glow, paused, waving, gesture, svgRef, eyesRef }) {
                 <circle cx="138" cy="326" r="11" fill={p.blush} opacity=".6" />
                 <circle cx="282" cy="326" r="11" fill={p.blush} opacity=".6" />
 
-                {/* face — the eyes group drifts toward your cursor */}
+                {/* face: the eyes group drifts toward your cursor */}
                 <g className="sd-eyes" ref={eyesRef}>
                   <g key={g.key} className="sd-pop" transform={`translate(${look[0]},${look[1]})`}>
                     <Brows kind={g.brow} p={p} />
@@ -691,6 +691,28 @@ const SPARK_PATHS = {
 };
 
 /* ============================================================
+   POSE SOURCE
+   Lets the build snapshot every pose exactly as the studio draws
+   it at its defaults, so the remix pipeline edits real markup
+   instead of guessing at it. Read by scripts, never by the app.
+   ============================================================ */
+export const POSE_SOURCE = {
+  slug: "sol",
+  poses: GESTURES.map((g) => ({
+    key: g.key,
+    label: g.label,
+    cat: g.cat,
+    tip: g.tip,
+    use: g.use,
+    track: !!g.track,
+    signal: 62,
+  })),
+  renderPose: (key) => (
+    <SolSVG p={derive(THEMES.daybreak)} glow={0.5} waving={false} gesture={key} />
+  ),
+};
+
+/* ============================================================
    STUDIO SHELL
    ============================================================ */
 export default function SolStudio() {
@@ -702,7 +724,6 @@ export default function SolStudio() {
   const [waving, setWaving] = useState(false);
   const [gesture, setGesture] = useState("idle");
   const [sparks, setSparks] = useState([]);
-  const [copied, setCopied] = useState(false);
   const svgRef = useRef(null);
   const eyesRef = useRef(null);
   const timers = useRef([]);
@@ -743,7 +764,7 @@ export default function SolStudio() {
     if (eyesRef.current) eyesRef.current.style.transform = "translate(0,0)";
   }, [gesture]);
 
-  /* tap burst — motes of light */
+  /* tap burst: motes of light */
   const delight = useCallback(() => {
     const burst = Array.from({ length: 12 }, (_, i) => {
       const a = (i / 12) * Math.PI * 2 + Math.random() * 0.5;
@@ -767,37 +788,6 @@ export default function SolStudio() {
     return () => clearInterval(iv);
   }, [gesture, paused, delight]);
 
-  /* export */
-  const buildExport = useCallback(() => {
-    const node = svgRef.current.cloneNode(true);
-    node.setAttribute("class", `sd-svg sd-g-${gesture}`);
-    node.setAttribute("width", "420");
-    node.setAttribute("height", "520");
-    node.removeAttribute("data-paused");
-    const eyes = node.querySelector(".sd-eyes");
-    if (eyes) eyes.style.transform = "";
-    return '<?xml version="1.0" encoding="UTF-8"?>\n' +
-      new XMLSerializer().serializeToString(node);
-  }, [gesture]);
-
-  const downloadSVG = useCallback(() => {
-    const blob = new Blob([buildExport()], { type: "image/svg+xml" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `sol-${gesture}.svg`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [buildExport, gesture]);
-
-  const copySVG = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(buildExport());
-      setCopied(true);
-      later(() => setCopied(false), 1400);
-    } catch (e) { /* clipboard unavailable */ }
-  }, [buildExport]);
-
   const swatchBg = (t) =>
     `linear-gradient(180deg, ${t.top} 0 34%, ${t.mid} 34% 68%, ${t.base} 68% 100%)`;
 
@@ -805,7 +795,7 @@ export default function SolStudio() {
     <div className="ss-root">
       <style>{SHELL_CSS}</style>
 
-      <header className="max-w-6xl mx-auto px-5 pt-8 pb-2 flex items-center gap-4">
+      <header className="max-w-6xl mx-auto px-5 pt-4 pb-2 flex items-center gap-4 sm:pt-6">
         <div style={{
           width: 52, height: 52, borderRadius: 16, background: rgba(AMBER, 0.14),
           border: `1px solid ${rgba(AMBER, 0.4)}`, display: "grid", placeItems: "center",
@@ -823,7 +813,7 @@ export default function SolStudio() {
             Sol <span style={{ color: AMBER }}>·</span> Sunrise Blob
           </h1>
           <p style={{ fontSize: 13, color: "#BCAD97" }}>
-            A living drop of dawn light — the alarm orb itself, given eyes
+            A living drop of dawn light: the alarm orb itself, given eyes
           </p>
         </div>
       </header>
@@ -875,7 +865,7 @@ export default function SolStudio() {
           </div>
 
           <p style={{ fontSize: 12.5, color: "#BCAD97", textAlign: "center" }}>
-            hover — it shimmers faster &nbsp;·&nbsp; tap — bounce &amp; motes of light &nbsp;·&nbsp;
+            hover to shimmer faster &nbsp;·&nbsp; tap for a bounce &amp; motes of light &nbsp;·&nbsp;
             its eyes drift toward your cursor
           </p>
         </section>
@@ -960,7 +950,7 @@ export default function SolStudio() {
               className="ss-range w-full"
               onChange={(e) => setGlow(parseFloat(e.target.value))} />
             <p style={{ fontSize: 11, color: "#8C7F6B", marginTop: 5 }}>
-              Doubles as the app's wake-light brightness — mascot and interface are one object.
+              Doubles as the app's wake-light brightness, so mascot and interface are one object.
             </p>
           </div>
 
@@ -972,15 +962,8 @@ export default function SolStudio() {
             </button>
           </div>
 
-          <div className="flex gap-3">
-            <button className="ss-btn flex-1" onClick={downloadSVG}>Download SVG</button>
-            <button className="ss-btn ghost flex-1" onClick={copySVG}>
-              {copied ? "Copied ✓" : "Copy SVG code"}
-            </button>
-          </div>
           <p style={{ fontSize: 11.5, color: "#8C7F6B", lineHeight: 1.5 }}>
-            Exports the pose you have selected — breathing outline, shimmer and all — one file
-            per app state.
+            Examples are for browsing. Build your own to download and export.
           </p>
         </section>
       </main>
