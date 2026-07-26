@@ -1,3 +1,8 @@
+import {
+  ensurePartAttributes,
+  extractPartsFromMascot,
+} from "@/lib/mascot-parts";
+import { sanitizeSvgOrThrow } from "@/lib/sanitize-svg";
 import type {
   GeneratedGesture,
   GeneratedMascot,
@@ -86,6 +91,13 @@ export function computeSignalBars(score: number) {
   });
 }
 
+export function normalizeSignal(value: unknown, fallback = 50): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.max(0, Math.min(100, Math.round(value)));
+  }
+  return fallback;
+}
+
 export function zoneForSignal(score: number) {
   if (score < 34) return "Flat";
   if (score < 67) return "Building";
@@ -104,7 +116,7 @@ const DELIGHT_KEYS = new Set([
   "happy",
 ]);
 
-const TRACK_KEYS = new Set([
+export const TRACK_KEYS = new Set([
   "idle",
   "listening",
   "thinking",
@@ -112,6 +124,14 @@ const TRACK_KEYS = new Set([
   "encourage",
   "guiding",
 ]);
+
+export function defaultTrackForGesture(key: string): boolean {
+  return TRACK_KEYS.has(key);
+}
+
+export function defaultDelightForGesture(key: string): boolean {
+  return DELIGHT_KEYS.has(key);
+}
 
 function normalizeHex(input: unknown, fallback: string) {
   if (typeof input !== "string") return fallback;
@@ -182,7 +202,7 @@ export function applyThemeContract(
     out = out.replace(/<svg([^>]*)>/, `<svg$1>${styleBlock}`);
   }
 
-  // Eye group for cursor tracking — wrap common eye patterns if missing
+  // Eye group for cursor tracking. Wrap common eye patterns if missing
   if (!out.includes("ms-eyes")) {
     out = out.replace(
       /(<g[^>]*id=["']eyes["'][^>]*>)/i,
@@ -195,7 +215,7 @@ export function applyThemeContract(
         '<!-- eyes --><g class="ms-eyes">'
       );
       if (out.includes('<g class="ms-eyes">') && !out.includes("</g><!-- /ms-eyes -->")) {
-        // incomplete wrap — skip rather than break SVG
+        // incomplete wrap. Skip rather than break SVG
       }
     }
   }
@@ -208,8 +228,8 @@ function defaultInstrument(product?: string): StudioInstrument {
   return {
     label: coaching ? "Delivery" : "Signal",
     description: coaching
-      ? "One 0–100 input tints props, halo, and the spectrogram strip — same product pattern as Lyra."
-      : "One 0–100 input drives accent tint and the live spectrogram strip under the stage.",
+      ? "One 0 to 100 input tints props, halo, and the spectrogram strip, same product pattern as Lyra."
+      : "One 0 to 100 input drives accent tint and the live spectrogram strip under the stage.",
     lowLabel: "Flat",
     midLabel: "Building",
     highLabel: "Commanding",
@@ -291,11 +311,17 @@ export function normalizeGeneratedMascot(
       track,
       delight,
       signal,
-      svg: applyThemeContract(got.svg, primary, accent),
+      svg: ensurePartAttributes(
+        applyThemeContract(
+          sanitizeSvgOrThrow(got.svg, `gesture "${req.key}"`),
+          primary,
+          accent
+        )
+      ),
     };
   });
 
-  return {
+  const draft: GeneratedMascot = {
     name: raw.name,
     tagline: raw.tagline,
     product: raw.product,
@@ -304,5 +330,116 @@ export function normalizeGeneratedMascot(
     themes,
     instrument,
     gestures,
+    parts: raw.parts ?? [],
   };
+
+  return {
+    ...draft,
+    parts: extractPartsFromMascot(draft),
+  };
+}
+
+/** Normalize one newly generated gesture against an existing mascot pack. */
+export function normalizeSingleGesture(
+  mascot: GeneratedMascot,
+  req: {
+    key: string;
+    label: string;
+    cat: string;
+    tip: string;
+    use: string;
+  },
+  raw: Partial<GeneratedGesture> & { svg: string }
+): GeneratedGesture {
+  const themeEntries = Object.entries(mascot.themes ?? {});
+  if (themeEntries.length === 0) {
+    throw new Error("Mascot pack missing themes");
+  }
+  const primaryKey = themeEntries[0]![0];
+  const primary = {
+    ...mascot.themes[primaryKey]!,
+    top: normalizeHex(mascot.themes[primaryKey]!.top, "#FFE9AE"),
+    mid: normalizeHex(mascot.themes[primaryKey]!.mid, "#FFB35C"),
+    base: normalizeHex(mascot.themes[primaryKey]!.base, "#F4744E"),
+    core: normalizeHex(mascot.themes[primaryKey]!.core, "#FFF6CF"),
+    stage: normalizeHex(mascot.themes[primaryKey]!.stage, "#1A2438"),
+    features: normalizeHex(
+      mascot.themes[primaryKey]!.features ?? "#2A1A0C",
+      "#2A1A0C"
+    ),
+  };
+  const accent = normalizeHex(mascot.accent, primary.mid);
+
+  return {
+    key: req.key,
+    label: req.label,
+    cat: req.cat,
+    tip: req.tip,
+    use: req.use,
+    track:
+      typeof raw.track === "boolean"
+        ? raw.track
+        : TRACK_KEYS.has(req.key),
+    delight:
+      typeof raw.delight === "boolean"
+        ? raw.delight
+        : DELIGHT_KEYS.has(req.key),
+    signal: typeof raw.signal === "number" ? clamp(raw.signal) : undefined,
+    svg: ensurePartAttributes(
+      applyThemeContract(
+        sanitizeSvgOrThrow(raw.svg, `gesture "${req.key}"`),
+        primary,
+        accent
+      )
+    ),
+  };
+}
+
+/**
+ * Bake live theme / signal / glow into a gesture SVG string for offline export
+ * (works without a mounted DOM node).
+ */
+export function bakeGestureExport(
+  svgMarkup: string,
+  opts: {
+    gestureKey: string;
+    theme: ThemeSwatch;
+    accent: string;
+    signal: number;
+    glow: number;
+    ramp: string[];
+  }
+): string {
+  if (typeof DOMParser === "undefined") {
+    // Server fallback. Return markup as-is with an XML header
+    return '<?xml version="1.0" encoding="UTF-8"?>\n' + svgMarkup;
+  }
+  const doc = new DOMParser().parseFromString(svgMarkup, "image/svg+xml");
+  const svg = doc.querySelector("svg");
+  if (!svg) {
+    return '<?xml version="1.0" encoding="UTF-8"?>\n' + svgMarkup;
+  }
+  svg.setAttribute("class", `ms-root ms-g-${opts.gestureKey}`);
+  svg.setAttribute("width", "420");
+  svg.setAttribute("height", "520");
+  svg.removeAttribute("data-paused");
+  const eyes = svg.querySelector(".ms-eyes") as SVGGElement | null;
+  if (eyes) eyes.style.transform = "";
+  svg.querySelectorAll('[data-ms-hidden="1"]').forEach((el) => el.remove());
+  const baked = [
+    `--ms-top:${opts.theme.top}`,
+    `--ms-mid:${opts.theme.mid}`,
+    `--ms-base:${opts.theme.base}`,
+    `--ms-core:${opts.theme.core}`,
+    `--ms-features:${opts.theme.features ?? "#2A1A0C"}`,
+    `--ms-accent:${opts.accent}`,
+    `--ms-signal:${Math.round(opts.signal)}`,
+    `--ms-signal-color:${rampColor(opts.signal, opts.ramp)}`,
+    `--ms-glow:${opts.glow}`,
+  ].join(";");
+  svg.setAttribute("style", baked);
+  return (
+    '<?xml version="1.0" encoding="UTF-8"?>\n' +
+    new XMLSerializer().serializeToString(svg)
+  );
 }
