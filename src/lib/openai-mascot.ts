@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import type { MascotImageInput } from "@/lib/types";
 
 /**
  * Prefer GPT-5.6 Sol when available.
@@ -14,6 +15,8 @@ export const MASCOT_MODEL_CANDIDATES = [
 
 let cachedModel: string | null = process.env.OPENAI_MASCOT_MODEL || null;
 let cachedModelVerified = false;
+
+export type ReasoningEffort = "low" | "medium" | "high" | "xhigh";
 
 export type MascotModelResult = {
   model: string;
@@ -37,30 +40,40 @@ function isModelAccessError(err: unknown): boolean {
   );
 }
 
-function candidateOrder(): string[] {
-  if (cachedModelVerified && cachedModel) {
-    return [
-      cachedModel,
-      ...MASCOT_MODEL_CANDIDATES.filter((m) => m !== cachedModel),
-    ];
+function candidateOrder(preferredModel?: string): string[] {
+  const preferred = preferredModel || cachedModel;
+  const base =
+    cachedModelVerified && cachedModel
+      ? [
+          cachedModel,
+          ...MASCOT_MODEL_CANDIDATES.filter((m) => m !== cachedModel),
+        ]
+      : [...MASCOT_MODEL_CANDIDATES];
+
+  if (preferred && preferred !== base[0]) {
+    return [preferred, ...base.filter((m) => m !== preferred)];
   }
-  return MASCOT_MODEL_CANDIDATES;
+  return base;
 }
 
 /**
- * Responses API for mascot packs. Default medium effort — high is too slow for studio UX.
+ * Responses API for mascot packs. Default medium effort. High is too slow for studio UX.
  */
-export async function runMascotModel(args: {
+export async function runOpenAIMascotModel(args: {
   openai: OpenAI;
+  preferredModel?: string;
   instructions: string;
   input: string;
+  images?: MascotImageInput[];
   maxOutputTokens?: number;
-  reasoningEffort?: "low" | "medium" | "high" | "xhigh";
+  reasoningEffort?: ReasoningEffort;
 }): Promise<MascotModelResult> {
   const {
     openai,
+    preferredModel,
     instructions,
     input,
+    images,
     maxOutputTokens = 32000,
     reasoningEffort = "medium",
   } = args;
@@ -69,15 +82,29 @@ export async function runMascotModel(args: {
     ? input
     : `${input}\n\nReturn a single JSON object.`;
 
+  const apiInput: OpenAI.Responses.ResponseInput = [
+    {
+      role: "user",
+      content: [
+        ...(images?.map((img) => ({
+          type: "input_image" as const,
+          image_url: `data:${img.mediaType};base64,${img.data}`,
+          detail: "high" as const,
+        })) ?? []),
+        { type: "input_text" as const, text: inputWithJson },
+      ],
+    },
+  ];
+
   let lastError: unknown;
 
-  for (const model of candidateOrder()) {
+  for (const model of candidateOrder(preferredModel)) {
     try {
       const response = await openai.responses.create({
         model,
         reasoning: { effort: reasoningEffort },
         instructions,
-        input: inputWithJson,
+        input: apiInput,
         text: { format: { type: "json_object" } },
         max_output_tokens: maxOutputTokens,
       });
@@ -95,8 +122,8 @@ export async function runMascotModel(args: {
       cachedModel = model;
       cachedModelVerified = true;
 
-      if (model !== "gpt-5.6-sol") {
-        console.warn(`[mascot-ai] using ${model}`);
+      if (preferredModel && model !== preferredModel) {
+        console.warn(`[mascot-ai] ${preferredModel} unavailable, used ${model}`);
       }
 
       return {
@@ -126,4 +153,15 @@ export async function runMascotModel(args: {
   throw lastError instanceof Error
     ? lastError
     : new Error("No accessible OpenAI model for mascot generation");
+}
+
+/** @deprecated Use runMascotModel from @/lib/mascot-model */
+export async function runMascotModel(args: {
+  openai: OpenAI;
+  instructions: string;
+  input: string;
+  maxOutputTokens?: number;
+  reasoningEffort?: ReasoningEffort;
+}): Promise<MascotModelResult> {
+  return runOpenAIMascotModel(args);
 }
