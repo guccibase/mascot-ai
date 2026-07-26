@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 
 /* ============================================================
-   BUD — a round dawn-orange rooster chick with tiny
+   BUD: a round dawn-orange rooster chick with tiny
    alarm-clock bell feet. Mascot studio for an AI alarm app.
 
    Engineering notes (lessons carried over from Fanous):
@@ -141,7 +141,7 @@ const SVG_CSS = `
 `;
 
 /* ============================================================
-   GESTURE LIBRARY — 16 poses for an alarm app
+   GESTURE LIBRARY: 16 poses for an alarm app
    Wing shoulders are symmetric: L (104,296)  R (316,296).
    Wing paths are written for the LEFT shoulder; the right
    wing is the exact mirror, so pairs are level and equal.
@@ -162,32 +162,32 @@ const GESTURES = [
   /* ------------- core ------------- */
   {
     key: "idle", label: "Idle", cat: "Core", use: "Home screen",
-    tip: "Resting companion — bobs, blinks, pupils follow your cursor.",
+    tip: "He bobs and blinks, and his pupils follow your cursor.",
     wingL: W.rest, wingR: mir(W.rest),
     eyeL: "open", eyeR: "open", beak: "smile", track: true,
   },
   {
     key: "happy", label: "Happy", cat: "Core", use: "Good morning · task done",
-    tip: "Content — eyes creased shut, beak in a big smile.",
+    tip: "Eyes creased shut, beak in a big smile.",
     wingL: W.up, wingR: mir(W.up),
     eyeL: "arch", eyeR: "arch", beak: "smile",
   },
   {
     key: "thinking", label: "Thinking", cat: "Core", use: "AI working · planning",
-    tip: "Computing — pupils up, wing to chin, sparks ticking over.",
+    tip: "Pupils roll up, wing to chin, sparks ticking over.",
     wingL: W.rest, wingR: mir(W.droop),
     eyeL: "open", eyeR: "open", brow: "oneUp", beak: "closed",
     look: [4, -6], prop: "sparks",
   },
   {
     key: "listening", label: "Listening", cat: "Core", use: "Voice command",
-    tip: "All ears — head tilted, level gaze, sound bars breathing.",
+    tip: "Head tilted with a level gaze while the sound bars breathe.",
     wingL: W.rest, wingR: mir(W.rest), bow: 4,
     eyeL: "open", eyeR: "open", beak: "closed", prop: "eq",
   },
   {
     key: "talking", label: "Talking", cat: "Core", use: "AI reply · briefing",
-    tip: "Speaking — beak open mid-word, speech arcs carrying.",
+    tip: "Beak open mid-word and speech arcs carrying.",
     wingL: W.out, wingR: mir(W.rest),
     eyeL: "open", eyeR: "open", brow: "up", beak: "open", prop: "speech",
   },
@@ -195,37 +195,37 @@ const GESTURES = [
   /* ------------- alarm ------------- */
   {
     key: "ring", label: "Alarm!", cat: "Alarm", use: "Alarm firing",
-    tip: "RING RING — bell feet hammering, striker whipping, whole chick rattling.",
+    tip: "Bell feet hammering, striker whipping, and the whole chick rattles.",
     wingL: W.out, wingR: mir(W.out), shake: true, ringing: true,
     eyeL: "wide", eyeR: "wide", brow: "up", beak: "o", prop: "ringFx",
   },
   {
     key: "snooze", label: "Snooze", cat: "Alarm", use: "Snooze pressed",
-    tip: "Five more minutes — wing pressing a bell down, lids heavy.",
+    tip: "Five more minutes. A wing presses one bell down, lids heavy.",
     wingL: W.droop, wingR: mir(W.droop),
     eyeL: "half", eyeR: "half", beak: "closed", prop: "snoozeFx",
   },
   {
     key: "crow", label: "Crow", cat: "Alarm", use: "Wake-up call",
-    tip: "COCK-A-DOODLE — head thrown back, beak wide, notes flying.",
+    tip: "Head thrown back for the cock-a-doodle, beak wide, notes flying.",
     wingL: W.high, wingR: mir(W.high), bow: -6,
     eyeL: "arch", eyeR: "arch", beak: "crow", prop: "crowFx",
   },
   {
     key: "sunrise", label: "Sunrise", cat: "Alarm", use: "Morning summary",
-    tip: "Good morning — sun up, cloud drifting, warm easy smile.",
+    tip: "Sun up, a cloud drifting past, warm easy smile. Good morning.",
     wingL: W.up, wingR: mir(W.rest),
     eyeL: "arch", eyeR: "open", beak: "smile", prop: "sun",
   },
   {
     key: "sleepy", label: "Sleepy", cat: "Alarm", use: "Wind-down reminder",
-    tip: "Fading — half-lidded, slow bob, one drifting Z.",
+    tip: "Half-lidded and fading, with a slow bob and one drifting Z.",
     wingL: W.droop, wingR: mir(W.droop),
     eyeL: "half", eyeR: "half", beak: "closed", prop: "sleepyFx",
   },
   {
     key: "night", label: "Night", cat: "Alarm", use: "Sleep mode",
-    tip: "Out cold — lids down, glow banked, crescent and Zzz overhead.",
+    tip: "Out cold with the glow banked, lids down, crescent and Zzz overhead.",
     wingL: W.droop, wingR: mir(W.droop),
     eyeL: "sleep", eyeR: "sleep", beak: "closed", prop: "nightFx",
   },
@@ -233,31 +233,31 @@ const GESTURES = [
   /* ------------- moods ------------- */
   {
     key: "celebrate", label: "Celebrate", cat: "Moods", use: "On-time streak",
-    tip: "Nailed it — star eyes, wings high, confetti down.",
+    tip: "Nailed it. Star eyes, wings up, confetti coming down.",
     wingL: W.high, wingR: mir(W.high),
     eyeL: "star", eyeR: "star", beak: "openSmile", prop: "confetti",
   },
   {
     key: "grumpy", label: "Grumpy", cat: "Moods", use: "Too-early alarm",
-    tip: "Pre-coffee — flat lids, knitted brows, downturned beak, one steam puff.",
+    tip: "Flat lids, knitted brows, downturned beak, one puff of steam. Pre-coffee.",
     wingL: W.droop, wingR: mir(W.droop), bow: 3,
     eyeL: "half", eyeR: "half", brow: "angry", beak: "frown", prop: "steam",
   },
   {
-    key: "sad", label: "Sad", cat: "Moods", use: "Overslept — gently",
-    tip: "Missed it — peaked brows, drooped wings, one tear. Never shaming.",
+    key: "sad", label: "Sad", cat: "Moods", use: "Overslept, gently",
+    tip: "He missed it. Peaked brows, drooped wings, one tear, and never any shaming.",
     wingL: W.droop, wingR: mir(W.droop),
     eyeL: "sad", eyeR: "sad", brow: "sad", beak: "frown", prop: "tear",
   },
   {
     key: "dizzy", label: "Dizzy", cat: "Moods", use: "Third snooze in a row",
-    tip: "Too many snoozes — spiral eyes, stars orbiting the comb.",
+    tip: "Too many snoozes have him spiral-eyed, with stars orbiting the comb.",
     wingL: W.out, wingR: mir(W.out), bow: -3,
     eyeL: "spiral", eyeR: "spiral", beak: "o", prop: "orbit",
   },
   {
     key: "love", label: "Love", cat: "Moods", use: "Thanks · rating",
-    tip: "Smitten — heart eyes, wings to chest, hearts floating off.",
+    tip: "Heart eyes, wings folded to his chest, hearts floating off.",
     wingL: W.rest, wingR: mir(W.rest),
     eyeL: "heart", eyeR: "heart", beak: "smile", prop: "hearts",
   },
@@ -335,7 +335,7 @@ function Brows({ kind, p }) {
   );
 }
 
-/* beak states — the chick's whole mouth */
+/* beak states: the chick's whole mouth */
 function Beak({ kind, p }) {
   const seam = { fill: "none", stroke: p.beakDark, strokeWidth: 4, strokeLinecap: "round" };
   if (kind === "open" || kind === "crow") {
@@ -582,12 +582,12 @@ function BudSVG({ p, glow, paused, waving, gesture, svgRef, eyeRefs }) {
       viewBox="0 0 420 520"
       width="100%"
       role="img"
-      aria-label={`Bud the alarm chick — ${g.label}`}
+      aria-label={`Bud the alarm chick: ${g.label}`}
       className={`bd-svg bd-g-${gesture} ${isWaving ? "bd-wave-on" : ""}`}
       style={{ "--g": glow, cursor: "pointer" }}
       {...(paused ? { "data-paused": "1" } : {})}
     >
-      <title>Bud — dawn alarm chick</title>
+      <title>Bud, the dawn alarm chick</title>
       <style>{SVG_CSS}</style>
 
       <defs>
@@ -633,7 +633,7 @@ function BudSVG({ p, glow, paused, waving, gesture, svgRef, eyeRefs }) {
                 <ellipse className="bd-glow" cx="210" cy="280" rx="146" ry="128"
                   fill="url(#bd-glowG)" />
 
-                {/* wings — symmetric shoulders, mirrored paths */}
+                {/* wings: symmetric shoulders, mirrored paths */}
                 <g transform={`translate(${SH_L.join(",")})`}>
                   <animateTransform id="bd-wingAnim" key={isWaving ? "w" : "i"}
                     attributeName="transform" type="rotate" additive="sum"
@@ -658,7 +658,7 @@ function BudSVG({ p, glow, paused, waving, gesture, svgRef, eyeRefs }) {
                 <path d="M186,396 L166,420" stroke={p.leg} strokeWidth="7" strokeLinecap="round" />
                 <path d="M234,396 L254,420" stroke={p.leg} strokeWidth="7" strokeLinecap="round" />
 
-                {/* striker between the bells — whips when the alarm fires */}
+                {/* striker between the bells; whips when the alarm fires */}
                 <g transform="translate(210,404)">
                   {g.ringing && (
                     <animateTransform attributeName="transform" type="rotate" additive="sum"
@@ -668,7 +668,7 @@ function BudSVG({ p, glow, paused, waving, gesture, svgRef, eyeRefs }) {
                   <circle cx="0" cy="29" r="6.5" fill={p.brassDark} />
                 </g>
 
-                {/* ALARM-BELL FEET — brass domes, knobs, base rims */}
+                {/* ALARM-BELL FEET: brass domes, knobs, base rims */}
                 <g>
                   {g.ringing && (
                     <animateTransform attributeName="transform" type="rotate" additive="sum"
@@ -746,6 +746,34 @@ const SPARK_PATHS = {
 };
 
 /* ============================================================
+   POSE SOURCE
+   Lets the build snapshot every pose exactly as the studio draws
+   it at its defaults, so the remix pipeline edits real markup
+   instead of guessing at it. Read by scripts, never by the app.
+   ============================================================ */
+export const POSE_SOURCE = {
+  slug: "bud",
+  poses: GESTURES.map((g) => ({
+    key: g.key,
+    label: g.label,
+    cat: g.cat,
+    tip: g.tip,
+    use: g.use,
+    track: !!g.track,
+    signal: 62,
+  })),
+  renderPose: (key) => (
+    <BudSVG
+      p={derive(THEMES.dawn)}
+      glow={0.45}
+      waving={false}
+      gesture={key}
+      eyeRefs={{}}
+    />
+  ),
+};
+
+/* ============================================================
    STUDIO SHELL
    ============================================================ */
 export default function BudStudio() {
@@ -757,7 +785,6 @@ export default function BudStudio() {
   const [waving, setWaving] = useState(false);
   const [gesture, setGesture] = useState("idle");
   const [sparks, setSparks] = useState([]);
-  const [copied, setCopied] = useState(false);
   const svgRef = useRef(null);
   const pupilL = useRef(null);
   const pupilR = useRef(null);
@@ -804,7 +831,7 @@ export default function BudStudio() {
     });
   }, [gesture]);
 
-  /* tap burst — feathers + stars */
+  /* tap burst: feathers + stars */
   const delight = useCallback(() => {
     const burst = Array.from({ length: 12 }, (_, i) => {
       const a = (i / 12) * Math.PI * 2 + Math.random() * 0.5;
@@ -828,38 +855,6 @@ export default function BudStudio() {
     return () => clearInterval(iv);
   }, [gesture, paused, delight]);
 
-  /* export */
-  const buildExport = useCallback(() => {
-    const node = svgRef.current.cloneNode(true);
-    node.setAttribute("class", `bd-svg bd-g-${gesture}`);
-    node.setAttribute("width", "420");
-    node.setAttribute("height", "520");
-    node.removeAttribute("data-paused");
-    node.querySelectorAll(".bd-pupils").forEach((el) => { el.style.transform = ""; });
-    const wingAnim = node.querySelector("#bd-wingAnim");
-    if (wingAnim) { wingAnim.setAttribute("values", "-3;3;-3"); wingAnim.setAttribute("dur", "3.4s"); }
-    return '<?xml version="1.0" encoding="UTF-8"?>\n' +
-      new XMLSerializer().serializeToString(node);
-  }, [gesture]);
-
-  const downloadSVG = useCallback(() => {
-    const blob = new Blob([buildExport()], { type: "image/svg+xml" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `bud-${gesture}.svg`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [buildExport, gesture]);
-
-  const copySVG = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(buildExport());
-      setCopied(true);
-      later(() => setCopied(false), 1400);
-    } catch (e) { /* clipboard unavailable */ }
-  }, [buildExport]);
-
   const swatchBg = (t) =>
     `linear-gradient(135deg, ${t.body} 0 55%, ${t.comb} 55% 78%, ${t.brass} 78% 100%)`;
 
@@ -867,7 +862,7 @@ export default function BudStudio() {
     <div className="bs-root">
       <style>{SHELL_CSS}</style>
 
-      <header className="max-w-6xl mx-auto px-5 pt-8 pb-2 flex items-center gap-4">
+      <header className="max-w-6xl mx-auto px-5 pt-4 pb-2 flex items-center gap-4 sm:pt-6">
         <div style={{
           width: 52, height: 52, borderRadius: 16, background: rgba(AMBER, 0.14),
           border: `1px solid ${rgba(AMBER, 0.4)}`, display: "grid", placeItems: "center",
@@ -939,7 +934,7 @@ export default function BudStudio() {
           </div>
 
           <p style={{ fontSize: 12.5, color: "#B9AB97", textAlign: "center" }}>
-            hover — he flaps &nbsp;·&nbsp; tap — bounce &amp; feathers &nbsp;·&nbsp; his pupils follow your cursor
+            hover to make him flap &nbsp;·&nbsp; tap for a bounce &amp; feathers &nbsp;·&nbsp; his pupils follow your cursor
           </p>
         </section>
 
@@ -1032,14 +1027,8 @@ export default function BudStudio() {
             </button>
           </div>
 
-          <div className="flex gap-3">
-            <button className="bs-btn flex-1" onClick={downloadSVG}>Download SVG</button>
-            <button className="bs-btn ghost flex-1" onClick={copySVG}>
-              {copied ? "Copied ✓" : "Copy SVG code"}
-            </button>
-          </div>
           <p style={{ fontSize: 11.5, color: "#8B7E6C", lineHeight: 1.5 }}>
-            Exports the pose you have selected, animations included — one file per app state.
+            Examples are for browsing. Build your own to download and export.
           </p>
         </section>
       </main>
