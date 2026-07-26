@@ -10,13 +10,11 @@ export function MascotExampleCard({
   index: number;
 }) {
   return (
-    <Link
-      href={`/studio/${mascot.slug}`}
+    <article
       className={cn(
-        "group relative block overflow-hidden rounded-[1.75rem] border border-white/10",
+        "group relative overflow-hidden rounded-[1.75rem] border border-white/10",
         "bg-[var(--brand-panel)] transition duration-500",
-        "hover:-translate-y-1 hover:border-[color-mix(in_oklab,var(--brand-accent)_45%,transparent)]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-accent)]"
+        "hover:-translate-y-1 hover:border-[color-mix(in_oklab,var(--brand-accent)_45%,transparent)]"
       )}
       style={{
         animationDelay: `${index * 80}ms`,
@@ -31,7 +29,10 @@ export function MascotExampleCard({
           `,
         }}
       />
-      <div className="relative flex min-h-[280px] flex-col justify-between p-6 sm:p-7">
+      <Link
+        href={`/studio/${mascot.slug}`}
+        className="relative flex min-h-[280px] flex-col justify-between p-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-accent)] sm:p-7"
+      >
         <div className="flex items-start justify-between gap-3">
           <div>
             <p
@@ -57,7 +58,15 @@ export function MascotExampleCard({
             Open studio →
           </p>
         </div>
+      </Link>
+      <div className="relative border-t border-white/10 px-6 py-3 sm:px-7">
+        <Link
+          href={`/remix/${mascot.slug}`}
+          className="text-sm font-semibold text-[var(--brand-accent)] transition hover:text-white"
+        >
+          Remix this mascot →
+        </Link>
       </div>
-    </Link>
+    </article>
   );
 }
