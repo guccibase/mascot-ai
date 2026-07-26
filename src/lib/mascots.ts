@@ -20,7 +20,8 @@ export const MASCOTS: MascotMeta[] = [
     accent: "#C9A45C",
     stage: "#1A2438",
     poseCount: 22,
-    blurb: "Speech coaching companion — score-driven lyre feathers, mic posture, and rehearsal poses.",
+    blurb:
+      "Speech coaching companion. Score-driven lyre feathers, mic posture, and rehearsal poses.",
   },
   {
     slug: "sol",
@@ -30,7 +31,8 @@ export const MASCOTS: MascotMeta[] = [
     accent: "#F5B34F",
     stage: "#232B47",
     poseCount: 15,
-    blurb: "Wake-light blob with a sun-core nucleus — emotions as photonic flares, never a generic face blob.",
+    blurb:
+      "Wake-light blob with a sun-core nucleus. Emotions show up as flares of light, not a generic face.",
   },
   {
     slug: "bud",
@@ -40,7 +42,8 @@ export const MASCOTS: MascotMeta[] = [
     accent: "#F0A35A",
     stage: "#2A2438",
     poseCount: 16,
-    blurb: "Round rooster chick for morning rituals — crow, snooze, sunrise, and gently grumpy moods.",
+    blurb:
+      "Round rooster chick for morning rituals: crow, snooze, sunrise, and a little grumpy.",
   },
   {
     slug: "fanous",
@@ -50,7 +53,8 @@ export const MASCOTS: MascotMeta[] = [
     accent: "#D4AF37",
     stage: "#0D1426",
     poseCount: 30,
-    blurb: "Traced lantern character with prayer, festival, and everyday companion gestures.",
+    blurb:
+      "Traced lantern character with prayer, festival, and everyday companion gestures.",
   },
 ];
 
