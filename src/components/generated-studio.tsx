@@ -9,21 +9,49 @@ import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import type { GeneratedGesture, GeneratedMascot, ThemeSwatch } from "@/lib/types";
+import { MascotEditPanel } from "@/components/mascot-edit-panel";
+import { AppAssetsPanel } from "@/components/app-assets-panel";
+import { GESTURE_PRESETS } from "@/lib/gesture-presets";
+import { applyPartVisibility, extractPartsFromMascot } from "@/lib/mascot-parts";
+import { sanitizeSvg } from "@/lib/sanitize-svg";
 import {
-  SPARK_PATHS,
-  computeSignalBars,
-  mixHex,
+  bakeGestureExport,
   rampColor,
+  mixHex,
   rgba,
   zoneForSignal,
+  normalizeSignal,
+  SPARK_PATHS,
+  computeSignalBars,
   type SparkKind,
 } from "@/lib/studio-utils";
+import type {
+  GeneratedGesture,
+  GeneratedMascot,
+  GestureRequest,
+  MascotModelId,
+  ThemeSwatch,
+} from "@/lib/types";
+import type { Id } from "../../convex/_generated/dataModel";
+import { trackEvent, trackGenerationFailure } from "@/lib/analytics";
+import { zipSync, strToU8 } from "fflate";
+import { Loader2, Plus, Undo2 } from "lucide-react";
+import { toast } from "sonner";
+import {
+  useMascotUndo,
+  useResetUndoOnIdentityChange,
+} from "@/hooks/use-mascot-undo";
+import { isReferenceId } from "@/lib/reference-image-client";
 
 type Props = {
   mascot: GeneratedMascot;
   /** When true, fills the viewport like /studio/[slug] examples. */
   fullPage?: boolean;
+  look?: string;
+  model?: MascotModelId;
+  /** Saved mascot id — required for persisted app asset packs. */
+  mascotId?: Id<"mascots"> | null;
+  onMascotChange?: (mascot: GeneratedMascot) => void;
 };
 
 type Spark = {
@@ -137,7 +165,15 @@ function applyLiveVars(
   });
 }
 
-export function GeneratedStudio({ mascot, fullPage = true }: Props) {
+export function GeneratedStudio({
+  mascot,
+  fullPage = true,
+  look,
+  model,
+  mascotId = null,
+  onMascotChange,
+}: Props) {
+  const parts = useMemo(() => extractPartsFromMascot(mascot), [mascot]);
   const themeKeys = Object.keys(mascot.themes);
   const firstKey = themeKeys[0] ?? "primary";
   const firstTheme = mascot.themes[firstKey]!;
@@ -153,14 +189,90 @@ export function GeneratedStudio({ mascot, fullPage = true }: Props) {
   const [gestureKey, setGestureKey] = useState(
     mascot.gestures[0]?.key ?? "idle"
   );
-  const [signal, setSignal] = useState(mascot.instrument.defaultValue);
+  const [signal, setSignal] = useState(() =>
+    normalizeSignal(mascot.instrument.defaultValue)
+  );
   const signalAnim = useAnimatedNumber(signal);
   const [sparks, setSparks] = useState<Spark[]>([]);
   const [copied, setCopied] = useState(false);
+  const [addingGesture, setAddingGesture] = useState(false);
+  const [showAddGesture, setShowAddGesture] = useState(false);
+  const [customGestureLabel, setCustomGestureLabel] = useState("");
+  const [customGestureTip, setCustomGestureTip] = useState("");
+  const [referenceId, setReferenceId] = useState<string | undefined>();
+
+  const { pushSnapshot, undo, canUndo, clear: clearUndo } = useMascotUndo(
+    useCallback(
+      (restored) => {
+        onMascotChange?.(restored);
+        toast.success("Reverted to previous version");
+      },
+      [onMascotChange]
+    )
+  );
+
+  useResetUndoOnIdentityChange(mascot, clearUndo);
+
+  const applyMascotChange = useCallback(
+    (next: GeneratedMascot) => {
+      pushSnapshot(mascot);
+      onMascotChange?.(next);
+    },
+    [mascot, onMascotChange, pushSnapshot]
+  );
+
+  const handleUndo = useCallback(() => {
+    if (!onMascotChange) return;
+    if (!undo()) {
+      toast.error("Nothing to revert");
+    }
+  }, [onMascotChange, undo]);
+  const [enabledParts, setEnabledParts] = useState<Set<string>>(
+    () => new Set(parts.map((p) => p.key))
+  );
+  const partKeysSig = parts.map((p) => p.key).join("|");
+  const knownPartKeysRef = useRef("");
+
+  useEffect(() => {
+    const keys = parts.map((p) => p.key);
+    const prevKnown = new Set(
+      knownPartKeysRef.current.split("|").filter(Boolean)
+    );
+    setEnabledParts((prev) => {
+      const next = new Set<string>();
+      if (prevKnown.size === 0) {
+        for (const k of keys) next.add(k);
+      } else {
+        for (const k of keys) {
+          if (prevKnown.has(k)) {
+            if (prev.has(k)) next.add(k);
+          } else {
+            next.add(k);
+          }
+        }
+      }
+      return next;
+    });
+    knownPartKeysRef.current = partKeysSig;
+  }, [partKeysSig, parts]);
+
+  useEffect(() => {
+    if (mascot.gestures.some((g) => g.key === gestureKey)) return;
+    setGestureKey(mascot.gestures[0]?.key ?? "idle");
+  }, [mascot.gestures, gestureKey]);
+
+  const togglePart = (key: string) => {
+    setEnabledParts((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   const svgHostRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const eyesRef = useRef<SVGGElement | null>(null);
+  const eyesRefs = useRef<SVGGElement[]>([]);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const later = (fn: () => void, ms: number) => {
     timers.current.push(setTimeout(fn, ms));
@@ -183,14 +295,38 @@ export function GeneratedStudio({ mascot, fullPage = true }: Props) {
     return cats;
   }, [mascot.gestures]);
 
+  const availablePresets = useMemo(() => {
+    const have = new Set(mascot.gestures.map((g) => g.key));
+    return GESTURE_PRESETS.filter((p) => !have.has(p.key));
+  }, [mascot.gestures]);
+
+  const slug = useMemo(
+    () => mascot.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "mascot",
+    [mascot.name]
+  );
+
+  const exportOpts = useCallback(
+    (key: string) => ({
+      gestureKey: key,
+      theme,
+      accent,
+      signal,
+      glow,
+      ramp: instrument.ramp,
+    }),
+    [theme, accent, signal, glow, instrument.ramp]
+  );
+
   /* mount / remount SVG for the active gesture */
   useEffect(() => {
     const host = svgHostRef.current;
     if (!host || !active?.svg) return;
-    host.innerHTML = active.svg;
+    host.innerHTML = sanitizeSvg(active.svg);
     const svg = host.querySelector("svg") as SVGSVGElement | null;
     svgRef.current = svg;
-    eyesRef.current = host.querySelector(".ms-eyes") as SVGGElement | null;
+    eyesRefs.current = [
+      ...host.querySelectorAll<SVGGElement>(".ms-eyes, .bd-pupils"),
+    ];
     if (svg) {
       svg.setAttribute("width", "420");
       svg.setAttribute("height", "520");
@@ -205,8 +341,9 @@ export function GeneratedStudio({ mascot, fullPage = true }: Props) {
         glow,
         instrument.ramp
       );
+      applyPartVisibility(svg, enabledParts);
     }
-  }, [active?.svg, active?.key]); // theme/signal applied separately
+  }, [active?.svg, active?.key]); // theme/signal/parts applied separately
 
   useEffect(() => {
     applyLiveVars(
@@ -218,6 +355,10 @@ export function GeneratedStudio({ mascot, fullPage = true }: Props) {
       instrument.ramp
     );
   }, [theme, accent, signalAnim, glow, instrument.ramp]);
+
+  useEffect(() => {
+    applyPartVisibility(svgRef.current, enabledParts);
+  }, [enabledParts, active?.svg, gestureKey]);
 
   useEffect(() => {
     const m = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -235,18 +376,20 @@ export function GeneratedStudio({ mascot, fullPage = true }: Props) {
     } catch {
       /* noop */
     }
+    if (paused) svg.setAttribute("data-paused", "1");
+    else svg.removeAttribute("data-paused");
   }, [paused, gestureKey, active?.svg]);
 
   const pickGesture = (g: GeneratedGesture) => {
     setGestureKey(g.key);
-    if (typeof g.signal === "number") setSignal(g.signal);
+    if (typeof g.signal === "number") setSignal(normalizeSignal(g.signal));
   };
 
   const onTrack = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
       const svg = svgRef.current;
-      const eyes = eyesRef.current;
-      if (!svg || !eyes || paused || !active.track) return;
+      const eyes = eyesRefs.current;
+      if (!svg || eyes.length === 0 || paused || !active.track) return;
       const r = svg.getBoundingClientRect();
       const sx = ((e.clientX - r.left) / r.width) * 420;
       const sy = ((e.clientY - r.top) / r.height) * 520;
@@ -254,13 +397,14 @@ export function GeneratedStudio({ mascot, fullPage = true }: Props) {
       let dy = sy - 262;
       const len = Math.hypot(dx, dy) || 1;
       const m = Math.min(len / 46, 1) * 3.8;
-      eyes.style.transform = `translate(${(dx / len) * m}px, ${(dy / len) * m}px)`;
+      const transform = `translate(${(dx / len) * m}px, ${(dy / len) * m}px)`;
+      for (const eye of eyes) eye.style.transform = transform;
     },
     [paused, active.track]
   );
 
   useEffect(() => {
-    if (eyesRef.current) eyesRef.current.style.transform = "translate(0,0)";
+    for (const eye of eyesRefs.current) eye.style.transform = "translate(0,0)";
   }, [gestureKey]);
 
   const delight = useCallback(() => {
@@ -293,43 +437,110 @@ export function GeneratedStudio({ mascot, fullPage = true }: Props) {
   }, [active.delight, paused, delight, gestureKey]);
 
   const buildExport = useCallback(() => {
+    // Prefer live DOM (respects current hidden parts); fall back to baked string
     const svg = svgRef.current;
-    if (!svg) return "";
-    const node = svg.cloneNode(true) as SVGSVGElement;
-    node.setAttribute("class", `ms-root ms-g-${gestureKey}`);
-    node.setAttribute("width", "420");
-    node.setAttribute("height", "520");
-    node.removeAttribute("data-paused");
-    const eyes = node.querySelector(".ms-eyes") as SVGGElement | null;
-    if (eyes) eyes.style.transform = "";
-    // bake current CSS vars into style for portability
-    const baked = [
-      `--ms-top:${theme.top}`,
-      `--ms-mid:${theme.mid}`,
-      `--ms-base:${theme.base}`,
-      `--ms-core:${theme.core}`,
-      `--ms-features:${theme.features ?? "#2A1A0C"}`,
-      `--ms-accent:${accent}`,
-      `--ms-signal:${Math.round(signal)}`,
-      `--ms-signal-color:${rampColor(signal, instrument.ramp)}`,
-      `--ms-glow:${glow}`,
-    ].join(";");
-    node.setAttribute("style", baked);
-    return (
-      '<?xml version="1.0" encoding="UTF-8"?>\n' +
-      new XMLSerializer().serializeToString(node)
-    );
-  }, [gestureKey, theme, accent, signal, glow, instrument.ramp]);
+    if (svg) {
+      const node = svg.cloneNode(true) as SVGSVGElement;
+      node.setAttribute("class", `ms-root ms-g-${gestureKey}`);
+      node.setAttribute("width", "420");
+      node.setAttribute("height", "520");
+      node.removeAttribute("data-paused");
+      node.querySelectorAll(".ms-eyes, .bd-pupils").forEach((el) => {
+        (el as SVGGElement).style.transform = "";
+      });
+      node.querySelectorAll('[data-ms-hidden="1"]').forEach((el) => el.remove());
+      const baked = [
+        `--ms-top:${theme.top}`,
+        `--ms-mid:${theme.mid}`,
+        `--ms-base:${theme.base}`,
+        `--ms-core:${theme.core}`,
+        `--ms-features:${theme.features ?? "#2A1A0C"}`,
+        `--ms-accent:${accent}`,
+        `--ms-signal:${Math.round(signal)}`,
+        `--ms-signal-color:${rampColor(signal, instrument.ramp)}`,
+        `--ms-glow:${glow}`,
+      ].join(";");
+      node.setAttribute("style", baked);
+      return (
+        '<?xml version="1.0" encoding="UTF-8"?>\n' +
+        new XMLSerializer().serializeToString(node)
+      );
+    }
+    return bakeGestureExport(active.svg, exportOpts(gestureKey));
+  }, [
+    gestureKey,
+    theme,
+    accent,
+    signal,
+    glow,
+    instrument.ramp,
+    active.svg,
+    exportOpts,
+  ]);
 
-  const downloadSVG = () => {
+  const downloadPose = () => {
     const blob = new Blob([buildExport()], { type: "image/svg+xml" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    const slug = mascot.name.toLowerCase().replace(/\s+/g, "-");
     a.download = `${slug}-${gestureKey}-${Math.round(signal)}.svg`;
     a.click();
     URL.revokeObjectURL(url);
+    trackEvent("mascot_downloaded", { kind: "pose", gestures: 1 });
+  };
+
+  const downloadPack = () => {
+    const files: Record<string, Uint8Array> = {};
+    for (const g of mascot.gestures) {
+      const markup =
+        g.key === gestureKey
+          ? buildExport()
+          : bakeGestureExport(g.svg, exportOpts(g.key));
+      files[`gestures/${g.key}.svg`] = strToU8(markup);
+    }
+    files["pack.json"] = strToU8(
+      JSON.stringify(
+        {
+          name: mascot.name,
+          tagline: mascot.tagline,
+          product: mascot.product,
+          accent: mascot.accent,
+          glowLabel: mascot.glowLabel,
+          instrument: mascot.instrument,
+          themes: mascot.themes,
+          parts: mascot.parts,
+          gestures: mascot.gestures.map((g) => ({
+            key: g.key,
+            label: g.label,
+            cat: g.cat,
+            tip: g.tip,
+            use: g.use,
+            track: g.track,
+            delight: g.delight,
+            signal: g.signal,
+            file: `gestures/${g.key}.svg`,
+          })),
+          exportedAt: new Date().toISOString(),
+          exportSignal: Math.round(signal),
+          exportTheme: themeKey,
+        },
+        null,
+        2
+      )
+    );
+    const zipped = zipSync(files, { level: 6 });
+    const blob = new Blob([zipped], { type: "application/zip" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${slug}-studio-pack.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+    trackEvent("mascot_downloaded", {
+      kind: "pack",
+      gestures: mascot.gestures.length,
+    });
+    toast.success(`Pack downloaded (${mascot.gestures.length} poses)`);
   };
 
   const copySVG = async () => {
@@ -340,6 +551,89 @@ export function GeneratedStudio({ mascot, fullPage = true }: Props) {
     } catch {
       /* clipboard unavailable */
     }
+  };
+
+  const addGesture = async (req: GestureRequest) => {
+    if (!onMascotChange) {
+      toast.error("Gesture editing isn’t available here");
+      return;
+    }
+    if (mascot.gestures.some((g) => g.key === req.key)) {
+      toast.error("That gesture is already in the studio");
+      return;
+    }
+    if (mascot.gestures.length >= 12) {
+      toast.error("Studio is limited to 12 gestures");
+      return;
+    }
+    setAddingGesture(true);
+    trackEvent("generate_started", { action: "gesture", model: model ?? "auto" });
+    let errorCode: string | undefined;
+    try {
+      const res = await fetch("/api/generate/gesture", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mascot,
+          gesture: req,
+          look,
+          model,
+          referenceId: isReferenceId(referenceId) ? referenceId : undefined,
+        }),
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        code?: string;
+        mascot?: GeneratedMascot;
+        gesture?: GeneratedGesture;
+      };
+      if (!res.ok || !data.mascot || !data.gesture) {
+        errorCode = data.code;
+        throw new Error(data.error || "Couldn’t add that gesture");
+      }
+      applyMascotChange(data.mascot);
+      setGestureKey(data.gesture.key);
+      if (typeof data.gesture.signal === "number") {
+        setSignal(normalizeSignal(data.gesture.signal));
+      }
+      setShowAddGesture(false);
+      setCustomGestureLabel("");
+      setCustomGestureTip("");
+      trackEvent("generate_completed", {
+        action: "gesture",
+        model: model ?? "auto",
+      });
+      toast.success(`${data.gesture.label} added to the studio`);
+    } catch (err) {
+      trackGenerationFailure("gesture", errorCode);
+      toast.error(err instanceof Error ? err.message : "Add gesture failed");
+    } finally {
+      setAddingGesture(false);
+    }
+  };
+
+  const addCustomGesture = () => {
+    const label = customGestureLabel.trim();
+    if (!label) {
+      toast.error("Give the gesture a name");
+      return;
+    }
+    const key = label
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_|_$/g, "")
+      .slice(0, 32);
+    if (!key) {
+      toast.error("Use letters or numbers in the name");
+      return;
+    }
+    void addGesture({
+      key,
+      label,
+      cat: "Custom",
+      tip: customGestureTip.trim() || `${label} performance for your app.`,
+      use: "Custom moment",
+    });
   };
 
   const shellCss = `
@@ -495,8 +789,8 @@ export function GeneratedStudio({ mascot, fullPage = true }: Props) {
           </div>
 
           <p style={{ fontSize: 12.5, color: "#B5AC9A", textAlign: "center" }}>
-            drag {instrument.label} — strip &amp; accents share one ramp
-            &nbsp;·&nbsp; tap — bounce &amp; sparks &nbsp;·&nbsp;
+            drag {instrument.label}. Strip &amp; accents share one ramp
+            &nbsp;·&nbsp; tap for bounce &amp; sparks &nbsp;·&nbsp;
             {active.track
               ? "eyes follow your cursor"
               : "this pose locks gaze"}
@@ -605,6 +899,134 @@ export function GeneratedStudio({ mascot, fullPage = true }: Props) {
                 {active.tip}
               </p>
             </div>
+
+            {onMascotChange && (
+              <div className="mt-4">
+                <button
+                  type="button"
+                  className={`gs-pill ${showAddGesture ? "on" : ""}`}
+                  disabled={addingGesture}
+                  onClick={() => setShowAddGesture((v) => !v)}
+                >
+                  <Plus className="mr-1 inline size-3.5" />
+                  Add gesture
+                </button>
+
+                {showAddGesture && (
+                  <div
+                    className="mt-3 space-y-3 rounded-xl border p-3"
+                    style={{
+                      borderColor: `${accent}33`,
+                      background: "rgba(0,0,0,.18)",
+                    }}
+                  >
+                    {addingGesture ? (
+                      <p
+                        className="flex items-center gap-2"
+                        style={{ fontSize: 12.5, color: "#C6BCA7" }}
+                      >
+                        <Loader2 className="size-4 animate-spin" style={{ color: accent }} />
+                        Drawing the new pose into this studio…
+                      </p>
+                    ) : (
+                      <>
+                        {isReferenceId(referenceId) && (
+                          <p style={{ fontSize: 11.5, color: "#8D8472", lineHeight: 1.45 }}>
+                            Using your visual reference from the edit panel for this
+                            new pose.
+                          </p>
+                        )}
+                        {availablePresets.length > 0 && (
+                          <div>
+                            <div
+                              style={{
+                                fontSize: 10,
+                                letterSpacing: ".16em",
+                                color: "#8D8472",
+                                textTransform: "uppercase",
+                                marginBottom: 6,
+                              }}
+                            >
+                              Presets
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {availablePresets.map((p) => (
+                                <button
+                                  key={p.key}
+                                  type="button"
+                                  title={p.tip}
+                                  className="gs-pill"
+                                  onClick={() => void addGesture(p)}
+                                >
+                                  {p.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <div>
+                          <div
+                            style={{
+                              fontSize: 10,
+                              letterSpacing: ".16em",
+                              color: "#8D8472",
+                              textTransform: "uppercase",
+                              marginBottom: 6,
+                            }}
+                          >
+                            Custom
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <input
+                              value={customGestureLabel}
+                              onChange={(e) =>
+                                setCustomGestureLabel(e.target.value)
+                              }
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  addCustomGesture();
+                                }
+                              }}
+                              placeholder="Gesture name, e.g. High five"
+                              className="gs-range rounded-xl border px-3 py-2 text-sm"
+                              style={{
+                                height: "auto",
+                                background: "rgba(255,255,255,.04)",
+                                borderColor: `${accent}40`,
+                                color: "#F5EDE0",
+                              }}
+                            />
+                            <input
+                              value={customGestureTip}
+                              onChange={(e) =>
+                                setCustomGestureTip(e.target.value)
+                              }
+                              placeholder="Optional tip, what this pose means"
+                              className="gs-range rounded-xl border px-3 py-2 text-sm"
+                              style={{
+                                height: "auto",
+                                background: "rgba(255,255,255,.04)",
+                                borderColor: `${accent}40`,
+                                color: "#F5EDE0",
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="gs-btn"
+                              disabled={!customGestureLabel.trim()}
+                              onClick={addCustomGesture}
+                            >
+                              Generate &amp; add
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div>
@@ -617,7 +1039,7 @@ export function GeneratedStudio({ mascot, fullPage = true }: Props) {
                   letterSpacing: 0,
                 }}
               >
-                — plumage / body; the signal ramp stays product-fixed
+                (plumage / body; the signal ramp stays product-fixed)
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -725,19 +1147,67 @@ export function GeneratedStudio({ mascot, fullPage = true }: Props) {
             </button>
           </div>
 
-          <div className="flex gap-3">
-            <button type="button" className="gs-btn flex-1" onClick={downloadSVG}>
-              Download SVG
-            </button>
-            <button type="button" className="gs-btn ghost flex-1" onClick={copySVG}>
-              {copied ? "Copied ✓" : "Copy SVG code"}
+          <div className="flex flex-col gap-2">
+            {onMascotChange && canUndo && (
+              <button
+                type="button"
+                className="gs-btn ghost w-full inline-flex items-center justify-center gap-2"
+                onClick={handleUndo}
+              >
+                <Undo2 className="size-4" />
+                Revert last AI change
+              </button>
+            )}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                className="gs-btn flex-1"
+                onClick={downloadPose}
+              >
+                Download pose
+              </button>
+              <button
+                type="button"
+                className="gs-btn ghost flex-1"
+                onClick={downloadPack}
+              >
+                Download pack
+              </button>
+            </div>
+            <button
+              type="button"
+              className="gs-btn ghost w-full"
+              onClick={copySVG}
+            >
+              {copied ? "Copied ✓" : "Copy pose SVG"}
             </button>
           </div>
           <p style={{ fontSize: 11.5, color: "#8D8472", lineHeight: 1.5 }}>
-            Exports the selected pose at the current {instrument.label.toLowerCase()}{" "}
-            — filename carries both, one file per app state.
+            Pose exports the selected gesture at the current{" "}
+            {instrument.label.toLowerCase()}. Pack is a zip of every pose plus{" "}
+            <code style={{ color: "#C6BCA7" }}>pack.json</code>.
           </p>
+
+          <AppAssetsPanel
+            mascotId={mascotId ?? null}
+            mascotName={mascot.name}
+            model={model}
+          />
         </section>
+
+        <div className="lg:col-span-2">
+          <MascotEditPanel
+            mascot={{ ...mascot, parts }}
+            look={look}
+            model={model}
+            enabledParts={enabledParts}
+            onTogglePart={togglePart}
+            onMascotChange={applyMascotChange}
+            referenceId={referenceId}
+            onReferenceIdChange={setReferenceId}
+            accent={accent}
+          />
+        </div>
       </main>
     </div>
   );
