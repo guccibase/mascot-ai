@@ -112,13 +112,17 @@ const derive = (t) => ({
   ...t,
   bodyDark: dark(t.body, 0.28),
   bodyLight: light(t.body, 0.22),
-  limb: dark(t.body, 0.15),
+  limb: dark(t.body, 0.12),
   joint: dark(t.body, 0.42),
   wheel: dark(t.panel, 0.18),
   screen: t.panel,
   screenLight: light(t.panel, 0.14),
-  blush: mix(t.accent, "#FF8A9A", 0.4),
-  glowC: light(t.led, 0.18),
+  /* Fanous face stack: soft glass fill + ochre rim + feature ink */
+  face: mix(t.panel, t.led, 0.22),
+  faceEdge: dark(t.accent, 0.12),
+  features: dark(t.body, 0.35),
+  blush: mix(t.led, "#E4573D", 0.45),
+  glowC: light(t.led, 0.12),
   dim: rgba(t.led, 0.35),
   brass: t.accent,
   glass: t.led,
@@ -247,16 +251,20 @@ const endOf = (d) => {
 };
 
 const A = {
-  rest: "M0,0 Q-22,28 -28,62",
-  droop: "M0,0 Q-14,32 -18,64",
-  out: "M0,0 Q-38,10 -70,18",
-  up: "M0,0 Q-36,-18 -48,-54",
-  high: "M0,0 Q-30,-40 -22,-78",
-  point: "M0,0 Q-42,2 -80,0",
-  chin: "M0,0 Q-18,-24 34,-42",
-  onFace: "M0,0 Q-22,-34 38,-62",
-  palm: "M0,0 Q-26,-42 44,-78",
-  write: "M0,0 Q-24,40 36,66",
+  /* Fanous-length sausages — short enough that round tips read as mittens */
+  rest: "M0,0 Q-18,26 -28,54",
+  droop: "M0,0 Q-10,30 -18,58",
+  tuck: "M0,0 Q10,22 22,38",
+  out: "M0,0 Q-42,-6 -74,-4",
+  up: "M0,0 Q-36,-28 -28,-68",
+  high: "M0,0 Q-40,-36 -34,-82",
+  /* Wave: tip clears the chassis — far out, not buried in the body edge */
+  upWide: "M0,0 Q-52,-18 -72,-56",
+  point: "M0,0 Q-44,0 -78,2",
+  chin: "M0,0 Q-14,-22 30,-40",
+  onFace: "M0,0 Q-18,-32 34,-58",
+  palm: "M0,0 Q-24,-40 40,-74",
+  write: "M0,0 Q-20,36 32,62",
   /* Clap: open (hands apart) ↔ shut (hands meet at center chest) */
   clapOpenL: "M0,0 Q-28,8 18,2",
   clapShutL: "M0,0 Q-6,20 56,16",
@@ -265,24 +273,26 @@ const A = {
   clapL: "M0,0 Q-6,20 56,16",
   clapR: "M0,0 Q6,20 -56,16",
   shrug: "M0,0 Q-34,-14 -50,2",
-  thumb: "M0,0 Q-38,-22 -36,-58",
-  down: "M0,0 Q-26,30 -22,66",
+  /* Raised arm for thumbs — tip lands near Fanous fingerAt */
+  thumb: "M0,0 Q-36,-30 -28,-70",
+  down: "M0,0 Q-14,28 -20,56",
   /* Sprint: fists stay on the flanks — high = forward, low = back */
-  runFwd: "M0,0 Q-20,-18 -22,16",
-  runBack: "M0,0 Q-24,52 -26,88",
-  runMid: "M0,0 Q-22,18 -24,52",
+  runFwd: "M0,0 Q-18,-14 -20,14",
+  runBack: "M0,0 Q-20,48 -22,78",
+  runMid: "M0,0 Q-20,16 -22,48",
   /* Vertical launch: fists punched straight toward the sky */
-  flyUp: "M0,0 Q-14,-56 -6,-98",
+  flyUp: "M0,0 Q-12,-52 -6,-92",
 };
 
 const GESTURES = [
   /* Core */
   { key: "idle", label: "Idle", cat: "Core", use: "Home screen",
     tip: "Soft bob and blink while the glow-eyes follow your cursor.",
-    armL: A.rest, armR: mir(A.rest), eye: "open", mouth: "smile", track: true },
+    armL: A.rest, armR: mir(A.rest), eye: "open", mouth: "smile", track: true,
+    handL: "mitt", handR: "mitt" },
   { key: "wave", label: "Wave", cat: "Core", use: "Hello · goodbye",
     tip: "One open palm lifts high and flaps a friendly hello.",
-    armL: A.rest, armR: mir(A.high), wave: true, eye: "open", mouth: "grin", brow: "up",
+    armL: A.down, armR: mir(A.upWide), wave: true, eye: "open", mouth: "grin", brow: "up",
     handL: "mitt", handR: "palm" },
   { key: "happy", label: "Happy", cat: "Core", use: "Good news",
     tip: "Creased eyes and a warm lit grin.",
@@ -368,12 +378,12 @@ const GESTURES = [
     look: [7, -3], prop: "search", handL: "fist", handR: "palm" },
   { key: "thumbs_up", label: "Thumbs up", cat: "Action", use: "Approve · yes",
     tip: "A real thumbs-up — fist with a short fat thumb, clear approval.",
-    armL: A.rest, armR: mir(A.thumb), eye: "arch", mouth: "grin",
-    handL: "mitt", handR: "thumb" },
+    armL: A.down, armR: mir(A.thumb), eye: "arch", mouth: "grin",
+    handL: "mitt", handR: "thumb", fingerAt: [28, -70] },
   { key: "thumbs_down", label: "Thumbs down", cat: "Action", use: "Reject · no",
     tip: "Gentle disapproval — thumb down, try another approach.",
-    armL: A.rest, armR: mir(A.down), eye: "flat", mouth: "frown", brow: "sad",
-    handL: "mitt", handR: "thumbDown" },
+    armL: A.down, armR: mir(A.down), eye: "flat", mouth: "frown", brow: "sad",
+    handL: "mitt", handR: "thumbDown", fingerAt: [24, 58] },
   { key: "shrug", label: "Shrug", cat: "Action", use: "Unknown · maybe",
     tip: "Shoulders up, unsure which path to take.",
     armL: A.shrug, armR: mir(A.shrug), eye: "open", mouth: "flat", brow: "oneUp", prop: "question",
@@ -465,10 +475,10 @@ function Eye({ kind, x, p, track, eyeRef, style = "round", gazeY = 0 }) {
   style = styleMap[style] || style;
   const at = `translate(${x},${EYE_Y})`;
   const pupilAt = gazeY ? `translate(0,${gazeY})` : undefined;
-  const line = { fill: "none", stroke: p.led, strokeWidth: 5.5, strokeLinecap: "round" };
-  if (kind === "arch") return <path d="M-12,3 Q0,-9 12,3" transform={at} {...line} />;
-  if (kind === "flat") return <path d="M-12,0 L12,0" transform={at} {...line} />;
-  if (kind === "heart") return <path transform={`${at} scale(1.5)`} fill={p.led} d={HEART_D} />;
+  const line = { fill: "none", stroke: p.features, strokeWidth: 7.5, strokeLinecap: "round" };
+  if (kind === "arch") return <path d="M-14,4 Q0,-11 14,4" transform={at} {...line} />;
+  if (kind === "flat") return <path d="M-14,0 L14,0" transform={at} {...line} />;
+  if (kind === "heart") return <path transform={`${at} scale(0.95)`} fill={p.features} d={HEART_D} />;
   if (kind === "half") {
     if (style === "hud") {
       return (
@@ -555,38 +565,42 @@ function Eye({ kind, x, p, track, eyeRef, style = "round", gazeY = 0 }) {
         </>
       )}
       {style === "hud" && (() => {
+        /* Soft rounded HUD tiles — still rectangular, never sharp cubes */
         const w = uneven ? (x < 210 ? 16 : 22) : wide ? 24 : 20;
         const h = uneven ? (x < 210 ? 20 : 28) : wide ? 28 : 24;
         return (
           <>
-            <rect x={-w / 2} y={-h / 2} width={w} height={h} rx="3" fill={p.led} />
+            <rect x={-w / 2} y={-h / 2} width={w} height={h} rx="8" fill={p.led} />
             <g ref={track ? eyeRef : undefined} className="ln-pupils" transform={pupilAt}>
-              <rect x="-4" y="-5" width="7" height="7" rx="1.5" fill={p.screen} opacity=".75" />
-              <rect x="2" y="2" width="3" height="3" rx="0.5" fill={light(p.led, 0.55)} opacity=".75" />
+              <rect x="-4" y="-5" width="7" height="7" rx="3" fill={p.screen} opacity=".75" />
+              <circle cx="3" cy="3" r="1.6" fill="#ffffff" opacity=".85" />
             </g>
           </>
         );
       })()}
       {style === "diamond" && (() => {
+        /* Soft lozenge — Fanous curves, still reads as diamond vs ovals */
         const s = uneven ? (x < 210 ? 0.85 : 1.15) : wide ? 1.2 : 1;
         return (
           <>
-            <path transform={`scale(${s})`} d="M0,-16 L14,0 L0,16 L-14,0 Z" fill={p.led} />
+            <path transform={`scale(${s})`} fill={p.led}
+              d="M0,-17 Q8,-8 14,0 Q8,8 0,17 Q-8,8 -14,0 Q-8,-8 0,-17 Z" />
             <g ref={track ? eyeRef : undefined} className="ln-pupils" transform={pupilAt}>
-              <ellipse cx="-2" cy="-2" rx="4.2" ry="5" fill={p.screen} opacity=".78" />
-              <circle cx="3" cy="3" r="1.7" fill={light(p.led, 0.55)} opacity=".8" />
+              <ellipse cx="-2.5" cy="-3" rx="4" ry="5" fill="#ffffff" opacity=".88" />
+              <circle cx="3" cy="3" r="1.7" fill={p.screen} opacity=".55" />
             </g>
           </>
         );
       })()}
       {style === "soft" && (() => {
-        const r = uneven ? (x < 210 ? 11 : 15) : wide ? 16 : 14;
+        /* Shade — soft round Fanous eyes */
+        const r = uneven ? (x < 210 ? 12 : 16) : wide ? 17 : 15.5;
         return (
           <>
             <circle cx="0" cy="0" r={r} fill={p.led} />
             <g ref={track ? eyeRef : undefined} className="ln-pupils" transform={pupilAt}>
-              <circle cx="-3.5" cy="-4" r={wide ? 4.5 : 3.8} fill={p.screen} opacity=".72" />
-              <circle cx="3.5" cy="3.5" r="1.8" fill={light(p.led, 0.55)} opacity=".75" />
+              <circle cx="-4" cy="-5" r={wide ? 4.6 : 3.9} fill="#ffffff" opacity=".9" />
+              <circle cx="3.5" cy="3.5" r="1.8" fill={p.screen} opacity=".45" />
             </g>
           </>
         );
@@ -600,22 +614,20 @@ function Eye({ kind, x, p, track, eyeRef, style = "round", gazeY = 0 }) {
             <circle cx="0" cy="0" r={r * 0.95} fill="none" stroke={p.accent} strokeWidth="1.8" opacity=".45" />
             <g ref={track ? eyeRef : undefined} className="ln-pupils" transform={pupilAt}>
               <circle cx="0" cy="0" r={wide ? 4.2 : 3.4} fill={p.led} />
-              <path d={`M0,${-r * 0.45} L0,${r * 0.45}`} stroke={p.led} strokeWidth="1.2" opacity=".35" />
-              <path d={`M${-r * 0.45},0 L${r * 0.45},0`} stroke={p.led} strokeWidth="1.2" opacity=".35" />
-              <circle cx="2.5" cy="-2.5" r="1.4" fill={light(p.led, 0.6)} opacity=".8" />
+              <circle cx="2.5" cy="-2.5" r="1.4" fill="#ffffff" opacity=".8" />
             </g>
           </>
         );
       })()}
       {style === "bean" && (() => {
-        const rx = uneven ? (x < 210 ? 12 : 16) : wide ? 17 : 14.5;
-        const ry = uneven ? (x < 210 ? 7 : 10) : wide ? 11 : 8.5;
+        /* Watt — Fanous tall ovals in dark feature ink (cream glass needs contrast) */
+        const rx = uneven ? (x < 210 ? 10 : 13) : wide ? 14 : 12;
+        const ry = uneven ? (x < 210 ? 15 : 20) : wide ? 21 : 18;
         return (
           <>
-            <ellipse cx="0" cy="0" rx={rx} ry={ry} fill={p.led} />
+            <ellipse cx="0" cy="0" rx={rx} ry={ry} fill={p.features} />
             <g ref={track ? eyeRef : undefined} className="ln-pupils" transform={pupilAt}>
-              <ellipse cx="-3" cy="-1.5" rx={wide ? 5 : 4} ry={wide ? 3.2 : 2.6} fill={p.screen} opacity=".72" />
-              <ellipse cx="4" cy="2" rx="2" ry="1.4" fill={light(p.led, 0.55)} opacity=".7" />
+              <circle cx="-3.5" cy="-6" r={wide ? 3.8 : 3.2} fill="#ffffff" opacity=".9" />
             </g>
           </>
         );
@@ -633,149 +645,107 @@ function Brows({ kind, p }) {
     oneUp: ["M162,202 Q178,198 196,202", "M224,196 Q242,184 258,192"],
   }[kind];
   return (
-    <g data-ms-part="brows" fill="none" stroke={p.led} strokeWidth="5" strokeLinecap="round" opacity=".9">
+    <g data-ms-part="brows" fill="none" stroke={p.features} strokeWidth="7" strokeLinecap="round" opacity=".9">
       <path d={d[0]} /><path d={d[1]} />
     </g>
   );
 }
 
 function Mouth({ kind, p }) {
-  const line = { fill: "none", stroke: p.led, strokeWidth: 5, strokeLinecap: "round" };
-  if (kind === "grin") return <path className="ln-pop" d="M186,250 Q210,272 234,250" {...line} strokeWidth="6" />;
-  if (kind === "frown") return <path className="ln-pop" d="M188,260 Q210,244 232,260" {...line} />;
-  if (kind === "o") return <ellipse className="ln-pop" cx="210" cy="254" rx="9" ry="11" fill={p.led} />;
+  const line = { fill: "none", stroke: p.features, strokeWidth: 8, strokeLinecap: "round" };
+  if (kind === "grin")
+    return <path className="ln-pop" d="M183,248 Q210,278 237,248 Q210,258 183,248 Z" fill={p.features} />;
+  if (kind === "frown") return <path className="ln-pop" d="M187,262 Q210,240 233,262" {...line} />;
+  if (kind === "o") return <ellipse className="ln-pop" cx="210" cy="254" rx="11" ry="14" fill={p.features} />;
   if (kind === "talk")
     return (
-      <ellipse className="ln-pop" cx="210" cy="254" rx="9" ry="11" fill={p.led}>
-        <animate attributeName="ry" values="11;6;11;8;11" dur="0.55s" repeatCount="indefinite" />
+      <ellipse className="ln-pop" cx="210" cy="254" rx="11" ry="14" fill={p.features}>
+        <animate attributeName="ry" values="14;7;14;9;14" dur="0.55s" repeatCount="indefinite" />
       </ellipse>
     );
-  if (kind === "tiny") return <path className="ln-pop" d="M198,254 Q210,259 222,254" {...line} strokeWidth="4" />;
-  if (kind === "flat") return <path className="ln-pop" d="M192,254 L228,254" {...line} strokeWidth="4.5" />;
-  if (kind === "wry") return <path className="ln-pop" d="M190,252 Q210,266 232,246" {...line} />;
+  if (kind === "tiny") return <path className="ln-pop" d="M198,254 Q210,260 222,254" {...line} strokeWidth="6" />;
+  if (kind === "flat") return <path className="ln-pop" d="M192,254 Q210,258 228,254" {...line} strokeWidth="7" />;
+  if (kind === "wry") return <path className="ln-pop" d="M188,252 Q206,268 234,246" {...line} />;
   if (kind === "kiss")
     return (
-      <g className="ln-pop" fill={p.led}>
-        {/* puckered pixel kiss */}
+      <g className="ln-pop" fill={p.features}>
         <path d="M200,250 Q210,242 220,250 Q210,262 200,250 Z" />
-        <ellipse cx="210" cy="254" rx="3.2" ry="2.2" fill={p.screen} opacity=".55" />
       </g>
     );
-  return <path className="ln-pop" d="M188,250 Q210,266 232,250" {...line} />;
+  /* smile — Fanous-weight soft curve */
+  return <path className="ln-pop" d="M186,250 Q210,274 234,250" {...line} />;
 }
 
 /* ---------- limbs ---------- */
-/* Real hands (not ball stubs). Distinct silhouette per chassis; kind drives pose. */
-function BrassCuff({ p }) {
+/*
+  Fanous rule: the mitt IS the arm tip (fat round-capped stroke).
+  Special digits (thumb) are a separate fist+digit overlay — never a pad,
+  never a brass cuff disc, never a HUD rectangle.
+*/
+function ThumbHand({ p, down = false }) {
+  const fill = p.body;
   return (
-    <g>
-      <rect x="-12" y="-18" width="24" height="11" rx="4" fill={p.accent} />
-      <rect x="-9" y="-15" width="18" height="4" rx="1.5" fill={p.led} opacity=".55" />
+    <g transform={`rotate(${down ? 168 : -12}) scale(1.15)`}>
+      <rect x="-20" y="-13" width="41" height="28" rx="13" fill={fill} />
+      <path d="M13,-8 Q21,-23 15,-34" fill="none" stroke={fill}
+        strokeWidth="14.5" strokeLinecap="round" />
     </g>
   );
 }
 
 function HandShape({ chassis, p, kind = "mitt", side = "L" }) {
-  /* Thumb poses stay unflipped so the digit always reads; mitts/palms mirror. */
   const flip = side === "R" && kind !== "thumb" && kind !== "thumbDown"
     ? "scale(-1,1)"
     : undefined;
-  const fill = p.bodyLight;
-  const stroke = p.bodyDark;
+  /* Same body paint as Fanous mittens — silhouette carries the read */
+  const fill = p.body;
 
   let shape;
   if (kind === "thumb") {
-    /* Fanous-grade: knuckle slab + short fat thumb — unmistakable */
-    shape = (
-      <g transform="rotate(-8)">
-        <BrassCuff p={p} />
-        <rect x="-20" y="-12" width="42" height="30" rx="13" fill={fill} stroke={stroke} strokeWidth="3.2" />
-        <path d="M-12,-2 H14 M-12,6 H12" stroke={stroke} strokeWidth="2.4" strokeLinecap="round" opacity=".35" />
-        <path d="M14,-6 Q24,-24 16,-38" fill="none" stroke={fill} strokeWidth="15" strokeLinecap="round" />
-        <path d="M14,-6 Q24,-24 16,-38" fill="none" stroke={stroke} strokeWidth="3.2" strokeLinecap="round" opacity=".4" />
-        <ellipse cx="16" cy="-36" rx="7" ry="6" fill={fill} stroke={stroke} strokeWidth="2.5" />
-        <ellipse cx="-2" cy="4" rx="8" ry="5.5" fill={p.accent} opacity=".4" />
-      </g>
-    );
+    shape = <ThumbHand p={p} />;
   } else if (kind === "thumbDown") {
-    shape = (
-      <g transform="rotate(172)">
-        <BrassCuff p={p} />
-        <rect x="-20" y="-12" width="42" height="30" rx="13" fill={fill} stroke={stroke} strokeWidth="3.2" />
-        <path d="M14,-6 Q24,-24 16,-38" fill="none" stroke={fill} strokeWidth="15" strokeLinecap="round" />
-        <path d="M14,-6 Q24,-24 16,-38" fill="none" stroke={stroke} strokeWidth="3.2" strokeLinecap="round" opacity=".4" />
-        <ellipse cx="16" cy="-36" rx="7" ry="6" fill={fill} stroke={stroke} strokeWidth="2.5" />
-      </g>
-    );
+    shape = <ThumbHand p={p} down />;
   } else if (kind === "fist") {
     shape = (
       <g>
-        <BrassCuff p={p} />
-        <ellipse cx="0" cy="5" rx="17" ry="16" fill={fill} stroke={stroke} strokeWidth="3.2" />
-        <path d="M-11,-1 H11 M-11,6 H11 M-9,12 H9" stroke={stroke} strokeWidth="2.6" strokeLinecap="round" opacity=".45" />
-        <ellipse cx="-4" cy="3" rx="5" ry="3.5" fill={p.accent} opacity=".45" />
+        <ellipse cx="0" cy="2" rx="19" ry="18" fill={fill} />
+        <path d="M-11,-2 H11 M-11,5 H11 M-9,11 H9" stroke={p.bodyDark}
+          strokeWidth="2.4" strokeLinecap="round" opacity=".32" />
       </g>
     );
   } else if (kind === "palm") {
+    /* Open waving mitt — fingers always read upward in screen space */
     shape = (
       <g>
-        <BrassCuff p={p} />
-        <path d="M-17,-2 Q-20,18 0,22 Q20,18 17,-2 Q9,-18 0,-18 Q-9,-18 -17,-2 Z"
-          fill={fill} stroke={stroke} strokeWidth="3.2" />
-        <ellipse cx="-8" cy="-4" rx="4.5" ry="9" fill={fill} stroke={stroke} strokeWidth="2.2" />
-        <ellipse cx="0" cy="-6" rx="4.5" ry="10" fill={fill} stroke={stroke} strokeWidth="2.2" />
-        <ellipse cx="8" cy="-4" rx="4.5" ry="9" fill={fill} stroke={stroke} strokeWidth="2.2" />
-        <ellipse cx="0" cy="8" rx="8" ry="5.5" fill={p.accent} opacity=".4" />
-      </g>
-    );
-  } else if (chassis === "hex") {
-    /* faceted brass mitt — matches hexagonal lantern */
-    shape = (
-      <g>
-        <BrassCuff p={p} />
-        <path d="M-16,-4 L-5,-18 L7,-18 L18,-2 L15,16 L0,20 L-15,16 Z"
-          fill={fill} stroke={stroke} strokeWidth="3.2" strokeLinejoin="round" />
-        <ellipse cx="-7" cy="-8" rx="4" ry="6" fill={p.body} opacity=".25" />
-        <ellipse cx="2" cy="-10" rx="4" ry="7" fill={p.body} opacity=".25" />
-        <ellipse cx="10" cy="-7" rx="3.5" ry="5.5" fill={p.body} opacity=".25" />
-        <circle cx="-1" cy="5" r="4" fill={p.accent} opacity=".55" />
-      </g>
-    );
-  } else if (chassis === "mushroom") {
-    /* soft sleepy three-finger mitt */
-    shape = (
-      <g>
-        <BrassCuff p={p} />
-        <ellipse cx="0" cy="5" rx="18" ry="16" fill={fill} stroke={stroke} strokeWidth="3.2" />
-        <ellipse cx="-9" cy="-7" rx="7" ry="9" fill={fill} stroke={stroke} strokeWidth="2.6" />
-        <ellipse cx="0" cy="-9" rx="7" ry="10" fill={fill} stroke={stroke} strokeWidth="2.6" />
-        <ellipse cx="9" cy="-7" rx="7" ry="9" fill={fill} stroke={stroke} strokeWidth="2.6" />
-        <circle cx="-2" cy="4" r="4.5" fill={p.accent} opacity=".45" />
-      </g>
-    );
-  } else if (chassis === "bulb") {
-    /* smooth glass-glove with warm palm pad + finger lobes */
-    shape = (
-      <g>
-        <BrassCuff p={p} />
-        <path d="M-18,-3 Q-22,14 0,20 Q22,14 18,-3 Q11,-18 0,-18 Q-11,-18 -18,-3 Z"
-          fill={fill} stroke={stroke} strokeWidth="3.2" />
-        <ellipse cx="-8" cy="-6" rx="5" ry="8" fill={fill} stroke={stroke} strokeWidth="2" />
-        <ellipse cx="0" cy="-8" rx="5" ry="9" fill={fill} stroke={stroke} strokeWidth="2" />
-        <ellipse cx="8" cy="-6" rx="5" ry="8" fill={fill} stroke={stroke} strokeWidth="2" />
-        <ellipse cx="0" cy="6" rx="9" ry="6" fill={p.accent} opacity=".42" />
+        <ellipse cx="0" cy="8" rx="18" ry="16" fill={fill} />
+        <ellipse cx="-12" cy="-10" rx="8" ry="14" fill={fill} />
+        <ellipse cx="0" cy="-14" rx="8.5" ry="16" fill={fill} />
+        <ellipse cx="12" cy="-10" rx="8" ry="14" fill={fill} />
+        {chassis === "desk" && (
+          <path d="M-12,-6 V8 M0,-10 V10 M12,-6 V8" stroke={p.accent}
+            strokeWidth="2.2" strokeLinecap="round" opacity=".5" />
+        )}
       </g>
     );
   } else {
-    /* desk — angular task mitt with HUD fingers */
+    /* Resting mitt — three soft lobes that always peek past the arm tip */
     shape = (
       <g>
-        <BrassCuff p={p} />
-        <path d="M-17,-10 L17,-10 L19,14 L-19,14 Z" fill={fill} stroke={stroke} strokeWidth="3.2" />
-        <rect x="-13" y="-24" width="8" height="16" rx="2.5" fill={fill} stroke={stroke} strokeWidth="2.4" />
-        <rect x="-3" y="-26" width="8" height="18" rx="2.5" fill={fill} stroke={stroke} strokeWidth="2.4" />
-        <rect x="7" y="-24" width="8" height="16" rx="2.5" fill={fill} stroke={stroke} strokeWidth="2.4" />
-        <rect x="-11" y="3" width="22" height="6" rx="2" fill={p.accent} opacity=".6" />
+        <ellipse cx="0" cy="6" rx="18" ry="15" fill={fill} />
+        <ellipse cx="-11" cy="-6" rx="8" ry="11" fill={fill} />
+        <ellipse cx="0" cy="-8" rx="8.5" ry="12" fill={fill} />
+        <ellipse cx="11" cy="-6" rx="8" ry="11" fill={fill} />
+        {chassis === "hex" && (
+          <path d="M-6,2 H6" stroke={p.accent} strokeWidth="2.2"
+            strokeLinecap="round" opacity=".45" />
+        )}
+        {chassis === "bulb" && (
+          <ellipse cx="-2" cy="4" rx="6" ry="4.5" fill={p.accent} opacity=".3" />
+        )}
+        {chassis === "desk" && (
+          <path d="M-8,0 H8 M-8,6 H8" stroke={p.accent}
+            strokeWidth="2" strokeLinecap="round" opacity=".45" />
+        )}
       </g>
     );
   }
@@ -783,60 +753,53 @@ function HandShape({ chassis, p, kind = "mitt", side = "L" }) {
   return <g transform={flip}>{shape}</g>;
 }
 
-/** Rotate hand so cuff points back to the shoulder (reads attached, not floating). */
-function handRotation(d) {
+/** Push the mitt a few px past the stroke tip so fingers aren't swallowed. */
+function tipBeyond(d, pad = 8) {
   const [ex, ey] = endOf(d);
-  return (Math.atan2(-ex, ey) * 180) / Math.PI;
+  const len = Math.hypot(ex, ey) || 1;
+  return [ex + (ex / len) * pad, ey + (ey / len) * pad];
 }
 
-function Arm({ d, shoulder, p, anim, animKey, morph, chassis = "hex", hand = "mitt", side = "L" }) {
-  const [hx_, hy] = endOf(d);
-  /* Thumbs keep a fixed screen-space orientation so the digit always reads. */
-  const rot = hand === "thumb" ? -12 : hand === "thumbDown" ? 168 : handRotation(d);
+function Arm({
+  d, shoulder, p, anim, animKey, morph, chassis = "hex",
+  hand = "mitt", side = "L", fingerAt = null,
+}) {
+  const isThumb = hand === "thumb" || hand === "thumbDown";
+  const [, tipY] = endOf(d);
+  const [handX, handY] = isThumb && fingerAt ? fingerAt : tipBeyond(d, hand === "palm" ? 10 : 8);
+  /* Fingers grow away from the shoulder: down when hanging, up when raised. */
+  const hangFlip = !isThumb && tipY > 12 ? "rotate(180)" : undefined;
   const morphEnds = morph
-    ? morph.values.split(";").map((frame) => endOf(frame.trim()))
+    ? morph.values.split(";").map((frame) => tipBeyond(frame.trim(), 8))
     : null;
-  const handTx = morphEnds ? morphEnds.map((pt) => `${pt[0]} ${pt[1]}`).join(";") : null;
+  const handTx = !isThumb && morphEnds
+    ? morphEnds.map((pt) => `${pt[0]} ${pt[1]}`).join(";")
+    : null;
   return (
     <g transform={`translate(${shoulder.join(",")})`}>
       {anim && (
         <animateTransform key={animKey} attributeName="transform" type="rotate" additive="sum"
           values={anim.values} dur={anim.dur} repeatCount="indefinite" />
       )}
-      {/* tapered limb — thinner than robot pipes so hands read first */}
-      <path d={d} fill="none" stroke={p.limb} strokeWidth="20" strokeLinecap="round">
+      {/* Fanous mitten arms — same body paint, ~39-wide round caps */}
+      <path d={d} fill="none" stroke={p.body} strokeWidth="38" strokeLinecap="round">
         {morph && (
           <animate key={`${animKey}-d`} attributeName="d" values={morph.values}
             dur={morph.dur} repeatCount="indefinite" />
         )}
       </path>
-      <path d={d} fill="none" stroke={p.bodyLight} strokeWidth="7" strokeLinecap="round" opacity=".3">
+      <path d={d} fill="none" stroke={p.bodyLight} strokeWidth="12" strokeLinecap="round" opacity=".28">
         {morph && (
           <animate key={`${animKey}-hi`} attributeName="d" values={morph.values}
             dur={morph.dur} repeatCount="indefinite" />
         )}
       </path>
-      {/* small brass shoulder pin — not a giant ball joint */}
-      <circle cx="0" cy="0" r="11" fill={p.accent} />
-      <circle cx="0" cy="0" r="5.5" fill={p.body} />
-      <circle cx="-2" cy="-2" r="2" fill={p.led} opacity=".65" />
-      {/* wrist plug so the limb meets the mitt without a gap */}
-      <circle cx={hx_} cy={hy} r="9" fill={p.limb}>
-        {handTx && (
-          <animate attributeName="cx" values={morphEnds.map((pt) => pt[0]).join(";")}
-            dur={morph.dur} repeatCount="indefinite" />
-        )}
-        {handTx && (
-          <animate attributeName="cy" values={morphEnds.map((pt) => pt[1]).join(";")}
-            dur={morph.dur} repeatCount="indefinite" />
-        )}
-      </circle>
-      <g transform={`translate(${hx_},${hy})`}>
+      <g transform={`translate(${handX},${handY})`}>
         {handTx && (
           <animateTransform attributeName="transform" type="translate"
             values={handTx} dur={morph.dur} repeatCount="indefinite" />
         )}
-        <g transform={`rotate(${rot}) scale(1.15)`}>
+        <g transform={hangFlip}>
           <HandShape chassis={chassis} p={p} kind={hand} side={side} />
         </g>
       </g>
@@ -1210,12 +1173,14 @@ function Props({ g, p }) {
 
 /* ---------- distinct chassis pieces ---------- */
 
+/* Fanous gold band — pure stadium with sheen */
 function Band({ x, y, w, h, p }) {
   return (
     <g>
       <rect x={x} y={y} width={w} height={h} rx={h / 2} fill={p.accent} />
-      <rect x={x + 8} y={y + 2} width={w - 16} height={Math.max(2, h * 0.28)} rx={h * 0.12} fill="#ffffff" opacity=".32" />
-      <rect x={x + 7} y={y + h - 4} width={w - 14} height="2.5" rx="1.2" fill="#000000" opacity=".14" />
+      <rect x={x + 8} y={y + 2.5} width={w - 16} height={Math.max(2, h * 0.24)} rx={h * 0.12}
+        fill="#ffffff" opacity=".35" />
+      <rect x={x + 7} y={y + h - 4.5} width={w - 14} height="3" rx="1.5" fill="#000000" opacity=".16" />
     </g>
   );
 }
@@ -1224,34 +1189,34 @@ function Hang({ chassis, p }) {
   if (chassis === "hex") {
     return (
       <g data-ms-part="hang">
-        <path d="M210,58 L210,92" stroke={p.accent} strokeWidth="6" strokeLinecap="round" />
-        <circle cx="210" cy="50" r="13" fill="none" stroke={p.accent} strokeWidth="7" />
-        <circle cx="210" cy="50" r="4" fill={p.bodyLight} />
-        <circle cx="210" cy="92" r="11" fill={p.accent} />
-        <circle cx="206" cy="88" r="3" fill="#fff" opacity=".7" />
+        <path d="M210,58 L210,86" stroke={p.accent} strokeWidth="7" strokeLinecap="round" />
+        <circle cx="210" cy="48" r="14" fill="none" stroke={p.accent} strokeWidth="8" />
+        <circle cx="210" cy="48" r="4.5" fill={p.bodyLight} />
+        <circle cx="210" cy="86" r="13" fill={p.accent} />
+        <circle cx="205" cy="81" r="3.4" fill="#ffffff" opacity=".75" />
       </g>
     );
   }
   if (chassis === "mushroom") {
     return (
       <g data-ms-part="hang">
-        <circle cx="210" cy="112" r="10" fill={p.accent} />
-        <circle cx="207" cy="109" r="2.8" fill="#fff" opacity=".65" />
+        <circle cx="210" cy="98" r="12" fill={p.accent} />
+        <circle cx="206" cy="94" r="3.2" fill="#ffffff" opacity=".7" />
       </g>
     );
   }
   if (chassis === "bulb") {
     return (
       <g data-ms-part="hang">
-        <ellipse cx="210" cy="94" rx="11" ry="9" fill={p.accent} />
-        <circle cx="207" cy="91" r="2.4" fill="#fff" opacity=".6" />
+        <ellipse cx="210" cy="92" rx="12" ry="10" fill={p.accent} />
+        <circle cx="206" cy="88" r="2.8" fill="#ffffff" opacity=".7" />
       </g>
     );
   }
   return (
     <g data-ms-part="hang">
-      <circle cx="210" cy="124" r="8" fill={p.accent} />
-      <path d="M210,124 L210,140" stroke={p.bodyDark} strokeWidth="3.5" />
+      <ellipse cx="210" cy="118" rx="10" ry="8" fill={p.accent} />
+      <circle cx="207" cy="115" r="2.4" fill="#ffffff" opacity=".65" />
     </g>
   );
 }
@@ -1260,77 +1225,81 @@ function Bands({ chassis, p }) {
   if (chassis === "hex") {
     return (
       <g data-ms-part="bands">
-        <Band x={110} y={164} w={200} h={20} p={p} />
-        <Band x={118} y={298} w={184} h={16} p={p} />
-        <Band x={114} y={376} w={192} h={18} p={p} />
+        <Band x={98} y={172} w={224} h={22} p={p} />
+        <Band x={125} y={378} w={170} h={18} p={p} />
       </g>
     );
   }
   if (chassis === "mushroom") {
     return (
       <g data-ms-part="bands">
-        <path d="M114,208 Q210,228 306,208" fill="none" stroke={p.accent} strokeWidth="6" strokeLinecap="round" opacity=".8" />
-        <ellipse cx="210" cy="316" rx="24" ry="11" fill={p.accent} />
-        <ellipse cx="204" cy="312" rx="8" ry="3" fill="#fff" opacity=".25" />
+        <Band x={118} y={214} w={184} h={14} p={p} />
+        <ellipse cx="210" cy="318" rx="26" ry="12" fill={p.accent} />
+        <ellipse cx="204" cy="314" rx="9" ry="3.5" fill="#ffffff" opacity=".28" />
       </g>
     );
   }
   if (chassis === "bulb") {
     return (
       <g data-ms-part="bands">
-        <ellipse cx="210" cy="386" rx="46" ry="11" fill={p.accent} />
-        <path d="M168,376 Q210,366 252,376" fill="none" stroke={p.bodyDark} strokeWidth="4" opacity=".45" />
+        <ellipse cx="210" cy="384" rx="48" ry="12" fill={p.accent} />
+        <path d="M166,374 Q210,362 254,374" fill="none" stroke={p.bodyDark} strokeWidth="4"
+          strokeLinecap="round" opacity=".4" />
       </g>
     );
   }
   return (
     <g data-ms-part="bands">
-      <circle cx="176" cy="298" r="11" fill={p.accent} stroke={p.bodyDark} strokeWidth="2" />
-      <circle cx="244" cy="248" r="11" fill={p.accent} stroke={p.bodyDark} strokeWidth="2" />
-      <circle cx="210" cy="358" r="13" fill={p.accent} stroke={p.bodyDark} strokeWidth="2" />
-      <circle cx="176" cy="298" r="4" fill={p.led} opacity=".55" />
-      <circle cx="244" cy="248" r="4" fill={p.led} opacity=".55" />
-      <circle cx="210" cy="358" r="4.5" fill={p.led} opacity=".55" />
+      <circle cx="168" cy="286" r="12" fill={p.accent} />
+      <circle cx="248" cy="252" r="12" fill={p.accent} />
+      <circle cx="210" cy="360" r="14" fill={p.accent} />
+      <circle cx="168" cy="286" r="4.5" fill={p.led} opacity=".55" />
+      <circle cx="248" cy="252" r="4.5" fill={p.led} opacity=".55" />
+      <circle cx="210" cy="360" r="5" fill={p.led} opacity=".55" />
     </g>
   );
 }
 
 function FlameInner({ chassis, p, gid }) {
   if (chassis === "bulb") {
-    /* Edison coil near the screw neck — clearly below the face */
     return (
       <g data-ms-part="flame">
-        <path d="M210,300 L210,318" stroke={p.accent} strokeWidth="3" strokeLinecap="round" opacity=".5" />
-        <path className="ln-twinkle" d="M178,330 Q210,304 242,330" fill="none"
-          stroke={p.accent} strokeWidth="4" strokeLinecap="round" />
-        <path d="M188,340 Q210,318 232,340" fill="none" stroke={p.led} strokeWidth="3"
+        <path d="M210,298 Q210,318 210,330" stroke={p.accent} strokeWidth="3.5"
+          strokeLinecap="round" opacity=".45" />
+        <path className="ln-twinkle" d="M176,336 Q210,308 244,336" fill="none"
+          stroke={p.accent} strokeWidth="5" strokeLinecap="round" />
+        <path d="M186,348 Q210,322 234,348" fill="none" stroke={FLAME.mid} strokeWidth="3.5"
           strokeLinecap="round" opacity=".9" />
-        <path d="M196,348 Q210,332 224,348" fill="none" stroke={p.accent} strokeWidth="2.5"
-          strokeLinecap="round" opacity=".75" />
+        <path d="M196,356 Q210,340 224,356" fill="none" stroke={FLAME.core} strokeWidth="2.8"
+          strokeLinecap="round" opacity=".85" />
       </g>
     );
   }
   if (chassis === "desk") {
     return (
       <g data-ms-part="flame">
-        <ellipse cx="210" cy="246" rx="36" ry="18" fill={`url(#${gid})`} opacity=".55" />
-        <path d="M178,254 L242,254" stroke={p.accent} strokeWidth="3" strokeLinecap="round" opacity=".55" />
+        <ellipse cx="210" cy="238" rx="44" ry="22" fill={`url(#${gid})`} opacity=".6" />
+        <ellipse cx="210" cy="248" rx="56" ry="10" fill={p.accent} opacity=".55" />
       </g>
     );
   }
   if (chassis === "mushroom") {
     return (
       <g data-ms-part="flame">
-        <ellipse cx="210" cy="232" rx="42" ry="30" fill={`url(#${gid})`} opacity=".5" />
-        <circle cx="210" cy="236" r="14" fill={p.accent} opacity=".35" />
+        <ellipse cx="210" cy="228" rx="48" ry="34" fill={`url(#${gid})`} opacity=".55" />
+        <circle cx="210" cy="232" r="16" fill={p.accent} opacity=".38" />
       </g>
     );
   }
   return (
     <g data-ms-part="flame">
-      <ellipse cx="210" cy="248" rx="30" ry="38" fill={`url(#${gid})`} opacity=".55" />
-      <path d="M210,218 C220,232 224,250 210,272 C196,250 200,232 210,218 Z" fill={p.accent} opacity=".92" />
-      <path d="M210,230 C216,240 218,252 210,262 C202,252 204,240 210,230 Z" fill={p.led} opacity=".95" />
+      <ellipse cx="210" cy="262" rx="34" ry="42" fill={`url(#${gid})`} opacity=".5" />
+      <path d="M210,228 C222,244 226,264 210,290 C194,264 198,244 210,228 Z"
+        fill={FLAME.outer} opacity=".95" />
+      <path d="M210,240 C218,252 220,266 210,282 C200,266 202,252 210,240 Z"
+        fill={FLAME.mid} opacity=".95" />
+      <path d="M210,250 C214,258 215,266 210,274 C205,266 206,258 210,250 Z"
+        fill={FLAME.core} opacity=".95" />
     </g>
   );
 }
@@ -1339,154 +1308,185 @@ function Base({ chassis, p }) {
   if (chassis === "hex") {
     return (
       <g data-ms-part="base">
-        <Band x={106} y={426} w={208} h={22} p={p} />
-        <ellipse cx="168" cy="456" rx="18" ry="8" fill={p.bodyDark} />
-        <ellipse cx="252" cy="456" rx="18" ry="8" fill={p.bodyDark} />
+        {/* Fanous flared foot trumpet */}
+        <path d="M128,396 L292,396 L316,444 L104,444 Z" fill={p.body} />
+        <path d="M136,400 L146,400 L132,438 L122,438 Z" fill="#ffffff" opacity=".1" />
+        <Band x={101} y={436} w={218} h={24} p={p} />
       </g>
     );
   }
   if (chassis === "mushroom") {
     return (
       <g data-ms-part="base">
-        <ellipse cx="210" cy="448" rx="74" ry="18" fill={p.bodyDark} />
-        <ellipse cx="210" cy="440" rx="60" ry="14" fill={p.body} />
-        <ellipse cx="210" cy="434" rx="44" ry="10" fill={p.accent} opacity=".85" />
-        <ellipse cx="198" cy="430" rx="14" ry="4" fill="#fff" opacity=".25" />
+        <ellipse cx="210" cy="452" rx="82" ry="20" fill={p.bodyDark} />
+        <ellipse cx="210" cy="442" rx="66" ry="16" fill={p.body} />
+        <ellipse cx="210" cy="434" rx="48" ry="11" fill={p.accent} opacity=".9" />
+        <ellipse cx="196" cy="430" rx="16" ry="5" fill="#ffffff" opacity=".28" />
       </g>
     );
   }
   if (chassis === "bulb") {
     return (
       <g data-ms-part="base">
-        <path d="M166,388 L254,388 L246,456 L174,456 Z" fill={p.accent} />
-        {[400, 414, 428, 442].map((y, i) => (
-          <path key={i} d={`M170,${y} L250,${y}`} stroke={p.bodyDark} strokeWidth="3.5" opacity=".65" />
+        {/* Soft screw neck — rounded sides, not a hard frustum */}
+        <path d="M170,382 C166,390 164,410 168,452 C176,458 244,458 252,452 C256,410 254,390 250,382 Z"
+          fill={p.accent} />
+        {[398, 412, 426, 440].map((y, i) => (
+          <path key={i} d={`M172,${y} Q210,${y - 4} 248,${y}`} fill="none"
+            stroke={p.bodyDark} strokeWidth="3.5" strokeLinecap="round" opacity=".55" />
         ))}
-        <ellipse cx="210" cy="458" rx="38" ry="10" fill={p.bodyDark} />
-        <ellipse cx="198" cy="396" rx="16" ry="5" fill="#fff" opacity=".22" />
+        <ellipse cx="210" cy="456" rx="40" ry="11" fill={p.bodyDark} />
+        <ellipse cx="196" cy="392" rx="14" ry="5" fill="#ffffff" opacity=".22" />
       </g>
     );
   }
   return (
     <g data-ms-part="base">
-      <ellipse cx="210" cy="454" rx="80" ry="16" fill={p.bodyDark} />
-      <ellipse cx="210" cy="446" rx="66" ry="12" fill={p.body} />
-      <ellipse cx="210" cy="440" rx="42" ry="8" fill={p.accent} opacity=".75" />
-      <rect x="196" y="398" width="28" height="44" rx="5" fill={p.bodyDark} />
+      <ellipse cx="210" cy="456" rx="86" ry="18" fill={p.bodyDark} />
+      <ellipse cx="210" cy="448" rx="70" ry="14" fill={p.body} />
+      <ellipse cx="210" cy="440" rx="46" ry="10" fill={p.accent} opacity=".8" />
+      <ellipse cx="196" cy="436" rx="14" ry="4" fill="#ffffff" opacity=".22" />
     </g>
   );
 }
 
 function GlassBody({ chassis, p, bodyGrad, glassGrad }) {
   if (chassis === "hex") {
+    /* Lumen — Fanous barrel + soft dome (not a hard hexagon) */
     return (
       <g data-ms-part="glass">
-        <path d="M146,186 L178,164 L242,164 L274,186 L274,402 L242,422 L178,422 L146,402 Z"
-          fill={`url(#${bodyGrad})`} stroke={p.bodyDark} strokeWidth="3" />
-        <path d="M146,186 L166,198 L166,410 L146,402 Z" fill={p.bodyDark} opacity=".22" />
-        <path d="M274,186 L254,198 L254,410 L274,402 Z" fill="#fff" opacity=".08" />
-        <path d="M166,198 L254,198 L254,358 L166,358 Z" fill={`url(#${glassGrad})`} opacity=".94" />
-        <path d="M174,206 L246,206 L246,350 L174,350 Z" fill="none" stroke={p.accent} strokeWidth="3" opacity=".35" />
-        <path d="M210,206 L210,350" stroke={p.accent} strokeWidth="2.5" opacity=".28" />
-        <ellipse cx="186" cy="228" rx="18" ry="28" fill="#fff" opacity=".18" />
+        {/* marker: lumen-barrel */}
+        <path d="M108,190 L312,190 C318,262 336,270 336,322 C336,350 300,354 294,386 L126,386 C120,354 84,350 84,322 C84,270 102,262 108,190 Z"
+          fill={`url(#${bodyGrad})`} />
+        <ellipse cx="152" cy="252" rx="44" ry="70" fill="#ffffff" opacity=".12" />
+        {/* ogee dome */}
+        <path d="M116,172 C116,138 200,94 210,90 C220,94 304,138 304,172 Z"
+          fill={`url(#${bodyGrad})`} />
+        <ellipse cx="168" cy="138" rx="40" ry="24" fill="#ffffff" opacity=".14" />
+        {/* super-rounded glass face */}
+        <rect x="120" y="208" width="180" height="144" rx="70"
+          fill={p.face} stroke={p.faceEdge} strokeWidth="6" />
+        <ellipse cx="156" cy="236" rx="28" ry="18" fill="#ffffff" opacity=".2"
+          transform="rotate(-14 156 236)" />
+        <rect x="120" y="208" width="180" height="28" rx="14" fill="#000000" opacity=".08" />
       </g>
     );
   }
   if (chassis === "mushroom") {
+    /* Shade — continuous soft mushroom, no hard corners */
     return (
       <g data-ms-part="glass">
-        <path d="M96,208 C96,126 148,110 210,110 C272,110 324,126 324,208 L302,230 Q210,252 118,230 Z"
-          fill={`url(#${bodyGrad})`} stroke={p.bodyDark} strokeWidth="3" />
-        <path d="M118,208 Q210,170 302,208" fill="none" stroke="#fff" strokeWidth="9" opacity=".12" />
-        <ellipse cx="210" cy="196" rx="80" ry="54" fill={`url(#${glassGrad})`} opacity=".55" />
-        <path d="M190,246 L230,246 L222,422 L198,422 Z" fill={p.bodyDark} />
-        <path d="M196,246 L224,246 L218,422 L202,422 Z" fill={p.body} />
-        <ellipse cx="204" cy="280" rx="6" ry="42" fill="#fff" opacity=".12" />
+        {/* marker: shade-cap */}
+        <path d="M90,206 C90,118 148,96 210,94 C272,96 330,118 330,206
+          C330,228 286,258 210,266 C134,258 90,228 90,206 Z"
+          fill={`url(#${bodyGrad})`} />
+        <path d="M118,200 Q210,156 302,200" fill="none" stroke="#ffffff" strokeWidth="12"
+          strokeLinecap="round" opacity=".16" />
+        <ellipse cx="210" cy="198" rx="86" ry="58" fill={`url(#${glassGrad})`} opacity=".5" />
+        {/* soft face oval under the hood */}
+        <ellipse cx="210" cy="214" rx="72" ry="48" fill={p.face} stroke={p.faceEdge} strokeWidth="5" />
+        <ellipse cx="178" cy="198" rx="18" ry="12" fill="#ffffff" opacity=".18"
+          transform="rotate(-12 178 198)" />
+        {/* soft stem */}
+        <path d="M188,258 C182,300 186,380 192,428 C198,438 222,438 228,428
+          C234,380 238,300 232,258 C222,268 198,268 188,258 Z"
+          fill={p.bodyDark} />
+        <path d="M196,262 C192,300 196,380 200,422 C206,428 214,428 220,422
+          C224,380 228,300 224,262 Z" fill={p.body} />
+        <ellipse cx="204" cy="300" rx="6" ry="48" fill="#ffffff" opacity=".12" />
       </g>
     );
   }
   if (chassis === "bulb") {
+    /* Watt — soft Edison pear with thick warm rim */
     return (
       <g data-ms-part="glass">
-        {/* Warm glass uses body gradient (not dark panel) so Edison reads lit */}
-        <path d="M210,98 C278,98 326,162 326,232 C326,298 286,352 256,384 L164,384 C134,352 94,298 94,232 C94,162 142,98 210,98 Z"
-          fill={`url(#${bodyGrad})`} stroke={p.accent} strokeWidth="3.5" opacity=".88" />
-        <path d="M210,118 C262,118 300,168 300,228 C300,282 268,328 244,356 L176,356 C152,328 120,282 120,228 C120,168 158,118 210,118 Z"
-          fill={p.led} opacity=".22" />
-        <path d="M132,176 Q166,132 214,122" fill="none" stroke="#fff" strokeWidth="14" opacity=".38" strokeLinecap="round" />
-        <ellipse cx="160" cy="196" rx="28" ry="42" fill="#fff" opacity=".32" />
-        <ellipse cx="210" cy="250" rx="70" ry="90" fill={p.led} opacity=".18" />
+        {/* marker: watt-pear */}
+        <path d="M210,96 C284,96 334,164 334,236 C334,304 288,356 258,386
+          L162,386 C132,356 86,304 86,236 C86,164 136,96 210,96 Z"
+          fill={`url(#${bodyGrad})`} stroke={p.faceEdge} strokeWidth="5.5" />
+        <path d="M210,118 C266,118 306,170 306,232 C306,286 270,332 246,358
+          L174,358 C150,332 114,286 114,232 C114,170 154,118 210,118 Z"
+          fill={p.led} opacity=".2" />
+        <path d="M130,178 Q168,128 220,118" fill="none" stroke="#ffffff" strokeWidth="16"
+          strokeLinecap="round" opacity=".4" />
+        <ellipse cx="158" cy="196" rx="30" ry="44" fill="#ffffff" opacity=".3" />
+        <ellipse cx="210" cy="248" rx="72" ry="92" fill={p.led} opacity=".16" />
       </g>
     );
   }
-  /* desk — classic anglepoise: shade opens downward, spring arm zig-zags to base */
+  /* Arc — soft anglepoise shade (no hard trapezoid) */
   return (
     <g data-ms-part="glass">
-      {/* shade cone — wider at the bottom (opens toward the desk) */}
-      <path d="M158,128 L262,128 L300,232 L120,232 Z" fill={`url(#${bodyGrad})`} stroke={p.bodyDark} strokeWidth="3" />
-      <ellipse cx="210" cy="128" rx="54" ry="14" fill={p.bodyDark} />
-      <ellipse cx="210" cy="232" rx="92" ry="16" fill={p.accent} opacity=".9" />
-      <ellipse cx="210" cy="228" rx="78" ry="10" fill={p.bodyDark} opacity=".35" />
-      {/* face on the underside glow disc */}
-      <ellipse cx="210" cy="200" rx="52" ry="34" fill={`url(#${glassGrad})`} opacity=".92" />
-      <ellipse cx="192" cy="186" rx="14" ry="10" fill="#fff" opacity=".18" />
-      {/* upper arm segment */}
-      <path d="M210,240 L158,300" fill="none" stroke={p.body} strokeWidth="18" strokeLinecap="round" />
-      <path d="M210,240 L158,300" fill="none" stroke={p.bodyLight} strokeWidth="7" strokeLinecap="round" opacity=".35" />
-      {/* forearm segment */}
-      <path d="M158,300 L248,318" fill="none" stroke={p.body} strokeWidth="18" strokeLinecap="round" />
-      <path d="M158,300 L248,318" fill="none" stroke={p.bodyLight} strokeWidth="7" strokeLinecap="round" opacity=".35" />
-      {/* upright to base */}
-      <path d="M248,318 L210,398" fill="none" stroke={p.body} strokeWidth="18" strokeLinecap="round" />
-      <path d="M248,318 L210,398" fill="none" stroke={p.bodyLight} strokeWidth="7" strokeLinecap="round" opacity=".35" />
-      {/* spring coils */}
-      <path d="M168,268 Q190,252 212,268" fill="none" stroke={p.accent} strokeWidth="3.5" opacity=".75" />
-      <path d="M178,290 Q210,274 242,300" fill="none" stroke={p.accent} strokeWidth="3" opacity=".55" />
+      {/* marker: arc-shade */}
+      <path d="M148,126 C168,112 252,112 272,126 C298,148 312,210 304,246
+        C296,262 124,262 116,246 C108,210 122,148 148,126 Z"
+        fill={`url(#${bodyGrad})`} stroke={p.bodyDark} strokeWidth="3" />
+      <ellipse cx="210" cy="132" rx="58" ry="16" fill={p.bodyDark} opacity=".85" />
+      <ellipse cx="210" cy="248" rx="96" ry="18" fill={p.accent} opacity=".88" />
+      <ellipse cx="210" cy="242" rx="80" ry="12" fill={p.bodyDark} opacity=".3" />
+      {/* soft stadium face */}
+      <rect x="158" y="168" width="104" height="72" rx="34"
+        fill={p.face} stroke={p.faceEdge} strokeWidth="5" />
+      <ellipse cx="178" cy="188" rx="16" ry="10" fill="#ffffff" opacity=".2"
+        transform="rotate(-12 178 188)" />
+      {/* soft spring arm — thick round sausages */}
+      <path d="M210,258 Q160,290 156,318" fill="none" stroke={p.body} strokeWidth="22" strokeLinecap="round" />
+      <path d="M156,318 Q210,330 252,322" fill="none" stroke={p.body} strokeWidth="22" strokeLinecap="round" />
+      <path d="M252,322 Q230,360 210,404" fill="none" stroke={p.body} strokeWidth="22" strokeLinecap="round" />
+      <path d="M210,258 Q160,290 156,318" fill="none" stroke={p.bodyLight} strokeWidth="8"
+        strokeLinecap="round" opacity=".3" />
+      <path d="M168,278 Q196,262 224,278" fill="none" stroke={p.accent} strokeWidth="3.5"
+        strokeLinecap="round" opacity=".7" />
+      <path d="M172,304 Q210,288 248,308" fill="none" stroke={p.accent} strokeWidth="3"
+        strokeLinecap="round" opacity=".5" />
     </g>
   );
 }
 
 function Accessory({ chassis, p }) {
   if (chassis === "hex") {
-    /* ribbon bookmark — reads as a bookmark, not a floating wedge-hand */
     return (
-      <g data-ms-part="accessory" transform="translate(298,178)">
-        <path d="M-8,-36 L8,-36 L8,22 L0,12 L-8,22 Z" fill={p.accent} stroke={p.bodyDark} strokeWidth="2" />
-        <rect x="-5" y="-30" width="10" height="4" rx="1" fill={p.led} opacity=".8" />
-        <path d="M-3,-18 H3 M-3,-10 H3 M-3,-2 H1" stroke={p.led} strokeWidth="1.8" strokeLinecap="round" opacity=".7" />
+      <g data-ms-part="accessory" transform="translate(118,348)">
+        <path d="M-8,-36 C-8,-40 8,-40 8,-36 L8,18 C4,12 0,10 0,10 C0,10 -4,12 -8,18 Z"
+          fill={p.accent} />
+        <rect x="-5" y="-30" width="10" height="4" rx="2" fill={p.led} opacity=".8" />
+        <path d="M-3,-18 H3 M-3,-10 H3 M-3,-2 H1" stroke={p.led} strokeWidth="1.8"
+          strokeLinecap="round" opacity=".7" />
       </g>
     );
   }
   if (chassis === "mushroom") {
     return (
-      <g data-ms-part="accessory" transform="translate(308,148)">
-        <path d="M0,-14 A16 16 0 1 0 0,14 A10 10 0 1 1 0,-14 Z" fill={p.led} stroke={p.accent} strokeWidth="3" />
+      <g data-ms-part="accessory" transform="translate(312,142)">
+        <path d="M0,-14 A16 16 0 1 0 0,14 A10 10 0 1 1 0,-14 Z" fill={p.led} stroke={p.accent} strokeWidth="3.5" />
         <circle cx="4" cy="-2" r="2.5" fill={p.accent} opacity=".55" />
       </g>
     );
   }
   if (chassis === "bulb") {
     return (
-      <g data-ms-part="accessory" transform="translate(318,132)">
-        <path className="ln-twinkle" d="M0,-12 L3,-3 L12,0 L3,3 L0,12 L-3,3 L-12,0 L-3,-3 Z" fill={p.accent} />
+      <g data-ms-part="accessory" transform="translate(322,128)">
+        <path className="ln-twinkle"
+          d="M0,-12 Q3,-3 12,0 Q3,3 0,12 Q-3,3 -12,0 Q-3,-3 0,-12 Z" fill={p.accent} />
         <circle cx="0" cy="0" r="4" fill={p.led} />
       </g>
     );
   }
   return (
-    <g data-ms-part="accessory" transform="translate(318,168)">
-      <rect x="-16" y="-14" width="32" height="28" rx="4" fill={p.led} stroke={p.accent} strokeWidth="2.5" />
-      <path d="M-8,-4 H8 M-8,4 H4" stroke={p.bodyDark} strokeWidth="2.5" strokeLinecap="round" />
-      <rect x="-16" y="-14" width="6" height="28" rx="2" fill={p.accent} opacity=".35" />
+    <g data-ms-part="accessory" transform="translate(322,160)">
+      <rect x="-16" y="-14" width="32" height="28" rx="10" fill={p.led} stroke={p.accent} strokeWidth="2.5" />
+      <path d="M-8,-4 H8 M-8,4 H4" stroke={p.features} strokeWidth="2.5" strokeLinecap="round" />
     </g>
   );
 }
 
 function shouldersFor(chassis) {
-  if (chassis === "mushroom") return [[150, 300], [270, 300]];
-  if (chassis === "bulb") return [[128, 278], [292, 278]];
-  if (chassis === "desk") return [[148, 220], [272, 220]];
-  return [[148, 318], [272, 318]];
+  /* Fanous tuck: shoulders sit inside the silhouette */
+  if (chassis === "mushroom") return [[128, 250], [292, 250]];
+  if (chassis === "bulb") return [[118, 300], [302, 300]];
+  if (chassis === "desk") return [[132, 200], [288, 200]];
+  return [[118, 320], [302, 320]];
 }
 
 
@@ -1536,15 +1536,16 @@ function LanternSVG({ variant, p, glow, paused, waving, gesture, svgRef, eyeRef,
 
   const flying = !!g.boost;
   /* Face features ride high on the panel so he reads as looking up, not at the viewer. */
+  /* Seat the face on each chassis' soft glass (Fanous face sits ~y228–294). */
   const faceLift = skyward
     ? -14
     : chassis === "mushroom"
-      ? -30
+      ? -18
       : chassis === "desk"
-        ? -32
+        ? -36
         : chassis === "bulb"
-          ? -6
-          : 0;
+          ? 8
+          : 18;
   const mouthY = skyward ? -12 : 0;
   /* Pupils park at the top of each eye when launching skyward. */
   const gazeY = g.gazeY ?? (skyward ? -6 : 0);
@@ -1613,7 +1614,6 @@ function LanternSVG({ variant, p, glow, paused, waving, gesture, svgRef, eyeRef,
                   <g data-ms-part="thrusters"><Thrusters p={p} /></g>
                 )}
 
-                {/* lantern stack */}
                 {parts.base && <Base chassis={chassis} p={p} />}
                 {parts.glass && (
                   <GlassBody chassis={chassis} p={p} bodyGrad={`ln-body-${g.key}`} glassGrad={`ln-screen-${g.key}`} />
@@ -1624,19 +1624,19 @@ function LanternSVG({ variant, p, glow, paused, waving, gesture, svgRef, eyeRef,
                 {parts.accessory && <Accessory chassis={chassis} p={p} />}
 
                 {parts.blush && (
-                  <g data-ms-part="blush" fill={p.blush} opacity=".4"
+                  <g data-ms-part="blush" fill={p.blush} opacity=".45"
                     transform={`translate(0,${skyward ? -14 : 0})`}>
                     <ellipse
-                      cx="158"
-                      cy={chassis === "mushroom" ? 214 : chassis === "desk" ? 208 : chassis === "bulb" ? 248 : 250}
-                      rx="9"
-                      ry="5.5"
+                      cx="156"
+                      cy={chassis === "mushroom" ? 232 : chassis === "desk" ? 210 : chassis === "bulb" ? 268 : 306}
+                      rx="10"
+                      ry="7"
                     />
                     <ellipse
-                      cx="262"
-                      cy={chassis === "mushroom" ? 214 : chassis === "desk" ? 208 : chassis === "bulb" ? 248 : 250}
-                      rx="9"
-                      ry="5.5"
+                      cx="264"
+                      cy={chassis === "mushroom" ? 232 : chassis === "desk" ? 210 : chassis === "bulb" ? 268 : 306}
+                      rx="10"
+                      ry="7"
                     />
                   </g>
                 )}
@@ -1665,15 +1665,17 @@ function LanternSVG({ variant, p, glow, paused, waving, gesture, svgRef, eyeRef,
                   </g>
                 )}
 
-                {/* arms always on top of the chassis so they never float as orphan tips */}
+                {/* Arms on top so raised mitts/thumbs never hide under glass */}
                 {parts.arms && (
                   <g data-ms-part="arms">
                     <Arm d={g.armL} shoulder={shouldersFor(chassis)[0]} p={p} anim={armLAnim}
                       morph={armMorphL} animKey={`l-${g.key}-${isWaving}`} chassis={chassis}
-                      hand={g.handL || "mitt"} side="L" />
+                      hand={g.handL || "mitt"} side="L"
+                      fingerAt={g.handL === "thumb" || g.handL === "thumbDown" ? g.fingerAt : null} />
                     <Arm d={g.armR} shoulder={shouldersFor(chassis)[1]} p={p} anim={armRAnim}
                       morph={armMorphR} animKey={`r-${g.key}-${isWaving}`} chassis={chassis}
-                      hand={g.handR || "mitt"} side="R" />
+                      hand={g.handR || "mitt"} side="R"
+                      fingerAt={g.handR === "thumb" || g.handR === "thumbDown" ? g.fingerAt : null} />
                   </g>
                 )}
               </g>

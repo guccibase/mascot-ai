@@ -1,41 +1,48 @@
 import { GESTURE_PRESETS } from "@/lib/gesture-presets";
 
-
 /**
- * SOL ORB FAMILY — four light-native companions, each a different species of glow.
+ * SOL ORB FAMILY — four light-native companions.
  *
- * Sol stays the sunrise alarm orb. These siblings keep the photonic language
- * (breathing body, sun-core, light pool, gleam) but diverge hard in silhouette,
- * eyes, crown, and product badge so none read as a recolor.
+ * Like Sol: no arms. Expression is photonic — breathing silhouette, sun-core
+ * behind the face, light pool (never a hard shadow), gleam, and light props.
+ * Species diverge in silhouette, eyes, crown rays, and badge — not by bolting
+ * on paddle "hands".
  *
- *   aura   — tall soft pill · crescent eyes · meditation
- *   glint  — rounded diamond · rhombus eyes · photo filters
- *   trove  — wide squircle · coin-slot eyes · savings
- *   zephyr — scalloped cloud · bubbly rounds · weather
+ *   aura   — tall soft drop · crescent lids · meditation
+ *   glint  — soft gem kite · rhombus eyes · photo filters
+ *   trove  — plump vault · coin-slot eyes · savings
+ *   zephyr — real cumulus cloud · round eyes · weather
  *
  * Toggle contract (every pose): body, core, eyes, brows, mouth, blush, gleam,
- * rays, badge, limbs, halo, pool, props, effects.
+ * rays, badge, halo, pool, props, effects.
  */
 
 const SVG_CSS = `
   .ob-svg{display:block;user-select:none;-webkit-user-select:none;--gf:1}
+  .ob-g-alarm{--gf:1.85}
+  .ob-g-celebrate,.ob-g-success{--gf:1.4}
+  .ob-g-love,.ob-g-wave,.ob-g-high_five{--gf:1.25}
+  .ob-g-grumpy,.ob-g-sad,.ob-g-crying{--gf:.55}
+  .ob-g-sleepy,.ob-g-waiting,.ob-g-empty{--gf:.42}
   .ob-float{animation:ob-float 3.8s ease-in-out infinite}
   .ob-g-sleepy .ob-float,.ob-g-waiting .ob-float{animation-duration:6.2s}
   .ob-g-dancing .ob-float{animation:ob-dance .9s ease-in-out infinite}
   .ob-g-running .ob-float{animation:ob-run .34s ease-in-out infinite}
   .ob-g-flying .ob-float{animation:ob-soar 1.5s ease-in-out infinite}
   .ob-g-alarm .ob-float{animation:none}
+  .ob-g-wave .ob-glow,.ob-g-high_five .ob-glow{animation-duration:1.5s}
+  .ob-g-wave .ob-gleam,.ob-g-high_five .ob-gleam{animation-duration:2.2s}
   .ob-pool{animation:ob-pool 3.8s ease-in-out infinite}
   .ob-glow{animation:ob-glow 3s ease-in-out infinite}
   .ob-gleam{animation:ob-gleam 6.4s ease-in-out infinite}
   .ob-pop{animation:ob-pop .28s ease-out}
-  .ob-blink{animation:ob-blink 5s ease-in-out infinite;transform-origin:center}
-  .ob-drift{animation:ob-drift 2.1s ease-out infinite;opacity:.9}
+  .ob-drift{animation:ob-drift 2.2s ease-out infinite}
+  .ob-rise{animation:ob-rise 2.5s ease-out infinite}
   .ob-pulse{animation:ob-pulse 1.15s ease-in-out infinite}
   .ob-spin{animation:ob-spin 1.2s linear infinite;transform-origin:center}
   .ob-ray{animation:ob-ray 2.4s ease-in-out infinite}
   .ob-tick{animation:ob-tick .55s ease-out infinite}
-  .ob-limb{transform-origin:center}
+  .ob-twinkle{animation:ob-twinkle 1.4s ease-in-out infinite}
   .ob-svg[data-paused] *{animation-play-state:paused!important}
   @keyframes ob-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
   @keyframes ob-dance{0%,100%{transform:rotate(-4deg) translateY(0)}50%{transform:rotate(5deg) translateY(-11px)}}
@@ -45,12 +52,13 @@ const SVG_CSS = `
   @keyframes ob-glow{0%,100%{opacity:calc(var(--ms-glow,.5)*var(--gf,1)*.45)}50%{opacity:calc(var(--ms-glow,.5)*var(--gf,1))}}
   @keyframes ob-gleam{0%,28%,100%{transform:translateX(-90px);opacity:0}10%{opacity:.55}20%{transform:translateX(90px);opacity:0}}
   @keyframes ob-pop{from{opacity:0}to{opacity:1}}
-  @keyframes ob-blink{0%,44%,48%,100%{transform:scaleY(1)}46%{transform:scaleY(.08)}}
-  @keyframes ob-drift{0%{opacity:.55;transform:translateY(10px)}22%{opacity:1}100%{opacity:0;transform:translateY(-36px)}}
+  @keyframes ob-drift{0%{opacity:0;transform:translateY(10px)}22%{opacity:1}100%{opacity:0;transform:translateY(-36px)}}
+  @keyframes ob-rise{0%{opacity:0;transform:translateY(12px)}20%{opacity:1}100%{opacity:0;transform:translateY(-44px)}}
   @keyframes ob-pulse{0%,100%{opacity:.35;transform:scale(.88)}50%{opacity:1;transform:scale(1.06)}}
   @keyframes ob-spin{to{transform:rotate(360deg)}}
   @keyframes ob-ray{0%,100%{opacity:.2;transform:translateY(3px)}50%{opacity:.9;transform:translateY(-3px)}}
   @keyframes ob-tick{0%{opacity:0}28%{opacity:1}100%{opacity:0}}
+  @keyframes ob-twinkle{0%,100%{opacity:.25}50%{opacity:1}}
   @media (prefers-reduced-motion:reduce){.ob-svg *{animation:none!important}}
 `;
 
@@ -62,12 +70,15 @@ const SAD_KEYS = new Set(["sad", "crying"]);
 const ANGRY_KEYS = new Set(["grumpy", "thumbs_down"]);
 const HALF_KEYS = new Set(["waiting", "grumpy"]);
 
+const STAR4 = "M0,-9 L2.4,-2.4 L9,0 L2.4,2.4 L0,9 L-2.4,2.4 L-9,0 L-2.4,-2.4 Z";
+const HEART = "M0,12 C-14,1 -16,-9 -8.5,-13.5 C-3.5,-16.5 0,-12 0,-8 C0,-12 3.5,-16.5 8.5,-13.5 C16,-9 14,1 0,12 Z";
+
 const ORB_VARIANTS = {
   aura: {
     slug: "aura",
     name: "Aura",
     species: "pillar",
-    tagline: "A tall dawn pill that breathes with you",
+    tagline: "A tall dawn drop that breathes with you",
     product: "Meditation App",
     brand: "#B8A0E0",
     accent: "#B8A0E0",
@@ -144,11 +155,11 @@ const ORB_VARIANTS = {
     mark: "weather",
     eyeStyle: "bubble",
     colors: {
-      top: "#F4FAFF", mid: "#78C0F0", base: "#3A78B0", core: "#FFE8A0",
+      top: "#F4FAFF", mid: "#9AD0F4", base: "#4A88C0", core: "#FFE8A0",
       features: "#1A3048", blush: "#F0A8A0",
     },
     themes: {
-      clear: { name: "Clear Sky", top: "#F4FAFF", mid: "#78C0F0", base: "#3A78B0", core: "#FFE8A0", stage: "#121C28", features: "#1A3048" },
+      clear: { name: "Clear Sky", top: "#F4FAFF", mid: "#9AD0F4", base: "#4A88C0", core: "#FFE8A0", stage: "#121C28", features: "#1A3048" },
       sunset: { name: "Soft Sunset", top: "#FFE8D8", mid: "#F0A070", base: "#C06048", core: "#FFF0C0", stage: "#241410", features: "#402018" },
       storm: { name: "Storm Soft", top: "#E0E8F0", mid: "#6888A8", base: "#385068", core: "#E8F0FF", stage: "#141820", features: "#1A2838" },
       spring: { name: "Spring Breeze", top: "#E8FFF4", mid: "#68C898", base: "#388860", core: "#FFF4C8", stage: "#101C16", features: "#183828" },
@@ -157,273 +168,277 @@ const ORB_VARIANTS = {
   },
 };
 
-/* ---------- distinct body silhouettes (same viewBox, different species) ---------- */
+/* ---------- silhouettes: Sol-crafted light bodies (no limbs) ---------- */
 const BODY = {
-  // Tall soft pill — meditation breath (narrow, vertical)
+  // Tall soft dawn drop — meditation breath (narrower Sol sibling)
   pillar: {
-    d: "M210,448 C162,448 128,404 128,330 C128,256 154,188 210,168 C266,188 292,256 292,330 C292,404 258,448 210,448 Z",
+    d: "M210,448 C168,448 128,416 112,372 C96,328 96,278 118,238 C140,198 172,176 210,176 C248,176 280,198 302,238 C324,278 324,328 308,372 C292,416 252,448 210,448 Z",
     breath:
-      "M210,448 C162,448 128,404 128,330 C128,256 154,188 210,168 C266,188 292,256 292,330 C292,404 258,448 210,448 Z;" +
-      "M210,446 C158,446 122,402 124,328 C126,252 152,182 210,164 C268,182 294,252 296,328 C298,402 262,446 210,446 Z;" +
-      "M210,448 C162,448 128,404 128,330 C128,256 154,188 210,168 C266,188 292,256 292,330 C292,404 258,448 210,448 Z",
-    clip: "M210,440 C168,440 138,400 138,332 C138,264 160,200 210,184 C260,200 282,264 282,332 C282,400 252,440 210,440 Z",
-    faceY: 292,
-    eyeSpread: 34,
-    coreY: 318,
-    coreR: 42,
-    blushY: 318,
-    blushX: 48,
-    limbY: 360,
-    badgeY: 372,
-  },
-  // Rounded diamond / soft kite — aperture character (pointed crown)
-  diamond: {
-    d: "M210,156 C236,188 292,248 300,318 C308,388 258,448 210,456 C162,448 112,388 120,318 C128,248 184,188 210,156 Z",
-    breath:
-      "M210,156 C236,188 292,248 300,318 C308,388 258,448 210,456 C162,448 112,388 120,318 C128,248 184,188 210,156 Z;" +
-      "M210,148 C240,184 298,244 306,318 C314,392 260,452 210,460 C160,452 106,392 114,318 C122,244 180,184 210,148 Z;" +
-      "M210,156 C236,188 292,248 300,318 C308,388 258,448 210,456 C162,448 112,388 120,318 C128,248 184,188 210,156 Z",
-    clip: "M210,172 C232,200 280,252 286,318 C292,380 252,436 210,442 C168,436 128,380 134,318 C140,252 188,200 210,172 Z",
+      "M210,448 C168,448 128,416 112,372 C96,328 96,278 118,238 C140,198 172,176 210,176 C248,176 280,198 302,238 C324,278 324,328 308,372 C292,416 252,448 210,448 Z;" +
+      "M210,446 C164,446 122,414 106,370 C90,326 92,276 116,236 C140,196 170,172 210,172 C250,172 280,196 304,236 C328,276 330,326 314,370 C298,414 256,446 210,446 Z;" +
+      "M210,448 C168,448 128,416 112,372 C96,328 96,278 118,238 C140,198 172,176 210,176 C248,176 280,198 302,238 C324,278 324,328 308,372 C292,416 252,448 210,448 Z",
+    clip: "M210,438 C174,438 140,410 126,372 C112,334 112,288 130,252 C148,216 176,198 210,198 C244,198 272,216 290,252 C308,288 308,334 294,372 C280,410 246,438 210,438 Z",
     faceY: 286,
     eyeSpread: 36,
-    coreY: 312,
-    coreR: 38,
-    blushY: 312,
-    blushX: 50,
-    limbY: 368,
+    coreY: 318,
+    coreR: 52,
+    blushY: 318,
+    blushX: 52,
     badgeY: 378,
   },
-  // Wide Apple squircle — vault (broad, short, architectural)
-  squircle: {
-    d: "M72,252 C72,196 128,176 210,176 C292,176 348,196 348,252 L348,372 C348,428 292,448 210,448 C128,448 72,428 72,372 Z",
+  // Soft gem kite — aperture character (pointed crown, plump belly)
+  diamond: {
+    d: "M210,158 C248,198 298,248 306,318 C314,388 262,450 210,456 C158,450 106,388 114,318 C122,248 172,198 210,158 Z",
     breath:
-      "M72,252 C72,196 128,176 210,176 C292,176 348,196 348,252 L348,372 C348,428 292,448 210,448 C128,448 72,428 72,372 Z;" +
-      "M66,256 C66,192 124,170 210,170 C296,170 354,192 354,256 L354,368 C354,432 296,452 210,452 C124,452 66,432 66,368 Z;" +
-      "M72,252 C72,196 128,176 210,176 C292,176 348,196 348,252 L348,372 C348,428 292,448 210,448 C128,448 72,428 72,372 Z",
-    clip: "M86,256 C86,208 136,190 210,190 C284,190 334,208 334,256 L334,368 C334,416 284,434 210,434 C136,434 86,416 86,368 Z",
-    faceY: 258,
-    eyeSpread: 54,
-    coreY: 322,
-    coreR: 32,
-    blushY: 288,
-    blushX: 82,
-    limbY: 360,
-    badgeY: 388,
-  },
-  // Scalloped cloud — weather puff (wide, low, bumpy crown)
-  cloud: {
-    d: "M96,340 C88,300 112,268 148,262 C156,220 196,198 232,210 C258,188 300,198 312,234 C348,238 368,278 356,318 C372,350 352,392 310,400 L130,400 C96,392 84,362 96,340 Z",
-    breath:
-      "M96,340 C88,300 112,268 148,262 C156,220 196,198 232,210 C258,188 300,198 312,234 C348,238 368,278 356,318 C372,350 352,392 310,400 L130,400 C96,392 84,362 96,340 Z;" +
-      "M90,338 C80,296 108,262 146,256 C152,212 194,190 234,204 C262,180 306,192 318,230 C356,232 378,274 364,316 C382,348 358,396 312,404 L126,404 C90,396 78,360 90,338 Z;" +
-      "M96,340 C88,300 112,268 148,262 C156,220 196,198 232,210 C258,188 300,198 312,234 C348,238 368,278 356,318 C372,350 352,392 310,400 L130,400 C96,392 84,362 96,340 Z",
-    clip: "M108,338 C102,306 122,280 152,276 C160,238 196,220 228,230 C252,212 290,222 300,252 C330,256 348,288 338,320 C350,348 334,382 300,388 L138,388 C110,382 100,358 108,338 Z",
-    faceY: 292,
-    eyeSpread: 48,
+      "M210,158 C248,198 298,248 306,318 C314,388 262,450 210,456 C158,450 106,388 114,318 C122,248 172,198 210,158 Z;" +
+      "M210,150 C252,194 304,246 312,318 C320,390 264,454 210,460 C156,454 100,390 108,318 C116,246 168,194 210,150 Z;" +
+      "M210,158 C248,198 298,248 306,318 C314,388 262,450 210,456 C158,450 106,388 114,318 C122,248 172,198 210,158 Z",
+    clip: "M210,176 C242,210 284,254 290,318 C296,378 254,434 210,440 C166,434 124,378 130,318 C136,254 178,210 210,176 Z",
+    faceY: 278,
+    eyeSpread: 38,
     coreY: 318,
-    coreR: 36,
-    blushY: 318,
-    blushX: 62,
-    limbY: 378,
+    coreR: 48,
+    blushY: 312,
+    blushX: 54,
+    badgeY: 382,
+  },
+  // Wide vault — clearly broader than tall (nest egg, not another circle)
+  squircle: {
+    d: "M64,300 C64,230 120,188 210,188 C300,188 356,230 356,300 L356,380 C356,430 300,456 210,456 C120,456 64,430 64,380 Z",
+    breath:
+      "M64,300 C64,230 120,188 210,188 C300,188 356,230 356,300 L356,380 C356,430 300,456 210,456 C120,456 64,430 64,380 Z;" +
+      "M58,298 C58,224 116,180 210,180 C304,180 362,224 362,298 L362,382 C362,434 304,460 210,460 C116,460 58,434 58,382 Z;" +
+      "M64,300 C64,230 120,188 210,188 C300,188 356,230 356,300 L356,380 C356,430 300,456 210,456 C120,456 64,430 64,380 Z",
+    clip: "M80,302 C80,244 130,206 210,206 C290,206 340,244 340,302 L340,376 C340,416 290,440 210,440 C130,440 80,416 80,376 Z",
+    faceY: 268,
+    eyeSpread: 56,
+    coreY: 324,
+    coreR: 40,
+    blushY: 298,
+    blushX: 78,
     badgeY: 392,
+  },
+  // Real cumulus — classic soft weather puff (lobed crown, plump belly, soft floor)
+  cloud: {
+    d:
+      "M78,352" +
+      " C58,352 48,318 68,298" +
+      " C52,268 78,238 118,242" +
+      " C122,198 168,172 214,182" +
+      " C248,158 304,168 322,208" +
+      " C360,204 392,242 382,286" +
+      " C404,318 390,368 348,378" +
+      " L108,378" +
+      " C72,374 58,364 78,352 Z",
+    breath:
+      "M78,352 C58,352 48,318 68,298 C52,268 78,238 118,242 C122,198 168,172 214,182 C248,158 304,168 322,208 C360,204 392,242 382,286 C404,318 390,368 348,378 L108,378 C72,374 58,364 78,352 Z;" +
+      "M74,350 C52,350 42,314 64,292 C46,260 74,230 116,236 C118,190 166,164 216,176 C252,150 310,162 328,204 C368,198 400,238 388,284 C412,316 396,370 352,380 L104,380 C68,376 52,362 74,350 Z;" +
+      "M78,352 C58,352 48,318 68,298 C52,268 78,238 118,242 C122,198 168,172 214,182 C248,158 304,168 322,208 C360,204 392,242 382,286 C404,318 390,368 348,378 L108,378 C72,374 58,364 78,352 Z",
+    clip:
+      "M92,348 C78,348 70,322 86,306 C74,282 96,258 128,262 C132,228 170,208 210,216 C240,198 286,206 300,238 C330,236 356,264 348,296 C364,320 354,358 322,366 L118,366 C92,364 84,358 92,348 Z",
+    faceY: 278,
+    eyeSpread: 48,
+    coreY: 312,
+    coreR: 36,
+    blushY: 308,
+    blushX: 68,
+    badgeY: 352,
   },
 };
 
-
+function Star4({ x, y, s = 1, fill, cls, delay }) {
+  return (
+    <path
+      className={cls}
+      transform={`translate(${x},${y}) scale(${s})`}
+      fill={fill}
+      style={delay ? { animationDelay: delay } : undefined}
+      d={STAR4}
+    />
+  );
+}
 
 function AppMark({ mark, core, feature, y }) {
-  const cy = y;
   if (mark === "lotus") {
     return (
-      <g transform={`translate(210,${cy})`}>
-        <path d="M0,-16 C8,-8 10,4 0,14 C-10,4 -8,-8 0,-16 Z" fill={core} stroke={feature} strokeWidth="3.5" />
-        <path d="M-14,-2 C-6,-10 6,-10 14,-2 C6,2 -6,2 -14,-2 Z" fill={core} opacity=".75" stroke={feature} strokeWidth="3" />
+      <g transform={`translate(210,${y})`} opacity=".92">
+        <path d="M0,-14 C7,-7 9,3 0,12 C-9,3 -7,-7 0,-14 Z" fill={core} stroke={feature} strokeWidth="3" />
+        <path d="M-12,-1 C-5,-8 5,-8 12,-1 C5,2 -5,2 -12,-1 Z" fill={core} opacity=".75" stroke={feature} strokeWidth="2.5" />
       </g>
     );
   }
   if (mark === "aperture") {
     return (
-      <g transform={`translate(210,${cy})`}>
-        <circle r="18" fill="none" stroke={feature} strokeWidth="4" />
-        <circle r="7" fill={core} stroke={feature} strokeWidth="3" />
+      <g transform={`translate(210,${y})`} opacity=".92">
+        <circle r="15" fill="none" stroke={feature} strokeWidth="3.5" />
+        <circle r="6" fill={core} stroke={feature} strokeWidth="2.5" />
         {[0, 60, 120, 180, 240, 300].map((a) => (
-          <path key={a} d="M0,-18 L6,-8 L0,-4 Z" fill={core} opacity=".85"
-            transform={`rotate(${a})`} />
+          <path key={a} d="M0,-15 L5,-7 L0,-4 Z" fill={core} opacity=".8" transform={`rotate(${a})`} />
         ))}
       </g>
     );
   }
   if (mark === "coin") {
     return (
-      <g transform={`translate(210,${cy})`}>
-        <circle r="18" fill={core} stroke={feature} strokeWidth="4" />
-        <circle r="12" fill="none" stroke={feature} strokeWidth="2.5" opacity=".55" />
-        <path d="M-4,-8 V8 M4,-6 V6 M-4,-8 Q4,-10 4,-2 Q4,2 -4,4 Q4,6 4,8" fill="none" stroke={feature} strokeWidth="3" strokeLinecap="round" />
+      <g transform={`translate(210,${y})`} opacity=".92">
+        <circle r="15" fill={core} stroke={feature} strokeWidth="3.5" />
+        <circle r="10" fill="none" stroke={feature} strokeWidth="2" opacity=".5" />
+        <path d="M-2,-7 C4,-8 6,-2 2,0 C6,2 4,8 -2,7 M-2,-7 V7" fill="none" stroke={feature} strokeWidth="2.6" strokeLinecap="round" />
       </g>
     );
   }
-  // Compact weather mark — sits low on the cloud belly
+  // Compact sun — never a mini-cloud (reads as fake hands at badge scale)
   return (
-    <g transform={`translate(210,${cy}) scale(0.78)`}>
-      <circle cx="-6" cy="4" r="11" fill={core} stroke={feature} strokeWidth="3" />
-      <path d="M2,-6 C14,-10 22,0 18,10 C14,18 4,14 -2,8" fill="#fff" opacity=".92" stroke={feature} strokeWidth="2.8" />
+    <g transform={`translate(210,${y})`} opacity=".92">
+      <circle r="9" fill={core} stroke={feature} strokeWidth="2.8" />
+      {[0, 45, 90, 135, 180, 225, 270, 315].map((a) => (
+        <path key={a} d="M0,-14 L0,-18" stroke={feature} strokeWidth="2.4" strokeLinecap="round"
+          transform={`rotate(${a})`} />
+      ))}
     </g>
   );
 }
 
-
 function SpeciesRays({ species, p }) {
-
   if (species === "pillar") {
     return (
       <g data-ms-part="rays" fill="none" stroke={p.top} strokeLinecap="round">
-        <ellipse className="ob-ray" cx="210" cy="150" rx="52" ry="14" strokeWidth="5" opacity=".7" />
-        <ellipse className="ob-ray" cx="210" cy="136" rx="34" ry="9" strokeWidth="4" opacity=".55" style={{ animationDelay: ".35s" }} />
-        <path className="ob-ray" d="M210,118 L210,96" strokeWidth="5" style={{ animationDelay: ".2s" }} />
+        <ellipse className="ob-ray" cx="210" cy="152" rx="48" ry="12" strokeWidth="5" opacity=".7" />
+        <ellipse className="ob-ray" cx="210" cy="138" rx="30" ry="8" strokeWidth="4" opacity=".5" style={{ animationDelay: ".35s" }} />
+        <path className="ob-ray" d="M210,122 L210,98" strokeWidth="5" style={{ animationDelay: ".2s" }} />
       </g>
     );
   }
   if (species === "diamond") {
     const blades = [
-      [210, 128, 210, 96], [168, 148, 148, 118], [252, 148, 272, 118],
-      [148, 188, 120, 172], [272, 188, 300, 172],
+      [210, 132, 210, 98], [168, 152, 146, 120], [252, 152, 274, 120],
+      [148, 196, 118, 178], [272, 196, 302, 178],
     ];
     return (
       <g data-ms-part="rays" stroke={p.top} strokeLinecap="round" fill="none">
         {blades.map(([a, b, c, d], i) => (
-          <path key={i} className="ob-ray" d={`M${a},${b} L${c},${d}`} strokeWidth="6"
+          <path key={i} className="ob-ray" d={`M${a},${b} L${c},${d}`} strokeWidth="5.5"
             style={{ animationDelay: `${(i % 3) * 0.2}s` }} />
         ))}
-        <circle cx="210" cy="118" r="7" fill={p.core} />
+        <circle cx="210" cy="120" r="6" fill={p.core} />
       </g>
     );
   }
   if (species === "squircle") {
     return (
       <g data-ms-part="rays">
-        <path d="M188,148 C188,128 198,116 210,112 C222,116 232,128 232,148" fill={p.mid} opacity=".55" />
-        <path d="M198,150 C196,132 202,120 210,116 C218,120 224,132 222,150" fill={p.core} stroke={p.features} strokeWidth="3" />
-        <path d="M210,116 C218,104 232,108 234,122" fill="none" stroke={p.top} strokeWidth="4" strokeLinecap="round" className="ob-ray" />
+        <path d="M192,156 C192,136 200,124 210,120 C220,124 228,136 228,156" fill={p.mid} opacity=".45" />
+        <path d="M200,158 C198,140 204,128 210,124 C216,128 222,140 220,158" fill={p.core} stroke={p.features} strokeWidth="2.5" />
+        <path d="M210,124 C218,112 232,116 234,130" fill="none" stroke={p.top} strokeWidth="3.5" strokeLinecap="round" className="ob-ray" />
       </g>
     );
   }
-  // cloud — wind wisps
+  // Soft wind wisps — never fake hands
   return (
     <g data-ms-part="rays" fill="none" stroke={p.top} strokeLinecap="round">
-      <path className="ob-ray" d="M78,250 Q58,240 48,252" strokeWidth="5" />
-      <path className="ob-ray" d="M72,278 Q50,278 40,290" strokeWidth="4.5" style={{ animationDelay: ".25s" }} />
-      <path className="ob-ray" d="M348,248 Q370,238 380,252" strokeWidth="5" style={{ animationDelay: ".15s" }} />
-      <circle cx="56" cy="310" r="4" fill={p.core} className="ob-tick" />
-      <circle cx="368" cy="318" r="3.5" fill={p.core} className="ob-tick" style={{ animationDelay: ".3s" }} />
+      <path className="ob-ray" d="M52,268 Q34,258 28,272" strokeWidth="5" />
+      <path className="ob-ray" d="M48,300 Q28,298 22,312" strokeWidth="4" style={{ animationDelay: ".25s" }} />
+      <path className="ob-ray" d="M372,262 Q392,252 400,268" strokeWidth="5" style={{ animationDelay: ".15s" }} />
+      <path className="ob-ray" d="M376,296 Q398,292 404,308" strokeWidth="4" style={{ animationDelay: ".4s" }} />
+      <circle cx="40" cy="330" r="3.5" fill={p.core} className="ob-twinkle" />
+      <circle cx="386" cy="336" r="3" fill={p.core} className="ob-twinkle" style={{ animationDelay: ".45s" }} />
     </g>
   );
 }
 
+/** Sol-style eyes: dark features + core sparkle. Species only changes shape. */
 function Eye({ style, kind, x, y, p }) {
   const at = `translate(${x},${y})`;
-  const line = { fill: "none", stroke: p.features, strokeWidth: 8, strokeLinecap: "round" };
+  const line = { fill: "none", stroke: p.features, strokeWidth: 8.5, strokeLinecap: "round" };
 
   if (kind === "heart") {
-    return <path transform={`${at} scale(1.15)`} fill={p.features}
-      d="M0,12 C-14,1 -16,-9 -8.5,-13.5 C-3.5,-16.5 0,-12 0,-8 C0,-12 3.5,-16.5 8.5,-13.5 C16,-9 14,1 0,12 Z" />;
+    return <path transform={`${at} scale(1.15)`} fill={p.features} d={HEART} />;
   }
   if (kind === "star") {
-    return <path transform={at} fill={p.features}
-      d="M0,-16 L4,-4 L16,0 L4,4 L0,16 L-4,4 L-16,0 L-4,-4 Z" />;
+    return <path transform={at} fill={p.features} d="M0,-16 L4,-4 L16,0 L4,4 L0,16 L-4,4 L-16,0 L-4,-4 Z" />;
   }
   if (kind === "spiral") {
-    return <path transform={at} {...line} strokeWidth="6"
-      d="M2,1 q5,-4 4,2 q-1.5,7 -9,6 q-9,-1.5 -8,-11 q1.5,-11.5 13,-10.5 q13,1.5 12,14" />;
+    return (
+      <path transform={at} {...line} strokeWidth="6"
+        d="M2,1 q5,-4 4,2 q-1.5,7 -9,6 q-9,-1.5 -8,-11 q1.5,-11.5 13,-10.5 q13,1.5 12,14" />
+    );
   }
   if (kind === "arch" || kind === "closed") {
-    return <path d="M-16,3 Q0,-12 16,3" transform={at} {...line} />;
+    return <path d="M-16,3 Q0,-13 16,3" transform={at} {...line} />;
   }
   if (kind === "sleep") {
-    return <path d="M-16,-3 Q0,12 16,-3" transform={at} {...line} />;
+    return <path d="M-16,-3 Q0,13 16,-3" transform={at} {...line} />;
   }
   if (kind === "sad") {
-    if (style === "crescent") {
-      return <path d="M-15,6 Q0,-6 15,6" transform={at} {...line} strokeWidth="7" />;
-    }
     return (
       <g transform={at}>
         <ellipse cx="0" cy="2" rx="11" ry="14" fill={p.features} />
-        <circle cx="-3" cy="-3" r="2.6" fill={p.core} />
+        <circle cx="-3.2" cy="-3.2" r="2.6" fill={p.core} />
       </g>
     );
   }
 
-  // Open / half / wide — species-specific open eyes
   const wide = kind === "wide";
   const half = kind === "half";
 
   if (style === "crescent") {
-    // Soft moon crescents — open almond with crescent lid + bright pupil
     return (
-      <g transform={at} className="ob-blink">
-        <ellipse cx="0" cy="0" rx={wide ? 15 : 12.5} ry={wide ? 18 : 15} fill="#FFF8F0" stroke={p.features} strokeWidth="4.5" />
-        <path
-          d={wide
-            ? "M-15,-2 Q0,-16 15,-2"
-            : "M-12.5,-1 Q0,-13 12.5,-1"}
-          fill="none" stroke={p.features} strokeWidth="5" strokeLinecap="round"
-        />
+      <g transform={at}>
+        <ellipse cx="0" cy="0" rx={wide ? 13.5 : 11.5} ry={wide ? 19 : 15.5} fill={p.features} />
         {!half && (
           <>
-            <ellipse cx="-2" cy={wide ? 2 : 1} rx={wide ? 5 : 4} ry={wide ? 6.5 : 5.5} fill={p.features} />
-            <circle cx="-4" cy={wide ? -1 : -1.5} r="2" fill="#fff" />
+            <circle cx="-3.4" cy="-4.6" r={wide ? 3.8 : 3.2} fill={p.core} opacity=".95" />
+            <circle cx="3" cy="3" r="1.5" fill={p.core} opacity=".5" />
           </>
         )}
-        {half && <rect x="-16" y="-18" width="32" height="16" fill={p.mid} />}
+        {half && <rect x="-15" y="-20" width="30" height="16" fill={p.mid} />}
+        <path
+          d={wide ? "M-13.5,-4 Q0,-16 13.5,-4" : "M-11.5,-3 Q0,-13 11.5,-3"}
+          fill="none" stroke={p.top} strokeWidth="3.5" strokeLinecap="round" opacity=".55"
+        />
       </g>
     );
   }
 
   if (style === "rhombus") {
-    const s = wide ? 1.35 : 1.15;
+    const s = wide ? 1.25 : 1.05;
     return (
-      <g transform={`${at} scale(${s})`} className="ob-blink">
-        <path d="M0,-20 L16,0 L0,20 L-16,0 Z" fill="#FFF8F0" stroke={p.features} strokeWidth="3.5" />
-        <path d="M0,-14 L11,0 L0,14 L-11,0 Z" fill={p.features} />
+      <g transform={`${at} scale(${s})`}>
+        <path d="M0,-18 L14,0 L0,18 L-14,0 Z" fill={p.features} />
         {!half && (
           <>
-            <path d="M0,-7 L5.5,0 L0,7 L-5.5,0 Z" fill={p.core} opacity=".95" />
-            <circle cx="2.5" cy="-2" r="1.8" fill="#fff" opacity=".85" />
+            <path d="M0,-8 L5.5,0 L0,8 L-5.5,0 Z" fill={p.core} opacity=".95" />
+            <circle cx="2.2" cy="-2.5" r="1.6" fill="#fff" opacity=".75" />
           </>
         )}
-        {half && <path d="M-14,0 L14,0" stroke={p.mid} strokeWidth="10" strokeLinecap="round" />}
+        {half && <path d="M-12,0 L12,0" stroke={p.mid} strokeWidth="9" strokeLinecap="round" />}
       </g>
     );
   }
 
   if (style === "slot") {
-    // Wide flat coin-slot eyes — horizontally stretched
-    const rx = wide ? 22 : 18;
-    const ry = wide ? 9 : half ? 5 : 7.5;
+    const rx = wide ? 20 : 16;
+    const ry = wide ? 9 : half ? 4.5 : 7;
     return (
-      <g transform={at} className="ob-blink">
-        <ellipse cx="0" cy="0" rx={rx} ry={ry + 3} fill="#FFF8F0" stroke={p.features} strokeWidth="4" />
-        <ellipse cx="0" cy="0" rx={rx - 3} ry={ry} fill={p.features} />
+      <g transform={at}>
+        <ellipse cx="0" cy="0" rx={rx} ry={ry + 2} fill={p.features} />
         {!half && (
           <>
-            <ellipse cx="-5" cy="-1" rx="5" ry="3.2" fill={p.core} />
-            <circle cx="5" cy="1.5" r="1.6" fill={p.core} opacity=".55" />
+            <ellipse cx="-4" cy="-1.2" rx="4.5" ry="2.8" fill={p.core} />
+            <circle cx="5" cy="1.2" r="1.4" fill={p.core} opacity=".55" />
           </>
         )}
-        {half && <rect x={-rx} y={-ry - 4} width={rx * 2} height={ry + 2} fill={p.mid} />}
       </g>
     );
   }
 
-
-  // bubble — big round weather eyes
-  const r = wide ? 16 : half ? 11 : 13.5;
+  // bubble — Sol rounds, soft and big
+  const r = wide ? 15 : half ? 11 : 13;
   return (
-    <g transform={at} className="ob-blink">
-      <circle cx="0" cy="0" r={r} fill="#FFFDF8" stroke={p.features} strokeWidth="5" />
-      <circle cx={wide ? -3 : -2.5} cy={half ? 2 : -1} r={half ? 4 : 6.5} fill={p.features} />
-      <circle cx={wide ? -5 : -4.5} cy={half ? 0 : -3} r="2.2" fill="#fff" />
-      <circle cx="3" cy="3" r="1.2" fill="#fff" opacity=".65" />
+    <g transform={at}>
+      <circle cx="0" cy="0" r={r} fill={p.features} />
+      <circle cx={wide ? -3.6 : -3} cy={half ? 1.5 : -3.8} r={half ? 3.2 : 4.4} fill={p.core} opacity=".95" />
+      <circle cx="3.2" cy="3" r="1.5" fill={p.core} opacity=".5" />
     </g>
   );
 }
@@ -471,152 +486,62 @@ function Mouth({ kind, y, p }) {
   return null;
 }
 
-function Limbs({ species, poseKey, p, y }) {
-  const wave = poseKey === "wave" || poseKey === "high_five";
-  const point = poseKey === "pointing";
-  const clap = poseKey === "clapping" || poseKey === "celebrate";
-  const shrug = poseKey === "shrug";
-  const run = poseKey === "running";
-  const facepalm = poseKey === "facepalm";
-  const thumbs = poseKey === "thumbs_up" || poseKey === "thumbs_down";
-
-  if (species === "pillar") {
-    // Soft elongated light paddles
-    return (
-      <g data-ms-part="limbs" fill={p.mid} stroke={p.features} strokeWidth="3" opacity=".92">
-        <ellipse cx="118" cy={y} rx="18" ry={wave || clap ? 36 : 28}
-          transform={wave ? undefined : shrug ? "rotate(-20 118 " + y + ")" : facepalm ? "rotate(25 118 " + y + ")" : undefined}>
-          {wave && (
-            <animateTransform
-              attributeName="transform"
-              type="rotate"
-              values={`-28 118 ${y};-48 118 ${y};-28 118 ${y}`}
-              dur="0.7s"
-              repeatCount="indefinite"
-            />
-          )}
-        </ellipse>
-        <ellipse cx="302" cy={y} rx="18" ry={point || wave ? 38 : 28}
-          transform={point ? "rotate(55 302 " + y + ")" : clap ? "rotate(30 302 " + y + ")" : shrug ? "rotate(20 302 " + y + ")" : undefined} />
-      </g>
-    );
-  }
-  if (species === "diamond") {
-    // Angular soft wedges
-    return (
-      <g data-ms-part="limbs" fill={p.mid} stroke={p.features} strokeWidth="3">
-        <path d={wave || clap
-          ? "M132,340 L98,300 L108,288 L142,328 Z"
-          : facepalm
-            ? "M150,300 L118,268 L130,256 L160,292 Z"
-            : "M128,360 L96,392 L108,404 L140,372 Z"} />
-        <path d={point
-          ? "M288,348 L348,330 L352,344 L294,360 Z"
-          : thumbs
-            ? "M292,340 L340,300 L350,312 L300,350 Z"
-            : "M292,360 L324,392 L312,404 L280,372 Z"} />
-      </g>
-    );
-  }
-  if (species === "squircle") {
-    // Stubby soft mitts — sit on the wide vault sides
-    return (
-      <g data-ms-part="limbs">
-        <rect x="58" y={y - 12} width="40" height={wave || clap ? 46 : 34} rx="14" fill={p.mid} stroke={p.features} strokeWidth="3"
-          transform={wave ? undefined : facepalm ? `rotate(15 78 ${y})` : undefined}>
-          {wave && (
-            <animateTransform
-              attributeName="transform"
-              type="rotate"
-              values={`-30 78 ${y};-50 78 ${y};-30 78 ${y}`}
-              dur="0.75s"
-              repeatCount="indefinite"
-            />
-          )}
-        </rect>
-        <rect x="322" y={y - 12} width="40" height={point ? 48 : 34} rx="14" fill={p.mid} stroke={p.features} strokeWidth="3"
-          transform={point ? `rotate(50 342 ${y})` : clap ? `rotate(25 342 ${y})` : undefined} />
-      </g>
-    );
-  }
-  // cloud puffs as limbs
-  return (
-    <g data-ms-part="limbs" fill={p.top} stroke={p.features} strokeWidth="3">
-      <g transform={wave ? `translate(0,-18)` : run ? "translate(-8,4)" : undefined}>
-        <ellipse cx="86" cy={y} rx="28" ry="20" />
-        <circle cx="68" cy={y - 8} r="12" />
-        <circle cx="100" cy={y - 6} r="11" />
-      </g>
-      <g transform={point ? "translate(16,-10)" : run ? "translate(10,4)" : undefined}>
-        <ellipse cx="334" cy={y} rx="28" ry="20" />
-        <circle cx="318" cy={y - 8} r="12" />
-        <circle cx="350" cy={y - 6} r="11" />
-      </g>
-    </g>
-  );
-}
-
+/** Soft sun-core behind the face — Sol order, never a face sticker. */
 function CoreNucleus({ species, p, y, r, gid }) {
-  if (species === "diamond") {
-    // Aperture iris
-    return (
-      <g data-ms-part="core" className="ob-pop">
-        <circle cx="210" cy={y} r={r} fill={`url(#${gid}-core)`} />
-        <circle cx="210" cy={y} r={r * 0.55} fill="none" stroke={p.features} strokeWidth="3" opacity=".35" />
-        <circle cx="210" cy={y} r={r * 0.28} fill={p.core} opacity=".95" />
-        {[0, 60, 120, 180, 240, 300].map((a) => (
-          <path key={a} d={`M210,${y - r * 0.72} L216,${y - r * 0.42} L210,${y - r * 0.28} Z`}
-            fill={p.top} opacity=".55" transform={`rotate(${a} 210 ${y})`} />
-        ))}
-      </g>
-    );
-  }
-  if (species === "squircle") {
-    return (
-      <g data-ms-part="core" className="ob-pop">
-        <circle cx="210" cy={y} r={r} fill={`url(#${gid}-core)`} />
-        <circle cx="210" cy={y} r={r * 0.78} fill="none" stroke={p.features} strokeWidth="2.2" opacity=".28" />
-        <circle cx="210" cy={y} r={r * 0.42} fill={p.core} opacity=".55" />
-        <path d={`M210,${y - 9} V${y + 9}`} fill="none" stroke={p.features} strokeWidth="3" strokeLinecap="round" opacity=".4" />
-        <path d={`M201,${y - 5} H219`} fill="none" stroke={p.features} strokeWidth="2.5" strokeLinecap="round" opacity=".35" />
-      </g>
-    );
-  }
-
-  if (species === "cloud") {
-    return (
-      <g data-ms-part="core" className="ob-pop">
-        <circle cx="210" cy={y} r={r} fill={`url(#${gid}-core)`} />
-        <circle cx="210" cy={y} r={r * 0.42} fill={p.core} opacity=".9" />
-        {[0, 45, 90, 135, 180, 225, 270, 315].map((a) => (
-          <path key={a} className="ob-ray" d={`M210,${y - r * 0.55} L210,${y - r * 0.85}`}
-            stroke={p.top} strokeWidth="3.5" strokeLinecap="round"
-            transform={`rotate(${a} 210 ${y})`} opacity=".7" />
-        ))}
-      </g>
-    );
-  }
-  // pillar — soft moon
   return (
     <g data-ms-part="core" className="ob-pop">
       <circle cx="210" cy={y} r={r} fill={`url(#${gid}-core)`} />
-      <circle cx={210 - r * 0.22} cy={y - r * 0.28} r={r * 0.18} fill={p.core} opacity=".9" />
-      <path d={`M${210 + r * 0.1},${y - r * 0.55} A${r * 0.55},${r * 0.55} 0 1,0 ${210 + r * 0.1},${y + r * 0.55}`}
-        fill="none" stroke={p.top} strokeWidth="4" opacity=".35" />
+      <circle cx={210 - r * 0.26} cy={y - r * 0.3} r={r * 0.16} fill={p.core} opacity=".9" />
+      {species === "diamond" && (
+        <circle cx="210" cy={y} r={r * 0.42} fill="none" stroke={p.features} strokeWidth="2.5" opacity=".22" />
+      )}
+      {species === "squircle" && (
+        <circle cx="210" cy={y} r={r * 0.55} fill="none" stroke={p.features} strokeWidth="2" opacity=".18" />
+      )}
+      {species === "pillar" && (
+        <path d={`M${210 + r * 0.12},${y - r * 0.5} A${r * 0.5},${r * 0.5} 0 1,0 ${210 + r * 0.12},${y + r * 0.5}`}
+          fill="none" stroke={p.top} strokeWidth="3.5" opacity=".3" />
+      )}
     </g>
   );
 }
 
+/** Photonic gesture language — light doing the talking, never stub hands. */
 function PoseVisuals({ keyName, p }) {
-  const stroke = { fill: "none", stroke: p.features, strokeWidth: 6.5, strokeLinecap: "round", strokeLinejoin: "round" };
+  const stroke = { fill: "none", stroke: p.features, strokeWidth: 6, strokeLinecap: "round", strokeLinejoin: "round" };
+
   switch (keyName) {
+    case "wave":
+    case "high_five":
+      return (
+        <g>
+          <Star4 x={292} y={148} s={1.35} fill={p.top} cls="ob-rise" />
+          <Star4 x={322} y={178} s={1} fill={p.core} cls="ob-rise" delay=".35s" />
+          <Star4 x={268} y={118} s={0.85} fill={p.base} cls="ob-rise" delay=".7s" />
+          <circle cx="248" cy="196" r="4" fill={p.core} className="ob-twinkle" />
+        </g>
+      );
+    case "happy":
+      return (
+        <g>
+          <Star4 x={118} y={150} s={0.85} fill={p.core} cls="ob-twinkle" />
+          <Star4 x={304} y={142} s={1} fill={p.top} cls="ob-twinkle" delay=".4s" />
+        </g>
+      );
     case "thinking":
     case "confused":
-      return <g className="ob-drift"><path d="M300 178 Q324 150 346 172 Q356 188 338 202 L322 216" {...stroke} /><circle cx="316" cy="236" r="4.5" fill={p.features} /></g>;
+      return (
+        <g className="ob-drift">
+          <path d="M300 178 Q324 150 346 172 Q356 188 338 202 L322 216" {...stroke} />
+          <circle cx="316" cy="236" r="4.5" fill={p.features} />
+        </g>
+      );
     case "listening":
       return (
         <g fill="none" stroke={p.top} strokeWidth="4">
-          <circle className="ob-tick" cx="210" cy="300" r="150"><animate attributeName="r" values="140;190" dur="1.6s" repeatCount="indefinite" /></circle>
+          <circle className="ob-tick" cx="210" cy="300" r="150">
+            <animate attributeName="r" values="140;190" dur="1.6s" repeatCount="indefinite" />
+          </circle>
           <circle className="ob-tick" cx="210" cy="300" r="150" style={{ animationDelay: ".8s" }}>
             <animate attributeName="r" values="140;190" dur="1.6s" begin="0.8s" repeatCount="indefinite" />
           </circle>
@@ -627,14 +552,21 @@ function PoseVisuals({ keyName, p }) {
         <g fill="none" stroke={p.top} strokeLinecap="round">
           <path className="ob-tick" d="M286,290 Q300,308 286,326" strokeWidth="5" />
           <path className="ob-tick" d="M308,278 Q328,308 308,338" strokeWidth="5" style={{ animationDelay: ".2s" }} />
+          <circle cx="334" cy="308" r="3.2" fill={p.top} className="ob-twinkle" />
         </g>
       );
     case "pointing":
-      return <path d="M348 312 h42 M390 312 l-14 -12 M390 312 l-14 12" {...stroke} />;
+      return (
+        <g>
+          <Star4 x={338} y={250} s={1.2} fill={p.core} cls="ob-twinkle" />
+          <Star4 x={362} y={268} s={0.9} fill={p.top} cls="ob-rise" />
+          <path d="M300 278 Q328 268 352 272" fill="none" stroke={p.top} strokeWidth="4" strokeLinecap="round" className="ob-tick" />
+        </g>
+      );
     case "writing":
       return (
         <g>
-          <rect x="130" y="400" width="160" height="70" rx="12" fill="#FFFDF8" stroke={p.features} strokeWidth="6" />
+          <rect x="130" y="400" width="160" height="70" rx="12" fill="#FFFDF8" stroke={p.features} strokeWidth="5.5" />
           <path d="M152 424 h70 M152 444 h48" {...stroke} />
           <path d="M268 412 l-28 40" stroke={p.core} strokeWidth="8" strokeLinecap="round" />
         </g>
@@ -649,23 +581,15 @@ function PoseVisuals({ keyName, p }) {
             <path d="M158,158 A50,50 0 0 1 262,158" stroke="#8FD0A8" />
             <path d="M172,162 A36,36 0 0 1 248,162" stroke="#8FB4E8" />
           </g>
-          <g transform="translate(110,120)">
-            <path className="ob-drift" d="M0,-8 L2.2,-2.2 L8,0 L2.2,2.2 L0,8 L-2.2,2.2 L-8,0 L-2.2,-2.2 Z" fill={p.core} />
-          </g>
-          <g transform="translate(310,116)">
-            <path className="ob-drift" d="M0,-8 L2.2,-2.2 L8,0 L2.2,2.2 L0,8 L-2.2,2.2 L-8,0 L-2.2,-2.2 Z" fill={p.top} style={{ animationDelay: ".4s" }} />
-          </g>
+          <Star4 x={110} y={120} s={1.1} fill={p.core} cls="ob-twinkle" />
+          <Star4 x={310} y={116} s={1.2} fill={p.top} cls="ob-twinkle" delay=".4s" />
         </g>
       );
     case "love":
       return (
         <g>
-          <g transform="translate(310,170) scale(1.3)">
-            <path className="ob-drift" d="M0,12 C-14,1 -16,-9 -8.5,-13.5 C-3.5,-16.5 0,-12 0,-8 C0,-12 3.5,-16.5 8.5,-13.5 C16,-9 14,1 0,12 Z" fill={p.base} />
-          </g>
-          <g transform="translate(118,160) scale(0.9)">
-            <path className="ob-drift" d="M0,12 C-14,1 -16,-9 -8.5,-13.5 C-3.5,-16.5 0,-12 0,-8 C0,-12 3.5,-16.5 8.5,-13.5 C16,-9 14,1 0,12 Z" fill={p.top} style={{ animationDelay: ".7s" }} />
-          </g>
+          <path className="ob-rise" d={HEART} fill={p.base} transform="translate(306,178) scale(1.25)" />
+          <path className="ob-rise" d={HEART} fill={p.top} opacity=".85" transform="translate(118,158) scale(0.8)" style={{ animationDelay: ".9s" }} />
         </g>
       );
     case "blowing_kiss":
@@ -675,15 +599,9 @@ function PoseVisuals({ keyName, p }) {
             <path className="ob-tick" d="M228,250 Q252,238 278,242" strokeWidth="3.4" />
             <path className="ob-tick" d="M230,258 Q258,252 286,254" strokeWidth="2.4" style={{ animationDelay: ".18s" }} />
           </g>
-          <g transform="translate(278,240) scale(1.35)">
-            <path className="ob-drift" d="M0,12 C-14,1 -16,-9 -8.5,-13.5 C-3.5,-16.5 0,-12 0,-8 C0,-12 3.5,-16.5 8.5,-13.5 C16,-9 14,1 0,12 Z" fill="#FF6B8A" />
-          </g>
-          <g transform="translate(320,198) scale(1.05)">
-            <path className="ob-drift" d="M0,12 C-14,1 -16,-9 -8.5,-13.5 C-3.5,-16.5 0,-12 0,-8 C0,-12 3.5,-16.5 8.5,-13.5 C16,-9 14,1 0,12 Z" fill={p.base} style={{ animationDelay: ".4s" }} />
-          </g>
-          <g transform="translate(354,162) scale(0.8)">
-            <path className="ob-drift" d="M0,12 C-14,1 -16,-9 -8.5,-13.5 C-3.5,-16.5 0,-12 0,-8 C0,-12 3.5,-16.5 8.5,-13.5 C16,-9 14,1 0,12 Z" fill={p.top} style={{ animationDelay: ".8s" }} />
-          </g>
+          <path className="ob-rise" d={HEART} fill="#FF6B8A" transform="translate(278,240) scale(1.3)" />
+          <path className="ob-rise" d={HEART} fill={p.base} transform="translate(320,198) scale(1)" style={{ animationDelay: ".4s" }} />
+          <path className="ob-rise" d={HEART} fill={p.top} transform="translate(354,162) scale(0.75)" style={{ animationDelay: ".8s" }} />
         </g>
       );
     case "crying":
@@ -702,14 +620,19 @@ function PoseVisuals({ keyName, p }) {
       return (
         <g fill="none" stroke={p.top} strokeLinecap="round" strokeLinejoin="round">
           <path className="ob-drift" d="M286,140 L304,140 L286,158 L304,158" strokeWidth="5" />
-          <path className="ob-drift" d="M314,110 L328,110 L314,124 L308,124" strokeWidth="4.5" style={{ animationDelay: ".6s" }} />
+          <path className="ob-drift" d="M314,110 L328,110 L314,124 L328,124" strokeWidth="4.5" style={{ animationDelay: ".6s" }} />
         </g>
       );
     case "proud":
     case "encourage":
-      return <g><path d="M210 108 l8 18 20 2-15 13 5 19-18-10-18 10 5-19-15-13 20-2Z" fill={p.core} stroke={p.features} strokeWidth="4" /></g>;
+      return <Star4 x={210} y={118} s={1.6} fill={p.core} cls="ob-pulse" />;
     case "oops":
-      return <g><circle cx="324" cy="220" r="26" fill="#FFFDF8" stroke={p.features} strokeWidth="5" /><path d="M324 206 v18 M324 234 v2" {...stroke} /></g>;
+      return (
+        <g>
+          <circle cx="324" cy="220" r="26" fill="#FFFDF8" stroke={p.features} strokeWidth="5" />
+          <path d="M324 206 v18 M324 234 v2" {...stroke} />
+        </g>
+      );
     case "surprised":
     case "alarm":
       return (
@@ -720,39 +643,114 @@ function PoseVisuals({ keyName, p }) {
         </g>
       );
     case "facepalm":
-      return <path d="M140 170 q70-50 140 0" fill="none" stroke={p.core} strokeWidth="7" strokeDasharray="7 14" strokeLinecap="round" />;
+      return <path d="M140 170 q70-50 140 0" fill="none" stroke={p.core} strokeWidth="7" strokeDasharray="7 14" strokeLinecap="round" opacity=".75" />;
     case "dancing":
-      return <g className="ob-drift"><path d="M90 220 q22-14 18-36 q24 10 38-8 v42 q-16-10-30 3 M310 206 q20-12 16-34 q22 8 34-8 v40 q-14-8-26 3" fill={p.core} stroke={p.features} strokeWidth="4" /></g>;
+      return (
+        <g>
+          <Star4 x={96} y={210} s={1.1} fill={p.core} cls="ob-rise" />
+          <Star4 x={318} y={196} s={1} fill={p.top} cls="ob-rise" delay=".35s" />
+          <path className="ob-tick" d="M110 240 q16-18 8-34" fill="none" stroke={p.features} strokeWidth="4" strokeLinecap="round" />
+          <path className="ob-tick" d="M312 228 q14-16 6-30" fill="none" stroke={p.features} strokeWidth="4" strokeLinecap="round" style={{ animationDelay: ".2s" }} />
+        </g>
+      );
     case "searching":
-      return <g><circle cx="100" cy="250" r="30" fill="#FFFDF8" fillOpacity=".4" stroke={p.features} strokeWidth="7" /><path d="M78 272 l-22 24" {...stroke} /></g>;
+      return (
+        <g>
+          <circle cx="100" cy="250" r="30" fill="#FFFDF8" fillOpacity=".35" stroke={p.features} strokeWidth="6" />
+          <path d="M122 272 l22 24" {...stroke} />
+        </g>
+      );
     case "thumbs_up":
+      return (
+        <g>
+          <Star4 x={210} y={128} s={1.7} fill={p.core} cls="ob-pulse" />
+          <Star4 x={168} y={158} s={0.9} fill={p.top} cls="ob-rise" />
+          <Star4 x={252} y={158} s={0.9} fill={p.top} cls="ob-rise" delay=".3s" />
+        </g>
+      );
     case "thumbs_down":
       return (
-        <g transform={keyName === "thumbs_down" ? "translate(0 520) scale(1 -1)" : undefined}>
-          <path d="M80 280 h40 l16-32 q8-14 18-7 q8 5 2 24 l-4 14 h28 v66 h-62 l-36-14Z" fill={p.core} stroke={p.features} strokeWidth="5" strokeLinejoin="round" />
+        <g opacity=".85">
+          <Star4 x={210} y={400} s={1.3} fill={p.base} cls="ob-drift" />
+          <path d="M180 360 Q210 380 240 360" fill="none" stroke={p.features} strokeWidth="5" strokeLinecap="round" opacity=".5" />
         </g>
       );
     case "shrug":
-      return <g><path d="M70 210 q28-24 54 0 M296 210 q28-24 54 0" {...stroke} /></g>;
+      return (
+        <g fill="none" stroke={p.top} strokeWidth="5" strokeLinecap="round" opacity=".8">
+          <path className="ob-tick" d="M96 210 q20-18 40 0" />
+          <path className="ob-tick" d="M284 210 q20-18 40 0" style={{ animationDelay: ".15s" }} />
+          <circle cx="116" cy="188" r="3" fill={p.core} className="ob-twinkle" />
+          <circle cx="304" cy="188" r="3" fill={p.core} className="ob-twinkle" style={{ animationDelay: ".3s" }} />
+        </g>
+      );
     case "working":
-      return <g><path d="M118 368 h184 l-16 84 h-152Z" fill="#FFFDF8" stroke={p.features} strokeWidth="6" /><circle cx="210" cy="412" r="9" fill={p.core} /></g>;
+      return (
+        <g>
+          <path d="M118 368 h184 l-16 84 h-152Z" fill="#FFFDF8" stroke={p.features} strokeWidth="5.5" />
+          <circle cx="210" cy="412" r="9" fill={p.core} />
+        </g>
+      );
     case "running":
-      return <g><path d="M48 280 h70 M36 314 h62 M56 348 h46" {...stroke} /></g>;
+      return (
+        <g fill="none" stroke={p.top} strokeWidth="5" strokeLinecap="round" opacity=".85">
+          <path className="ob-tick" d="M48 280 h56" />
+          <path className="ob-tick" d="M40 314 h48" style={{ animationDelay: ".12s" }} />
+          <path className="ob-tick" d="M56 348 h36" style={{ animationDelay: ".24s" }} />
+        </g>
+      );
     case "flying":
-      return <g fill="#FFFDF8" stroke={p.features} strokeWidth="4"><path d="M42 400 q12-26 36-10 q14-24 36 0 q26-4 28 18 H42Z" /><path d="M286 130 q12-24 34-10 q14-22 34 2 q24-4 26 16 h-94Z" /></g>;
-    case "high_five":
+      return (
+        <g>
+          <Star4 x={90} y={220} s={1} fill={p.core} cls="ob-rise" />
+          <Star4 x={330} y={140} s={1.15} fill={p.top} cls="ob-rise" delay=".35s" />
+          <path className="ob-tick" d="M60 360 q40-20 70 4" fill="none" stroke={p.top} strokeWidth="4" strokeLinecap="round" />
+          <path className="ob-tick" d="M300 120 q36-16 64 2" fill="none" stroke={p.top} strokeWidth="4" strokeLinecap="round" style={{ animationDelay: ".2s" }} />
+        </g>
+      );
     case "clapping":
-      return <g className="ob-pulse"><path d="M210 118 l8 18 20 2-15 13 5 19-18-10-18 10 5-19-15-13 20-2Z" fill={p.core} stroke={p.features} strokeWidth="4" /></g>;
+      return (
+        <g className="ob-pulse">
+          <Star4 x={210} y={120} s={1.5} fill={p.core} />
+          <Star4 x={170} y={148} s={0.85} fill={p.top} />
+          <Star4 x={250} y={148} s={0.85} fill={p.top} />
+        </g>
+      );
     case "error":
-      return <g><path d="M324 170 l38 66 h-76Z" fill={p.core} stroke={p.features} strokeWidth="5" strokeLinejoin="round" /><path d="M324 194 v20 M324 226 v2" {...stroke} /></g>;
+      return (
+        <g>
+          <path d="M324 170 l38 66 h-76Z" fill={p.core} stroke={p.features} strokeWidth="5" strokeLinejoin="round" />
+          <path d="M324 194 v20 M324 226 v2" {...stroke} />
+        </g>
+      );
     case "empty":
-      return <g><path d="M124 390 h172 l-16 54 h-140Z" fill="#FFFDF8" fillOpacity=".3" stroke={p.features} strokeWidth="6" /><path d="M176 414 h68" {...stroke} /></g>;
+      return (
+        <g>
+          <path d="M124 390 h172 l-16 54 h-140Z" fill="#FFFDF8" fillOpacity=".28" stroke={p.features} strokeWidth="5.5" />
+          <path d="M176 414 h68" {...stroke} />
+        </g>
+      );
     case "loading":
-      return <g className="ob-spin"><circle cx="324" cy="210" r="30" fill="none" stroke={p.features} strokeOpacity=".25" strokeWidth="8" /><path d="M324 180 a30 30 0 0 1 28 24" fill="none" stroke={p.core} strokeWidth="8" strokeLinecap="round" /></g>;
+      return (
+        <g className="ob-spin">
+          <circle cx="324" cy="210" r="30" fill="none" stroke={p.features} strokeOpacity=".25" strokeWidth="8" />
+          <path d="M324 180 a30 30 0 0 1 28 24" fill="none" stroke={p.core} strokeWidth="8" strokeLinecap="round" />
+        </g>
+      );
     case "waiting":
-      return <g><circle cx="324" cy="210" r="32" fill="#FFFDF8" fillOpacity=".3" stroke={p.features} strokeWidth="6" /><path d="M324 188 v24 l16 10" {...stroke} /></g>;
+      return (
+        <g>
+          <circle cx="324" cy="210" r="32" fill="#FFFDF8" fillOpacity=".28" stroke={p.features} strokeWidth="5.5" />
+          <path d="M324 188 v24 l16 10" {...stroke} />
+        </g>
+      );
     case "grumpy":
-      return <g stroke={p.features} strokeWidth="5" strokeLinecap="round" fill="none" opacity=".75"><path className="ob-tick" d="M130 150 L140 160 L130 170" /><path className="ob-tick" d="M290 144 L280 154 L290 164" style={{ animationDelay: ".25s" }} /></g>;
+      return (
+        <g stroke={p.features} strokeWidth="5" strokeLinecap="round" fill="none" opacity=".75">
+          <path className="ob-tick" d="M130 150 L140 160 L130 170" />
+          <path className="ob-tick" d="M290 144 L280 154 L290 164" style={{ animationDelay: ".25s" }} />
+        </g>
+      );
     default:
       return null;
   }
@@ -776,6 +774,7 @@ function faceForPose(poseKey) {
   if (poseKey === "oops" || poseKey === "facepalm") return { eye: "half", mouth: "flat", brow: "sad" };
   if (poseKey === "proud") return { eye: "open", mouth: "grin", brow: "up" };
   if (poseKey === "loading" || poseKey === "working" || poseKey === "writing") return { eye: "open", mouth: "flat" };
+  if (poseKey === "wave" || poseKey === "high_five") return { eye: "open", mouth: "grin", brow: "up" };
   return { eye: "open", mouth: "smile" };
 }
 
@@ -792,11 +791,17 @@ function renderOrb(config, key) {
   const gid = `${config.slug}-${pose.key}`;
   const eyeL = 210 - body.eyeSpread;
   const eyeR = 210 + body.eyeSpread;
-  const mouthY = body.faceY + (species === "squircle" ? 28 : 42);
+  const mouthY = body.faceY + (species === "cloud" ? 44 : species === "squircle" ? 36 : 40);
 
-  const bodyClass = pose.key === "dancing" ? "ob-float ob-g-dancing" : pose.key === "running" ? "ob-float ob-g-running" : pose.key === "flying" ? "ob-float ob-g-flying" : pose.key === "alarm" ? "ob-float ob-g-alarm" : pose.key === "sleepy" || pose.key === "waiting" ? "ob-float ob-g-sleepy" : "ob-float";
+  const bodyClass =
+    pose.key === "dancing" ? "ob-float ob-g-dancing"
+      : pose.key === "running" ? "ob-float ob-g-running"
+        : pose.key === "flying" ? "ob-float ob-g-flying"
+          : pose.key === "alarm" ? "ob-float ob-g-alarm"
+            : pose.key === "sleepy" || pose.key === "waiting" ? "ob-float ob-g-sleepy"
+              : "ob-float";
   const look = face.look || [0, 0];
-  const propHeavy = ["writing", "working", "searching", "thumbs_up", "thumbs_down", "empty"].includes(pose.key);
+  const propHeavy = ["writing", "working", "searching", "empty"].includes(pose.key);
 
   return (
     <svg
@@ -817,7 +822,7 @@ function renderOrb(config, key) {
         </linearGradient>
         <radialGradient id={`${gid}-core`} cx="50%" cy="42%" r="62%">
           <stop offset="0" stopColor={p.core} />
-          <stop offset=".7" stopColor={p.core} stopOpacity=".85" />
+          <stop offset=".65" stopColor={p.core} stopOpacity=".8" />
           <stop offset="1" stopColor={p.core} stopOpacity="0" />
         </radialGradient>
         <radialGradient id={`${gid}-halo`} cx="50%" cy="48%" r="58%">
@@ -839,9 +844,8 @@ function renderOrb(config, key) {
         </filter>
       </defs>
 
-      {/* Sol-family light pool — never a hard shadow */}
       <g data-ms-part="pool" transform="translate(210,472)">
-        <ellipse className="ob-pool" cx="0" cy="0" rx={species === "cloud" ? 120 : 100} ry="12" fill={`url(#${gid}-pool)`} />
+        <ellipse className="ob-pool" cx="0" cy="0" rx={species === "cloud" ? 128 : 104} ry="12" fill={`url(#${gid}-pool)`} />
         <ellipse cx="0" cy="0" rx="42" ry="5" fill={p.core} opacity=".32" />
       </g>
 
@@ -863,14 +867,14 @@ function renderOrb(config, key) {
               <path d={body.clip} fill="none" stroke={p.top} strokeWidth="3" opacity=".28" />
             </g>
 
-
+            {/* Sol order: core behind face */}
             <CoreNucleus species={species} p={p} y={body.coreY} r={body.coreR} gid={gid} />
 
             <g data-ms-part="gleam" clipPath={`url(#${gid}-clip)`}>
-              <ellipse className="ob-gleam" cx="210" cy="300" rx="12" ry="120" fill={p.top} opacity="0" />
+              <ellipse className="ob-gleam" cx="210" cy="300" rx="12" ry="110" fill={p.top} opacity="0" />
             </g>
 
-            <g data-ms-part="blush" fill={p.blush} opacity=".58">
+            <g data-ms-part="blush" fill={p.blush} opacity=".55">
               <circle cx={210 - body.blushX} cy={body.blushY} r="11" />
               <circle cx={210 + body.blushX} cy={body.blushY} r="11" />
             </g>
@@ -889,8 +893,6 @@ function renderOrb(config, key) {
             <g data-ms-part="badge">
               <AppMark mark={config.mark} core={p.core} feature={p.features} y={body.badgeY} />
             </g>
-
-            <Limbs species={species} poseKey={pose.key} p={p} y={body.limbY} />
           </g>
         </g>
       </g>

@@ -101,7 +101,6 @@ describe("example pose packs", () => {
       "gleam",
       "rays",
       "badge",
-      "limbs",
       "halo",
       "pool",
       "props",
@@ -126,6 +125,9 @@ describe("example pose packs", () => {
             ).toBe(true);
           }
 
+          // Sol-pure: no limb paddles.
+          expect(pose.svg).not.toContain('data-ms-part="limbs"');
+
           // Eyes must be its own toggle — no nested mouth/brows parts inside.
           expect(pose.svg).toMatch(
             /<g data-ms-part="eyes"[^>]*>(?:(?!data-ms-part=)[\s\S])*?<\/g>/
@@ -138,8 +140,8 @@ describe("example pose packs", () => {
         }
 
         const sleepy = pack.poses.find((pose) => pose.key === "sleepy")!;
-        expect(sleepy.svg).toContain("Q0,12 16,-3");
-        expect(sleepy.svg).not.toContain("Q0,-12 16,3");
+        expect(sleepy.svg).toContain("Q0,13 16,-3");
+        expect(sleepy.svg).not.toContain("Q0,-13 16,3");
 
         const kiss = pack.poses.find((pose) => pose.key === "blowing_kiss")!;
         expect(kiss.svg).toMatch(/M0,12 C-14,1/);
@@ -149,12 +151,9 @@ describe("example pose packs", () => {
           /data-ms-part="brows"[^>]*fill="none"[^>]*stroke=/
         );
 
-        if (slug === "aura" || slug === "trove") {
-          const wave = pack.poses.find((pose) => pose.key === "wave")!;
-          expect(wave.svg).toMatch(
-            /animateTransform[^>]*type="rotate"[^>]*values="[^"]*\d+\s+\d+/
-          );
-        }
+        const wave = pack.poses.find((pose) => pose.key === "wave")!;
+        expect(wave.svg).toContain("ob-rise");
+        expect(wave.svg).not.toContain("animateTransform");
 
         const imported = finalizeMarketplacePack(
           parseMarketplacePackFile(JSON.stringify(pack))
@@ -169,11 +168,11 @@ describe("example pose packs", () => {
   describe("lantern family studios", () => {
     const lanternSlugs = ["lumen", "shade", "watt", "arc"] as const;
     const eyeMarkerBySlug = {
-      // diamond path / soft circle / bean ellipse / hud rect — distinct idle eyes
-      lumen: "M0,-16 L14,0 L0,16 L-14,0 Z",
-      shade: 'r="14"',
-      watt: 'rx="14.5" ry="8.5"',
-      arc: 'width="20" height="24"',
+      // soft lozenge / soft circle / tall Fanous oval / rounded HUD — distinct idle eyes
+      lumen: "M0,-17 Q8,-8 14,0",
+      shade: 'r="15.5"',
+      watt: 'rx="12" ry="18"',
+      arc: 'width="20" height="24" rx="8"',
     } as const;
 
     const expectedKeys = GESTURE_PRESETS.map((pose) => pose.key);
@@ -241,18 +240,18 @@ describe("example pose packs", () => {
         })
       );
 
-      expect(idleSvg.lumen).toContain("M146,186 L178,164 L242,164 L274,186");
-      expect(idleSvg.shade).toContain("M96,208 C96,126 148,110 210,110");
-      expect(idleSvg.watt).toContain("M210,98 C278,98 326,162 326,232");
-      expect(idleSvg.arc).toContain("M158,128 L262,128 L300,232 L120,232");
+      expect(idleSvg.lumen).toContain("M108,190 L312,190 C318,262");
+      expect(idleSvg.shade).toContain("M90,206 C90,118 148,96 210,94");
+      expect(idleSvg.watt).toContain("M210,96 C284,96 334,164 334,236");
+      expect(idleSvg.arc).toContain("M148,126 C168,112 252,112 272,126");
 
       // Each silhouette marker belongs to only one mascot
-      expect(idleSvg.shade).not.toContain("M146,186 L178,164 L242,164 L274,186");
-      expect(idleSvg.watt).not.toContain("M146,186 L178,164 L242,164 L274,186");
-      expect(idleSvg.arc).not.toContain("M146,186 L178,164 L242,164 L274,186");
-      expect(idleSvg.lumen).not.toContain("M210,98 C278,98 326,162 326,232");
-      expect(idleSvg.shade).not.toContain("M210,98 C278,98 326,162 326,232");
-      expect(idleSvg.arc).not.toContain("M210,98 C278,98 326,162 326,232");
+      expect(idleSvg.shade).not.toContain("M108,190 L312,190 C318,262");
+      expect(idleSvg.watt).not.toContain("M108,190 L312,190 C318,262");
+      expect(idleSvg.arc).not.toContain("M108,190 L312,190 C318,262");
+      expect(idleSvg.lumen).not.toContain("M210,96 C284,96 334,164 334,236");
+      expect(idleSvg.shade).not.toContain("M210,96 C284,96 334,164 334,236");
+      expect(idleSvg.arc).not.toContain("M210,96 C284,96 334,164 334,236");
 
       expect(idleSvg.lumen).toContain(eyeMarkerBySlug.lumen);
       expect(idleSvg.shade).toContain(eyeMarkerBySlug.shade);
@@ -514,6 +513,11 @@ describe("example pose packs", () => {
 
       it(`${slug} uses ordered rear/front wing layers with shoulder-hinged flapping`, () => {
         const pack = buildPosePack(slug);
+        const facePoseKeys = new Set([
+          "thinking",
+          "blowing_kiss",
+          "facepalm",
+        ]);
         const foregroundPoseKeys = new Set([
           "wave",
           "writing",
@@ -523,13 +527,9 @@ describe("example pose packs", () => {
           "encourage",
           "thumbs_up",
           "working",
+          "flying",
           "high_five",
           "clapping",
-        ]);
-        const facePoseKeys = new Set([
-          "thinking",
-          "blowing_kiss",
-          "facepalm",
         ]);
 
         for (const pose of pack.poses) {
@@ -555,15 +555,18 @@ describe("example pose packs", () => {
           const rearStart = pose.svg.indexOf('data-ck-wing-layer="rear"');
           const bodyStart = pose.svg.indexOf('data-ms-part="body"');
           const frontStart = pose.svg.indexOf('data-ck-wing-layer="front"');
+          const badgeStart = pose.svg.indexOf('data-ms-part="app-badge"');
           const beakStart = pose.svg.indexOf('data-ms-part="beak"');
           const faceStart = pose.svg.indexOf('data-ck-wing-layer="face"');
           expect(rearStart).toBeLessThan(bodyStart);
           expect(bodyStart).toBeLessThan(frontStart);
           expect(beakStart).toBeLessThan(faceStart);
+          // Badge lives on/after the body, above rear wings — never under rest feathers.
+          expect(badgeStart).toBeGreaterThan(rearStart);
+          expect(badgeStart).toBeLessThan(frontStart);
 
           const wings = `${rear ?? ""}${front ?? ""}${face ?? ""}`;
           expect(wings.match(/<path\b/g)?.length).toBeGreaterThanOrEqual(4);
-          // Shoulder pivot + feather layers (not a single lazy blob).
           expect(wings).toContain("translate(");
           expect(wings).toContain("data-ck-wing-primary");
 
@@ -575,26 +578,66 @@ describe("example pose packs", () => {
           }
         }
 
-        const flying = pack.poses.find((pose) => pose.key === "flying")!;
-        const flyingRear = svgGroupBlockByAttribute(
-          flying.svg,
-          "data-ck-wing-layer",
-          "rear"
-        );
-        expect(flyingRear).toContain('data-ck-wing-mode="flap"');
-        expect(flyingRear).toContain("<animateTransform");
-        expect(flyingRear).toContain('attributeName="d"');
-        // Hummingbird blurs fastest; others still flap hard.
-        expect(flyingRear).toMatch(/dur="0\.0?9s"|dur="0\.14s"|dur="0\.2s"/);
-
         const idle = pack.poses.find((pose) => pose.key === "idle")!;
         const idleRear = svgGroupBlockByAttribute(
           idle.svg,
           "data-ck-wing-layer",
           "rear"
         );
+        const idleFront = svgGroupBlockByAttribute(
+          idle.svg,
+          "data-ck-wing-layer",
+          "front"
+        );
+        expect(idleRear).toContain('data-ck-wing-mode="rest"');
         expect(idleRear).toContain("<animateTransform");
         expect(idleRear).toContain("2.6s");
+        // Idle wings stay behind the body — front layer has no wing geometry.
+        expect(idleFront).not.toContain("data-ck-wing-mode");
+
+        const flying = pack.poses.find((pose) => pose.key === "flying")!;
+        const flyingFront = svgGroupBlockByAttribute(
+          flying.svg,
+          "data-ck-wing-layer",
+          "front"
+        );
+        const flyingRear = svgGroupBlockByAttribute(
+          flying.svg,
+          "data-ck-wing-layer",
+          "rear"
+        );
+        expect(flyingFront).toContain('data-ck-wing-mode="flap"');
+        expect(flyingFront).toContain("<animateTransform");
+        expect(flyingFront).toContain('attributeName="d"');
+        expect(flyingFront).toMatch(/dur="0\.0?9s"|dur="0\.14s"|dur="0\.2s"/);
+        expect(flyingRear).not.toContain("data-ck-wing-mode");
+        // Inner covert is a distinct smaller feather, not a clone of the primary.
+        const primaryD = flyingFront.match(
+          /data-ck-wing-primary="1"[^>]*\sd="([^"]+)"/
+        )?.[1];
+        const covertD = flyingFront.match(
+          /data-ck-wing-covert="1"[^>]*\sd="([^"]+)"/
+        )?.[1];
+        expect(primaryD).toBeTruthy();
+        expect(covertD).toBeTruthy();
+        expect(covertD).not.toBe(primaryD);
+
+        const wave = pack.poses.find((pose) => pose.key === "wave")!;
+        const waveFront = svgGroupBlockByAttribute(
+          wave.svg,
+          "data-ck-wing-layer",
+          "front"
+        );
+        const waveRear = svgGroupBlockByAttribute(
+          wave.svg,
+          "data-ck-wing-layer",
+          "rear"
+        );
+        expect(waveFront).toContain('data-ck-wing-mode="up"');
+        expect(waveFront).toContain("<animateTransform");
+        expect(waveRear).toContain('data-ck-wing-mode="rest"');
+        // Folded wing must stay still while the raised wing flaps.
+        expect(waveRear).not.toContain("<animateTransform");
       });
 
       it(`${slug} keeps held props attached to the floating character`, () => {
