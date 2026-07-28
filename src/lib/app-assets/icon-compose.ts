@@ -1,4 +1,4 @@
-import sharp from "sharp";
+import { loadSharp } from "./sharp-loader";
 
 type Rgba = { r: number; g: number; b: number; alpha?: number };
 
@@ -90,6 +90,7 @@ async function buildIconPreviewBackground(
           <rect width="100%" height="100%" fill="url(#g)"/>
         </svg>`;
 
+  const sharp = await loadSharp();
   return sharp(Buffer.from(svg)).png({ compressionLevel: 9, effort: 10 }).toBuffer();
 }
 
@@ -108,6 +109,7 @@ export async function composeAppIconPreview(args: {
   const inner = Math.round(size * 0.72);
   const accent = parseHexColor(args.accent);
 
+  const sharp = await loadSharp();
   const [background, character] = await Promise.all([
     buildIconPreviewBackground(size, accent, args.variantIndex),
     sharp(args.mascotPng)
