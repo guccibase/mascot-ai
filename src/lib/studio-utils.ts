@@ -438,6 +438,8 @@ export function bakeGestureExport(
     glow: number;
     ramp: string[];
     enabledParts?: ReadonlySet<string>;
+    /** Freeze both CSS and declarative SVG animation in the exported file. */
+    paused?: boolean;
   }
 ): string {
   if (typeof DOMParser === "undefined") {
@@ -456,7 +458,14 @@ export function bakeGestureExport(
   );
   svg.setAttribute("width", "420");
   svg.setAttribute("height", "520");
-  svg.removeAttribute("data-paused");
+  if (opts.paused) {
+    svg.setAttribute("data-paused", "1");
+    svg
+      .querySelectorAll("animate, animateMotion, animateTransform, set")
+      .forEach((animation) => animation.remove());
+  } else {
+    svg.removeAttribute("data-paused");
+  }
   svg.querySelectorAll(".ms-eyes, .bd-pupils").forEach((element) => {
     (element as SVGElement).style.transform = "";
   });

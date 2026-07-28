@@ -444,9 +444,9 @@ describe("example pose packs", () => {
     ]);
     const tearAnchors = {
       nox: ["M166,276", "M254,276"],
-      zest: ["M190,254", "M230,254"],
+      zest: ["M184,246", "M236,246"],
       quill: ["M182,246", "M238,246"],
-      pip: ["M174,254", "M246,254"],
+      pip: ["M174,258", "M246,258"],
     } as const;
     const persistentParts = [
       "accessory",
@@ -548,7 +548,7 @@ describe("example pose packs", () => {
             /data-ck-beak="upper" d="([^"]+)"/
           );
           expect(match, `${slug}/${pose.key} needs an upper bill`).not.toBeNull();
-          expect(match?.[1]).toMatch(/Q210,/);
+          expect(match?.[1]).toContain("210,");
           return match?.[1];
         });
 
@@ -567,12 +567,56 @@ describe("example pose packs", () => {
 
         expect(talkingBeak).not.toContain("transform=");
         expect(talkingBeak).not.toContain("<animate");
+        expect(talking.svg).not.toContain('class="ck-float"');
         expect(cavity, `${slug}/talking needs a mouth cavity`).not.toBeNull();
         expect(lower, `${slug}/talking needs a lower bill`).not.toBeNull();
         expect(lower?.[1]).not.toBe(cavity?.[1]);
       });
 
-      it(`${slug} uses ordered rear/front wing layers with shoulder-hinged flapping`, () => {
+      it(`${slug} uses planted feet and pose-specific contact wings`, () => {
+        const pack = buildPosePack(slug);
+        const idle = pack.poses.find((pose) => pose.key === "idle")!;
+        const idleMotion = svgGroupBlockByAttribute(
+          idle.svg,
+          "class",
+          "ck-float"
+        );
+
+        if (slug === "zest") {
+          // A hovering hummingbird carries its tucked feet with the body.
+          expect(idleMotion).toContain('data-ms-part="feet"');
+        } else {
+          // Grounded toes stay outside torso breathing / lean transforms.
+          expect(idleMotion).not.toContain('data-ms-part="feet"');
+          expect(idle.svg.indexOf('data-ms-part="feet"')).toBeLessThan(
+            idle.svg.indexOf('class="ck-float"')
+          );
+        }
+
+        const writing = pack.poses.find((pose) => pose.key === "writing")!;
+        expect(writing.svg).toContain('data-ck-wing-mode="support"');
+        expect(writing.svg).toContain('data-ck-wing-mode="write"');
+
+        const working = pack.poses.find((pose) => pose.key === "working")!;
+        expect(working.svg.match(/data-ck-wing-mode="type"/g)).toHaveLength(2);
+
+        const searching = pack.poses.find((pose) => pose.key === "searching")!;
+        expect(searching.svg).toContain('data-ck-wing-mode="grip"');
+
+        const clapping = pack.poses.find((pose) => pose.key === "clapping")!;
+        expect(clapping.svg.match(/data-ck-wing-mode="clap"/g)).toHaveLength(2);
+
+        const facepalm = pack.poses.find((pose) => pose.key === "facepalm")!;
+        expect(facepalm.svg).not.toContain("M131 178");
+
+        if (slug === "pip") {
+          const restingBill = svgGroupBlock(idle.svg, "beak");
+          expect(restingBill).not.toContain('data-ck-beak="cavity"');
+          expect(restingBill).not.toContain('data-ck-beak="lower"');
+        }
+      });
+
+      it(`${slug} uses ordered wing layers with lean shoulder-hinged motion`, () => {
         const pack = buildPosePack(slug);
         const facePoseKeys = new Set([
           "thinking",
@@ -630,6 +674,7 @@ describe("example pose packs", () => {
           expect(wings.match(/<path\b/g)?.length).toBeGreaterThanOrEqual(4);
           expect(wings).toContain("translate(");
           expect(wings).toContain("data-ck-wing-primary");
+          expect(wings).not.toContain('attributeName="d"');
 
           if (foregroundPoseKeys.has(pose.key)) {
             expect(front).toContain("<path");
@@ -651,8 +696,7 @@ describe("example pose packs", () => {
           "front"
         );
         expect(idleRear).toContain('data-ck-wing-mode="rest"');
-        expect(idleRear).toContain("<animateTransform");
-        expect(idleRear).toContain("2.6s");
+        expect(idleRear).not.toContain("<animate");
         // Idle wings stay behind the body — front layer has no wing geometry.
         expect(idleFront).not.toContain("data-ck-wing-mode");
 
@@ -667,16 +711,19 @@ describe("example pose packs", () => {
           "data-ck-wing-layer",
           "rear"
         );
-        expect(flyingFront).toContain('data-ck-wing-mode="flap"');
-        expect(flyingFront).toContain("<animateTransform");
-        expect(flyingFront).toContain('attributeName="d"');
-        expect(flyingFront).toMatch(/dur="0\.0?9s"|dur="0\.14s"|dur="0\.2s"/);
+        const flyingWings = flyingFront ?? "";
+        expect(flyingWings).toContain('data-ck-wing-mode="flap"');
+        expect(flyingWings.match(/<animateTransform/g)).toHaveLength(2);
+        expect(flyingWings).not.toMatch(/<animate\b/);
+        expect(flyingWings).toMatch(
+          /dur="(?:0\.12|0\.26|0\.32|0\.46)s"/
+        );
         expect(flyingRear).not.toContain("data-ck-wing-mode");
         // Inner covert is a distinct smaller feather, not a clone of the primary.
-        const primaryD = flyingFront.match(
+        const primaryD = flyingWings.match(
           /data-ck-wing-primary="1"[^>]*\sd="([^"]+)"/
         )?.[1];
-        const covertD = flyingFront.match(
+        const covertD = flyingWings.match(
           /data-ck-wing-covert="1"[^>]*\sd="([^"]+)"/
         )?.[1];
         expect(primaryD).toBeTruthy();

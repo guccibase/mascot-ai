@@ -20,25 +20,38 @@ import { GESTURE_PRESETS } from "@/lib/gesture-presets";
 
 const SVG_CSS = `
   .ck-svg{display:block;user-select:none;-webkit-user-select:none}
-  .ck-float{animation:ck-float 3.6s ease-in-out infinite}
+  .ck-float{transform-box:fill-box;transform-origin:center bottom;
+    animation:ck-breathe 3.8s cubic-bezier(.45,0,.55,1) infinite}
+  .ck-hummingbird .ck-float{transform-origin:center;
+    animation:ck-hover 2.2s cubic-bezier(.45,0,.55,1) infinite}
   .ck-halo{animation:ck-glow 3.1s ease-in-out infinite}
   .ck-pool{animation:ck-pool 3.6s ease-in-out infinite}
   .ck-dance,.ck-run{transform-box:fill-box;transform-origin:center bottom}
   .ck-fly,.ck-spin,.ck-pulse,.ck-blink{transform-box:fill-box;transform-origin:center}
-  .ck-dance{animation:ck-dance .82s ease-in-out infinite}
-  .ck-run{animation:ck-run .34s ease-in-out infinite}
-  .ck-fly{animation:ck-fly 1.35s ease-in-out infinite}
+  .ck-dance{animation:ck-dance .9s cubic-bezier(.45,.05,.55,.95) infinite}
+  .ck-run{animation:ck-run .46s cubic-bezier(.45,0,.55,1) infinite}
+  .ck-fly{animation:ck-fly 1.45s cubic-bezier(.45,0,.55,1) infinite}
   .ck-spin{animation:ck-spin 1.15s linear infinite}
   .ck-pulse{animation:ck-pulse 1.2s ease-in-out infinite}
   .ck-drift{animation:ck-drift 2s ease-out infinite;opacity:.9}
   .ck-blink{animation:ck-blink 4.8s ease-in-out infinite}
   .ck-svg[data-paused] *{animation-play-state:paused!important}
-  @keyframes ck-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+  @keyframes ck-breathe{0%,100%{transform:translateY(0) scale(1)}
+    50%{transform:translateY(1px) scale(1.008,.994)}}
+  @keyframes ck-hover{0%,100%{transform:translateY(2px) rotate(-.6deg)}
+    50%{transform:translateY(-4px) rotate(.6deg)}}
   @keyframes ck-glow{0%,100%{opacity:.22}50%{opacity:.5}}
   @keyframes ck-pool{0%,100%{opacity:.72}50%{opacity:.42}}
-  @keyframes ck-dance{0%,100%{transform:rotate(-4deg) translateY(0)}50%{transform:rotate(5deg) translateY(-10px)}}
-  @keyframes ck-run{0%,100%{transform:rotate(-3deg) translate(5px,2px)}50%{transform:rotate(4deg) translate(-4px,-12px)}}
-  @keyframes ck-fly{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-24px) rotate(3deg)}}
+  @keyframes ck-dance{0%,100%{transform:rotate(-3deg) translateY(1px)}
+    25%{transform:rotate(1deg) translateY(-6px)}
+    50%{transform:rotate(4deg) translateY(-9px)}
+    75%{transform:rotate(0) translateY(-4px)}}
+  @keyframes ck-run{0%,100%{transform:translate(0,1px) rotate(-1deg)}
+    25%{transform:translate(3px,-5px) rotate(1deg)}
+    50%{transform:translate(7px,-10px) rotate(3deg)}
+    75%{transform:translate(3px,-4px) rotate(1deg)}}
+  @keyframes ck-fly{0%,100%{transform:translateY(2px) rotate(-1.5deg)}
+    50%{transform:translateY(-17px) rotate(2deg)}}
   @keyframes ck-spin{to{transform:rotate(360deg)}}
   @keyframes ck-pulse{0%,100%{opacity:.35;transform:scale(.86)}50%{opacity:1;transform:scale(1.08)}}
   @keyframes ck-drift{0%{opacity:.55;transform:translateY(12px)}25%{opacity:1}100%{opacity:0;transform:translateY(-34px)}}
@@ -48,7 +61,7 @@ const SVG_CSS = `
 
 const TRACKING_KEYS = new Set(["idle", "wave", "thinking", "listening", "talking", "pointing"]);
 const HAPPY_KEYS = new Set(["happy", "celebrate", "proud", "dancing", "success", "encourage", "clapping", "high_five"]);
-const CLOSED_KEYS = new Set(["happy", "sleepy", "blowing_kiss", "dancing", "clapping"]);
+const CLOSED_KEYS = new Set(["happy", "sleepy", "blowing_kiss", "dancing", "clapping", "success"]);
 const WIDE_KEYS = new Set(["surprised", "alarm", "error"]);
 const SAD_KEYS = new Set(["sad", "crying", "empty"]);
 const ANGRY_KEYS = new Set(["grumpy", "thumbs_down"]);
@@ -60,9 +73,48 @@ const PROP_KEYS = new Set(["working", "writing", "searching", "thumbs_up", "thum
 const MOBILE_KEYS = new Set(["running", "flying"]);
 const FACE_LAYOUTS = {
   owl: { lx: 170, rx: 250, y: 258, blushR: 13, blushY: 28 },
-  hummingbird: { lx: 194, rx: 226, y: 236, blushR: 5.5, blushY: 12 },
+  hummingbird: { lx: 188, rx: 232, y: 228, blushR: 7, blushY: 17 },
   magpie: { lx: 186, rx: 234, y: 228, blushR: 7, blushY: 20 },
-  puffin: { lx: 178, rx: 242, y: 236, blushR: 7, blushY: 18 },
+  puffin: { lx: 178, rx: 242, y: 240, blushR: 6, blushY: 20 },
+};
+
+/**
+ * Static weight shifts make each pose read before animation starts. Motion
+ * classes run on the nested group so these composition-level stances remain
+ * stable and props, wings, face, and feet stay physically connected.
+ */
+const POSE_STANCE = {
+  happy: { translate: "translate(0 -2)" },
+  thinking: { lean: "rotate(2 210 424)", shadowX: 3 },
+  listening: { lean: "rotate(2 210 424)", shadowX: 2 },
+  pointing: { translate: "translate(-4 0)", lean: "rotate(-3 210 424)", shadowX: -5 },
+  writing: { translate: "translate(0 5)" },
+  celebrate: { translate: "translate(0 -7)" },
+  love: { translate: "translate(0 -2)" },
+  sad: { translate: "translate(0 5)", lean: "rotate(-1 210 424)" },
+  crying: { translate: "translate(0 6)", lean: "rotate(-1 210 424)" },
+  grumpy: { translate: "translate(0 2)", lean: "rotate(1 210 424)" },
+  sleepy: { translate: "translate(0 4)", lean: "rotate(3 210 424)", shadowX: 3 },
+  proud: { translate: "translate(0 -4)" },
+  oops: { lean: "rotate(-2 210 424)", shadowX: -2 },
+  surprised: { translate: "translate(0 -4)" },
+  facepalm: { lean: "rotate(-3 210 424)", shadowX: -4 },
+  dancing: { translate: "translate(0 -3)", lean: "rotate(-2 210 424)", shadowX: -2 },
+  alarm: { translate: "translate(0 -5)" },
+  encourage: { translate: "translate(0 -2)", lean: "rotate(2 210 424)", shadowX: 2 },
+  searching: { translate: "translate(-5 1)", lean: "rotate(-4 210 424)", shadowX: -6 },
+  thumbs_up: { lean: "rotate(-2 210 424)", shadowX: -2 },
+  thumbs_down: { translate: "translate(0 3)", lean: "rotate(-3 210 424)", shadowX: -3 },
+  shrug: { translate: "translate(0 4)" },
+  working: { translate: "translate(0 7)" },
+  running: { translate: "translate(18 -4)", lean: "rotate(7 210 424)", shadowX: 18 },
+  flying: { translate: "translate(0 -11)", lean: "rotate(-2 210 340)" },
+  high_five: { lean: "rotate(-3 210 424)", shadowX: -3 },
+  clapping: { translate: "translate(0 -3)" },
+  confused: { lean: "rotate(2 210 424)", shadowX: 2 },
+  success: { translate: "translate(0 -3)" },
+  error: { translate: "translate(0 3)" },
+  empty: { translate: "translate(0 6)" },
 };
 
 const BIRD_VARIANTS = {
@@ -314,7 +366,7 @@ function PoseVisuals({ keyName, core, feature, species }) {
     case "alarm":
       return <g className="ck-pulse"><path d="M93 198 l-21-24 M327 198 l21-24 M64 244 h34 M322 244 h34" {...stroke} />{keyName === "alarm" && <><path d="M310 156 q21-25 42 0" {...stroke} /><circle cx="331" cy="177" r="23" fill={core} stroke={feature} strokeWidth="6" /></>}</g>;
     case "facepalm":
-      return <path d="M131 178 q79-57 158 0" fill="none" stroke={core} strokeWidth="8" strokeDasharray="8 15" strokeLinecap="round" />;
+      return null;
     case "dancing":
       return <g className="ck-drift"><path d="M91 229 q23-14 19-38 q25 10 40-9 v45 q-17-10-31 3 M307 213 q20-12 16-34 q23 9 36-8 v42 q-16-9-28 3" fill={core} stroke={feature} strokeWidth="5" /></g>;
     case "encourage":
@@ -322,12 +374,43 @@ function PoseVisuals({ keyName, core, feature, species }) {
     case "searching":
       return <g><circle cx="105" cy="257" r="33" fill="#FFFDF7" fillOpacity=".45" stroke={feature} strokeWidth="8" /><path d="M80 281 l-25 26" {...stroke} /></g>;
     case "thumbs_up":
-    case "thumbs_down":
+    case "thumbs_down": {
+      const down = keyName === "thumbs_down";
+      const anchor = {
+        owl: down ? [69, 350] : [70, 198],
+        hummingbird: down ? [72, 304] : [98, 181],
+        magpie: down ? [70, 353] : [75, 187],
+        puffin: down ? [84, 350] : [72, 231],
+      }[species];
       return (
-        <g transform={keyName === "thumbs_down" ? "translate(-4 403) scale(.55 -.55)" : "translate(-4 75) scale(.55)"}>
-          <path d="M87 286 h42 l17-34 q8-15 20-8 q8 5 1 25 l-5 15 h30 v70 h-66 l-39-15Z" fill={core} stroke={feature} strokeWidth="7" strokeLinejoin="round" />
+        <g transform={`translate(${anchor[0]} ${anchor[1]})`}>
+          <path
+            d={down ? "M20 0 H36" : "M19 19 L35 35"}
+            fill="none"
+            stroke={feature}
+            strokeWidth="8"
+            strokeLinecap="round"
+          />
+          <path
+            d={down ? "M20 0 H36" : "M19 19 L35 35"}
+            fill="none"
+            stroke={core}
+            strokeWidth="4"
+            strokeLinecap="round"
+          />
+          <circle r="28" fill="#FFFDF7" fillOpacity=".96" stroke={feature} strokeWidth="5" />
+          <g transform={down ? "rotate(180)" : undefined}>
+            <path
+              d="M-15 1 H-4 L2-10 Q6-17 12-13 Q16-9 11 1 H21 V17 H-3 L-15 12Z"
+              fill={core}
+              stroke={feature}
+              strokeWidth="3.5"
+              strokeLinejoin="round"
+            />
+          </g>
         </g>
       );
+    }
     case "shrug":
       return <g><path d="M75 218 q28-25 56 0 M289 218 q28-25 56 0" {...stroke} /></g>;
     case "working":
@@ -336,15 +419,33 @@ function PoseVisuals({ keyName, core, feature, species }) {
       return <g><path d="M49 287 h75 M36 322 h67 M58 357 h49" {...stroke} /></g>;
     case "flying":
       return <g fill="#FFFDF7" stroke={feature} strokeWidth="5"><path d="M40 411 q12-28 38-12 q15-27 39 0 q28-5 30 21 H40Z" /><path d="M279 139 q12-26 35-11 q15-24 36 2 q25-4 28 18 h-99Z" /></g>;
-    case "high_five":
+    case "high_five": {
+      const [x, y] = {
+        owl: [92, 205],
+        hummingbird: [116, 190],
+        magpie: [98, 195],
+        puffin: [98, 248],
+      }[species];
+      return (
+        <g className="ck-pulse" transform={`translate(${x} ${y})`}>
+          <path d="M0 -20 L6 -7 L20 -6 L9 3 L13 17 L0 10 L-13 17 L-9 3 L-20 -6 L-6 -7Z" fill={core} stroke={feature} strokeWidth="4.5" strokeLinejoin="round" />
+          <path d="M-28 -2 L-38 -2 M28 -2 L38 -2 M0 -28 L0 -38" fill="none" stroke={core} strokeWidth="4" strokeLinecap="round" />
+        </g>
+      );
+    }
     case "clapping":
-      return <g className="ck-pulse"><path d="M210 126 l8 18 20 2-15 13 5 19-18-10-18 10 5-19-15-13 20-2Z" fill={core} stroke={feature} strokeWidth="5" /></g>;
+      return (
+        <g className="ck-pulse" fill="none" stroke={core} strokeWidth="5" strokeLinecap="round">
+          <path d="M210 344 v-16 M193 349 l-12-12 M227 349 l12-12" />
+          <path d="M195 365 Q210 355 225 365" stroke={feature} strokeWidth="3.5" opacity=".5" />
+        </g>
+      );
     case "success":
       return <g><circle cx="325" cy="222" r="36" fill={core} stroke={feature} strokeWidth="6" /><path d="M307 222 l13 13 25-30" {...stroke} /></g>;
     case "error":
       return <g><path d="M325 177 l39 70 h-78Z" fill={core} stroke={feature} strokeWidth="6" strokeLinejoin="round" /><path d="M325 201 v22 M325 236 v2" {...stroke} /></g>;
     case "empty":
-      return <g><path d="M121 393 h178 l-18 58 h-142Z" fill="#FFFDF7" fillOpacity=".35" stroke={feature} strokeWidth="7" /><path d="M176 418 h68" {...stroke} /></g>;
+      return <g><path d="M121 393 h178 l-18 58 h-142Z" fill="#FFFDF7" fillOpacity=".92" stroke={feature} strokeWidth="7" /><path d="M176 418 h68" {...stroke} /></g>;
     case "loading":
       return <g className="ck-spin"><circle cx="325" cy="221" r="32" fill="none" stroke={feature} strokeOpacity=".25" strokeWidth="9" /><path d="M325 189 a32 32 0 0 1 31 25" fill="none" stroke={core} strokeWidth="9" strokeLinecap="round" /></g>;
     case "waiting":
@@ -388,17 +489,17 @@ function HumEye({ x, y, lookX, lookY, wide, closed, love, feature, core }) {
   if (closed) {
     return <path d={`M${x - 9} ${y + 2} Q${x} ${y - 7} ${x + 9} ${y + 2}`} fill="none" stroke={feature} strokeWidth="5.5" strokeLinecap="round" />;
   }
-  /* Tiny dark beads in a mint orbital — zero white sclera. */
-  const rx = wide ? 7.5 : 6.2;
-  const ry = wide ? 9 : 7.4;
+  /* Bright bead eyes, enlarged just enough to keep the tiny bird juvenile. */
+  const rx = wide ? 9.4 : 8;
+  const ry = wide ? 11.2 : 9.4;
   return (
     <g className="ck-blink">
-      <ellipse cx={x} cy={y} rx={rx + 4} ry={ry + 3.5} fill={core} opacity=".55" />
-      <ellipse cx={x} cy={y} rx={rx + 4} ry={ry + 3.5} fill="none" stroke={feature} strokeWidth="1.4" opacity=".35" />
+      <ellipse cx={x} cy={y} rx={rx + 4.5} ry={ry + 4} fill={core} opacity=".48" />
+      <ellipse cx={x} cy={y} rx={rx + 4.5} ry={ry + 4} fill="none" stroke={feature} strokeWidth="1.6" opacity=".32" />
       <g className="ms-eyes">
         <ellipse cx={x + lookX * 0.35} cy={y + lookY * 0.35} rx={rx} ry={ry} fill={feature} />
-        <ellipse cx={x - 1.8 + lookX * 0.25} cy={y - 2.2 + lookY * 0.25} rx="2.1" ry="2.5" fill="#FFF8E8" opacity=".92" />
-        <circle cx={x + 1.4 + lookX * 0.25} cy={y + 1.8 + lookY * 0.25} r="0.9" fill="#FFF8E8" opacity=".5" />
+        <ellipse cx={x - 2.4 + lookX * 0.25} cy={y - 3 + lookY * 0.25} rx="2.6" ry="3.1" fill="#FFF8E8" opacity=".94" />
+        <circle cx={x + 2 + lookX * 0.25} cy={y + 2.4 + lookY * 0.25} r="1.1" fill="#FFF8E8" opacity=".55" />
       </g>
     </g>
   );
@@ -411,16 +512,16 @@ function MagEye({ x, y, lookX, lookY, wide, closed, love, feature, core }) {
   if (closed) {
     return <path d={`M${x - 14} ${y + 3} Q${x} ${y - 12} ${x + 14} ${y + 3}`} fill="none" stroke={feature} strokeWidth="6.5" strokeLinecap="round" />;
   }
-  /* Tall clever almonds — narrow white, tall dark pupil. Never round like owl. */
-  const rx = wide ? 11 : 9.5;
-  const ry = wide ? 22 : 19;
+  /* Clever soft almonds: distinct from the owl without becoming mechanical. */
+  const rx = wide ? 12.5 : 11;
+  const ry = wide ? 19 : 16.5;
   return (
     <g className="ck-blink">
-      <ellipse cx={x} cy={y} rx={rx} ry={ry} fill="#FFFDF8" stroke={feature} strokeWidth="4.2" />
+      <ellipse cx={x} cy={y} rx={rx} ry={ry} fill="#FFFDF8" stroke={feature} strokeWidth="3.4" />
       <g className="ms-eyes">
-        <ellipse cx={x + lookX * 0.6} cy={y + 1 + lookY} rx={rx * 0.55} ry={ry * 0.62} fill={feature} />
-        <ellipse cx={x - 2.2 + lookX * 0.5} cy={y - 5 + lookY} rx="2.2" ry="3.2" fill="#fff" />
-        <circle cx={x + 2 + lookX * 0.5} cy={y + 5 + lookY} r="1.1" fill="#fff" opacity=".6" />
+        <ellipse cx={x + lookX * 0.6} cy={y + 1 + lookY} rx={rx * 0.52} ry={ry * 0.62} fill={feature} />
+        <ellipse cx={x - 2.4 + lookX * 0.5} cy={y - 4.5 + lookY} rx="2.4" ry="3.1" fill="#fff" />
+        <circle cx={x + 2.2 + lookX * 0.5} cy={y + 4.4 + lookY} r="1.15" fill="#fff" opacity=".65" />
       </g>
     </g>
   );
@@ -433,19 +534,17 @@ function PufEye({ x, y, lookX, lookY, wide, closed, love, feature, core, mid, si
   if (closed) {
     return <path d={`M${x - 11} ${y + 2} Q${x} ${y - 9} ${x + 11} ${y + 2}`} fill="none" stroke={feature} strokeWidth="6" strokeLinecap="round" />;
   }
-  /* Compact round eyes sunk in mirrored charcoal face wedges — puffin mark. */
-  const r = wide ? 8.5 : 7.2;
-  const patch =
-    side === "left"
-      ? `M${x - 22} ${y - 20} L${x + 8} ${y - 2} L${x - 8} ${y + 18} Z`
-      : `M${x + 22} ${y - 20} L${x - 8} ${y - 2} L${x + 8} ${y + 18} Z`;
+  /* Soft eye patches and round pupils keep Pip fledgling-like, not made-up. */
+  const r = wide ? 10 : 8.7;
+  const patchX = side === "left" ? x - 2 : x + 2;
   return (
     <g className="ck-blink">
-      <path d={patch} fill={mid} opacity=".95" />
-      <circle cx={x} cy={y} r={r + 2.2} fill="#FFFDF8" stroke={feature} strokeWidth="3.2" />
+      <ellipse cx={patchX} cy={y} rx={r + 8} ry={r + 7} fill={mid} opacity=".13" />
+      <circle cx={x} cy={y} r={r + 2.6} fill="#FFFDF8" stroke={feature} strokeWidth="2.8" />
       <g className="ms-eyes">
         <circle cx={x + lookX * 0.45} cy={y + 1 + lookY * 0.45} r={r * 0.78} fill={feature} />
-        <circle cx={x - 2 + lookX * 0.35} cy={y - 2.2 + lookY * 0.35} r="1.9" fill="#fff" />
+        <circle cx={x - 2.5 + lookX * 0.35} cy={y - 2.8 + lookY * 0.35} r="2.2" fill="#fff" />
+        <circle cx={x + 2.2 + lookX * 0.35} cy={y + 2.4 + lookY * 0.35} r="1" fill="#fff" opacity=".6" />
       </g>
     </g>
   );
@@ -455,7 +554,7 @@ function PufEye({ x, y, lookX, lookY, wide, closed, love, feature, core, mid, si
  * Front-facing bills. Talking uses a static open silhouette, matching Lyra and
  * Granary: no bill transform, path morph, bounce, or reduced-motion leak.
  */
-function FrontBeak({ species, open, beak, beakTip, beakBand, feature, top, mid, base, accent }) {
+function FrontBeak({ species, open, beak, beakTip, feature, top, mid, base }) {
   if (species === "hummingbird") {
     /* Frontal needle bill is foreshortened; keep it centered and off the chest. */
     const tipY = open ? 274 : 270;
@@ -488,43 +587,38 @@ function FrontBeak({ species, open, beak, beakTip, beakBand, feature, top, mid, 
   }
 
   if (species === "puffin") {
-    /* Inverted triangle bill — sits BELOW the eyes, tip down. Never covers the face. */
-    const left = 172, right = 248, baseY = 268, tipY = open ? 334 : 318;
-    const upperTip = 300;
-    const lowerPath = (depth) =>
-      `M${left + 10},${baseY + 18} L210,${depth} L${right - 10},${baseY + 18} Z`;
-    const restingLower = lowerPath(tipY);
+    /* Compact puffin wedge; the lower mandible appears only while open. */
     return (
       <g data-ms-part="beak">
-        {open && (
-          <path
-            data-ck-beak="cavity"
-            d={`M${left + 16},${baseY + 20} L210,${tipY - 6} L${right - 16},${baseY + 20} Z`}
-            fill={feature}
-            opacity=".82"
-          />
-        )}
-        <path
-          data-ck-beak="lower"
-          d={restingLower}
-          fill={beakTip}
-          stroke={feature}
-          strokeWidth="3"
-          strokeLinejoin="round"
-        />
         <path
           data-ck-beak="upper"
-          d={`M${left},${baseY} Q210,${upperTip} ${right},${baseY} L${left},${baseY} Z`}
+          d="M187,272 C197,265 223,265 233,272 Q223,286 210,299 Q197,286 187,272 Z"
           fill={beak}
           stroke={feature}
           strokeWidth="3.2"
           strokeLinejoin="round"
         />
-        {/* Horizontal color bands — theme tokens only */}
-        <path d={`M${left + 8},${baseY + 14} L${right - 8},${baseY + 14}`} fill="none" stroke={top} strokeWidth="7" strokeLinecap="round" opacity=".95" />
-        <path d={`M${left + 18},${baseY + 26} L${right - 18},${baseY + 26}`} fill="none" stroke={beakBand || accent} strokeWidth="6" strokeLinecap="round" opacity=".92" />
-        <path d={`M${left + 28},${baseY + 38} L${right - 28},${baseY + 38}`} fill="none" stroke={base} strokeWidth="5" strokeLinecap="round" opacity=".88" />
-        <path d={`M${left + 12},${baseY + 6} L${right - 12},${baseY + 6}`} fill="none" stroke={top} strokeWidth="2.2" strokeLinecap="round" opacity=".45" />
+        <path d="M198,283 Q210,280 222,283" fill="none" stroke={beakTip} strokeWidth="3.4" strokeLinecap="round" opacity=".9" />
+        <ellipse cx="196" cy="273.5" rx="2.2" ry="1.3" fill={base} opacity=".68" />
+        <ellipse cx="224" cy="273.5" rx="2.2" ry="1.3" fill={base} opacity=".68" />
+        {open && (
+          <>
+            <path
+              data-ck-beak="cavity"
+              d="M200,294 Q210,300 220,294 Q217,306 210,310 Q203,306 200,294 Z"
+              fill={feature}
+              opacity=".84"
+            />
+            <path
+              data-ck-beak="lower"
+              d="M201,299 Q210,312 219,299 Q217,308 210,311 Q203,308 201,299 Z"
+              fill={beak}
+              stroke={feature}
+              strokeWidth="2.8"
+              strokeLinejoin="round"
+            />
+          </>
+        )}
       </g>
     );
   }
@@ -568,17 +662,17 @@ function FrontBeak({ species, open, beak, beakTip, beakBand, feature, top, mid, 
     );
   }
 
-  /* Magpie — pointed dagger beak */
-  const left = 196, right = 224, billTop = 248, seam = 264, bottom = open ? 292 : 280;
+  /* Magpie — compact pointed kite with a subtle center ridge. */
+  const left = 199, right = 221, billTop = 250, seam = 262, bottom = open ? 286 : 276;
   const lowerPath = (depth) =>
-    `M${left + 3},${seam + 1} Q210,${depth} ${right - 3},${seam + 1} Q210,${seam + 6} ${left + 3},${seam + 1} Z`;
+    `M${left + 2},${seam + 2} Q210,${depth} ${right - 2},${seam + 2} Q210,${seam + 7} ${left + 2},${seam + 2} Z`;
   const restingLower = lowerPath(bottom);
   return (
     <g data-ms-part="beak">
       {open && (
         <path
           data-ck-beak="cavity"
-          d={`M${left + 4},${seam + 1} Q210,${seam + 7} ${right - 4},${seam + 1} Q210,${bottom - 1} ${left + 4},${seam + 1} Z`}
+          d={`M${left + 3},${seam + 2} Q210,${seam + 8} ${right - 3},${seam + 2} Q210,${bottom - 1} ${left + 3},${seam + 2} Z`}
           fill={feature}
           opacity=".82"
         />
@@ -593,18 +687,18 @@ function FrontBeak({ species, open, beak, beakTip, beakBand, feature, top, mid, 
       />
       <path
         data-ck-beak="upper"
-        d={`M${left},${seam} Q210,${billTop} ${right},${seam} Q210,${seam + 7} ${left},${seam} Z`}
+        d={`M${left},${seam} Q210,${billTop} ${right},${seam} Q216,${seam + 8} 210,${seam + 13} Q204,${seam + 8} ${left},${seam} Z`}
         fill={beak}
         stroke={feature}
         strokeWidth="2.6"
         strokeLinejoin="round"
       />
-      <path d={`M${left + 4},${seam - 1} Q210,${billTop + 6} ${right - 4},${seam - 1}`} fill="none" stroke={top} strokeWidth="1.6" strokeLinecap="round" opacity=".3" />
+      <path d={`M210,${billTop + 4} L210,${seam + 9}`} fill="none" stroke={top} strokeWidth="1.6" strokeLinecap="round" opacity=".34" />
     </g>
   );
 }
 
-function SpeciesFace({ species, pose, feature, core, beak, beakTip, beakBand, blush, iris, mid, top, base, accent }) {
+function SpeciesFace({ species, pose, feature, core, beak, beakTip, blush, iris, mid, top, base }) {
   const key = pose.key;
   const closed = CLOSED_KEYS.has(key);
   const wide = WIDE_KEYS.has(key);
@@ -678,12 +772,10 @@ function SpeciesFace({ species, pose, feature, core, beak, beakTip, beakBand, bl
         open={open}
         beak={beak}
         beakTip={beakTip}
-        beakBand={beakBand}
         feature={feature}
         top={top}
         mid={mid}
         base={base}
-        accent={accent}
       />
     </>
   );
@@ -692,9 +784,12 @@ function SpeciesFace({ species, pose, feature, core, beak, beakTip, beakBand, bl
 function wingMode(key, side) {
   if (key === "flying") return "flap";
   if (key === "shrug") return "out";
-  if (key === "facepalm" && side === "left") return "face";
-  if ((key === "thinking" || key === "blowing_kiss") && side === "right") return "face";
-  if (key === "writing" || key === "working" || key === "clapping") return "front";
+  if (key === "facepalm" && side === "left") return "facepalm";
+  if ((key === "thinking" || key === "blowing_kiss") && side === "right") return "chin";
+  if (key === "writing") return side === "left" ? "support" : "write";
+  if (key === "working") return "type";
+  if (key === "clapping") return "clap";
+  if (key === "searching" && side === "left") return "grip";
   if ((side === "left" ? UP_LEFT : UP_RIGHT).has(key)) return "up";
   if ((side === "left" ? OUT_LEFT : OUT_RIGHT).has(key)) return "out";
   return "rest";
@@ -704,71 +799,107 @@ function wingMode(key, side) {
  * Raised / flying / held-forward wings paint above the body (hinge visible).
  * Rest + out stay behind so they can't cover the app badge.
  */
-const FOREGROUND_WING_MODES = new Set(["up", "front", "flap"]);
-const FACE_WING_MODES = new Set(["face"]);
+const FOREGROUND_WING_MODES = new Set([
+  "up",
+  "front",
+  "support",
+  "write",
+  "type",
+  "clap",
+  "grip",
+  "flap",
+]);
+const FACE_WING_MODES = new Set(["facepalm", "chin"]);
 const REAR_WING_MODES = new Set(["rest", "out"]);
 /** Left-shoulder pivot in canvas space; right wing mirrors X. */
 const WING_SHOULDER = {
-  owl: [148, 302],
-  hummingbird: [182, 274],
-  magpie: [154, 308],
-  puffin: [138, 320],
+  owl: [148, 300],
+  hummingbird: [160, 268],
+  magpie: [150, 294],
+  puffin: [144, 312],
 };
 
 /**
  * Left-wing paths in shoulder-local space (0,0 = hinge on body).
  * Negative X = outboard. Roots start a few px into +X so they plant under the
- * body silhouette. `upCovert` / `downCovert` are smaller inner feathers for flap.
+ * body silhouette. `upCovert` is the smaller inner flight feather.
  */
 const WING_LOCAL = {
   owl: {
     rest: "M10,2 C-6,18 -28,40 -34,78 C-36,108 -18,124 4,118 C18,112 22,78 20,48 C18,22 16,6 10,2 Z",
     up: "M8,4 C-18,-8 -48,-36 -62,-78 C-48,-92 -18,-70 2,-34 C10,-16 12,-2 8,4 Z",
-    down: "M8,4 C-24,22 -58,52 -74,48 C-68,78 -34,86 -2,42 C6,22 12,8 8,4 Z",
     upCovert: "M6,6 C-8,-2 -24,-22 -34,-44 C-24,-50 -8,-34 2,-14 C6,-4 8,4 6,6 Z",
-    downCovert: "M6,6 C-12,14 -28,32 -40,28 C-34,44 -14,42 0,22 C4,12 8,6 6,6 Z",
     out: "M8,4 C-36,8 -72,28 -92,56 C-74,74 -36,66 -2,28 C6,14 12,6 8,4 Z",
     front: "M6,2 C14,28 28,58 48,78 C56,62 40,34 22,14 C12,6 6,2 6,2 Z",
-    face: "M4,0 C8,-24 22,-48 40,-54 C36,-30 20,-12 6,-2 Z",
+    support: "M6,2 C5,25 7,59 13,82 C15,91 24,94 29,87 C32,78 25,52 18,26 C14,12 9,4 6,2 Z",
+    write: "M6,2 C8,30 9,67 13,91 C15,101 24,104 29,96 C31,86 26,56 18,28 C14,12 9,4 6,2 Z",
+    type: "M6,2 C10,25 19,56 28,76 C32,85 42,87 47,79 C50,69 36,43 21,20 C14,9 8,3 6,2 Z",
+    clap: "M6,2 C17,12 35,28 51,38 C59,43 66,39 66,32 C65,24 43,12 22,5 C13,2 7,1 6,2 Z",
+    grip: "M6,2 C-15,-4 -41,-8 -61,-3 C-70,0 -73,9 -67,15 C-60,21 -38,17 -18,12 C-4,8 4,4 6,2 Z",
+    facepalm: "M4,0 C10,-24 32,-52 56,-58 C62,-42 48,-24 22,-10 C13,-5 7,-1 4,0 Z",
+    chin: "M4,0 C8,-12 16,-25 27,-34 C34,-40 42,-38 44,-31 C46,-24 39,-19 31,-18 C22,-14 16,-6 12,3 C10,8 6,6 4,0 Z",
     coverts: "M8,8 C-4,28 -10,58 2,82 C12,70 16,36 8,8 Z",
     barbs: ["M6,18 C-8,40 -12,68 -4,92", "M4,28 C-14,52 -22,78 -12,98"],
   },
   hummingbird: {
-    rest: "M14,2 C-10,-14 -48,-22 -96,-4 C-108,10 -96,30 -56,34 C-22,36 2,18 14,4 Z",
-    up: "M14,4 C-6,-22 -34,-54 -52,-86 C-60,-64 -52,-28 -28,2 C-10,20 6,18 14,4 Z",
-    down: "M14,4 C-8,22 -40,48 -72,44 C-64,68 -28,58 0,24 C8,12 16,6 14,4 Z",
-    upCovert: "M10,4 C-2,-12 -20,-34 -32,-54 C-24,-50 -8,-30 4,-10 C8,-2 12,4 10,4 Z",
-    downCovert: "M10,4 C-4,14 -22,30 -40,28 C-34,42 -14,34 2,14 C6,8 12,4 10,4 Z",
-    out: "M14,2 C-12,-6 -52,-2 -98,16 C-94,34 -54,36 -16,20 C0,10 14,4 14,2 Z",
-    front: "M8,0 C14,22 26,48 42,64 C48,50 32,24 16,8 C10,2 8,0 8,0 Z",
-    face: "M4,0 C6,-14 14,-28 24,-32 C20,-16 12,-6 4,-1 Z",
-    coverts: "M12,4 C-8,-4 -36,-2 -58,8 C-36,14 -10,12 12,4 Z",
-    barbs: ["M8,4 C-24,-6 -56,-2 -78,8", "M6,10 C-26,4 -54,12 -72,20"],
+    rest: "M12,2 C-11,0 -40,6 -69,18 C-82,24 -83,35 -72,41 C-47,48 -20,36 4,18 C10,12 14,5 12,2 Z",
+    up: "M10,4 C-8,-15 -31,-46 -44,-78 C-49,-92 -43,-101 -34,-92 C-12,-69 4,-35 10,-5 C12,0 12,3 10,4 Z",
+    upCovert: "M8,4 C-3,-9 -17,-29 -26,-49 C-18,-46 -5,-29 3,-12 C7,-4 9,2 8,4 Z",
+    out: "M12,2 C-16,-6 -56,1 -94,21 C-88,40 -51,43 -16,28 C0,17 12,7 12,2 Z",
+    front: "M7,0 C15,32 30,72 50,104 C58,86 43,48 20,14 C12,4 8,0 7,0 Z",
+    support: "M7,0 C5,32 5,76 9,108 C10,119 18,122 23,113 C26,103 21,66 16,32 C13,12 9,2 7,0 Z",
+    write: "M7,0 C6,38 6,88 9,120 C10,132 19,135 24,125 C27,113 22,72 16,35 C13,13 9,2 7,0 Z",
+    type: "M7,0 C9,35 14,80 18,105 C20,116 28,119 33,110 C36,100 29,64 20,31 C15,12 10,2 7,0 Z",
+    clap: "M7,0 C14,22 26,52 41,70 C47,78 56,77 59,69 C61,60 43,35 23,14 C14,5 9,1 7,0 Z",
+    grip: "M8,0 C-12,-3 -37,2 -56,10 C-65,14 -66,23 -59,28 C-51,33 -31,27 -13,18 C0,11 7,3 8,0 Z",
+    facepalm: "M3,0 C8,-19 22,-39 38,-44 C41,-31 31,-15 11,-4 C7,-2 4,0 3,0 Z",
+    chin: "M3,0 C7,-9 14,-20 23,-27 C29,-32 35,-30 37,-25 C39,-20 34,-16 28,-15 C20,-11 15,-5 11,2 C8,6 5,5 3,0 Z",
+    coverts: "M10,4 C-10,-2 -36,2 -59,12 C-37,19 -11,16 10,4 Z",
+    barbs: ["M7,6 C-23,0 -52,7 -75,18", "M6,12 C-22,11 -48,20 -66,29"],
   },
   magpie: {
-    rest: "M10,2 C-4,22 -22,56 -18,100 C-14,128 6,134 16,104 C22,72 20,36 14,12 C12,6 10,2 10,2 Z",
+    rest: "M10,2 C-8,18 -24,49 -26,82 C-28,112 -12,132 5,122 C20,111 24,75 20,42 C18,18 14,5 10,2 Z",
     up: "M8,4 C-16,-14 -42,-50 -58,-88 C-40,-96 -14,-68 2,-30 C10,-12 12,0 8,4 Z",
-    down: "M8,4 C-22,24 -52,58 -70,54 C-60,82 -28,88 -2,40 C6,20 12,8 8,4 Z",
     upCovert: "M6,6 C-8,-4 -22,-28 -32,-50 C-22,-54 -8,-36 2,-14 C6,-4 8,4 6,6 Z",
-    downCovert: "M6,6 C-12,16 -28,36 -40,32 C-34,48 -14,46 0,22 C4,12 8,6 6,6 Z",
     out: "M8,4 C-34,10 -68,34 -86,60 C-66,76 -30,68 -2,28 C6,14 12,6 8,4 Z",
     front: "M6,2 C14,30 28,62 46,80 C54,64 38,34 20,14 C10,6 6,2 6,2 Z",
-    face: "M4,0 C8,-26 20,-52 36,-58 C32,-34 18,-14 6,-2 Z",
+    support: "M6,2 C6,27 8,63 14,87 C16,97 25,100 30,92 C33,83 27,55 19,28 C14,12 9,4 6,2 Z",
+    write: "M6,2 C8,31 10,72 15,99 C17,109 26,112 31,103 C34,92 28,59 19,29 C14,12 9,4 6,2 Z",
+    type: "M6,2 C10,27 19,60 28,81 C32,90 42,92 47,84 C50,74 37,47 21,22 C14,10 8,3 6,2 Z",
+    clap: "M6,2 C17,14 35,31 51,42 C59,48 67,44 67,36 C66,28 44,14 22,6 C13,3 7,1 6,2 Z",
+    grip: "M6,2 C-16,-5 -44,-9 -65,-4 C-75,-1 -78,9 -71,16 C-63,23 -40,18 -19,12 C-4,8 4,4 6,2 Z",
+    facepalm: "M4,0 C7,-27 16,-60 25,-79 C29,-88 38,-90 44,-83 C50,-76 46,-66 38,-61 C31,-55 27,-43 24,-30 C21,-17 14,-6 4,0 Z",
+    chin: "M4,0 C8,-14 15,-31 24,-43 C29,-50 37,-51 41,-46 C45,-40 41,-34 35,-31 C27,-26 20,-15 15,-2 C12,6 7,7 4,0 Z",
     coverts: "M8,10 C-2,34 -6,68 6,96 C14,80 16,40 8,10 Z",
     barbs: ["M6,22 C-6,50 -8,84 0,110", "M4,34 C-14,64 -20,96 -10,118"],
   },
   puffin: {
     rest: "M6,2 C-18,8 -40,26 -48,50 C-42,66 -18,64 0,42 C8,26 12,8 6,2 Z",
-    up: "M6,2 C-12,-10 -30,-36 -42,-58 C-28,-64 -8,-42 2,-16 C8,-4 10,2 6,2 Z",
-    down: "M6,2 C-16,14 -36,36 -50,32 C-42,50 -18,48 -2,20 C4,10 10,4 6,2 Z",
-    upCovert: "M4,4 C-6,-4 -16,-20 -24,-34 C-16,-38 -6,-24 2,-10 C4,-2 6,4 4,4 Z",
-    downCovert: "M4,4 C-8,10 -18,22 -28,20 C-22,32 -10,30 0,14 C2,8 6,4 4,4 Z",
+    up: "M6,2 C-16,-8 -42,-34 -56,-57 C-43,-69 -18,-55 -2,-29 C7,-14 12,-1 6,2 Z",
+    upCovert: "M4,4 C-8,-2 -24,-18 -34,-32 C-25,-40 -10,-29 1,-14 C5,-7 7,1 4,4 Z",
     out: "M6,2 C-24,4 -46,20 -58,38 C-44,50 -20,44 -2,18 C4,8 10,2 6,2 Z",
-    front: "M4,0 C10,20 20,44 34,58 C40,46 28,24 14,10 C8,4 4,0 4,0 Z",
-    face: "M2,0 C4,-14 12,-28 22,-32 C18,-18 10,-6 2,-1 Z",
+    front: "M4,0 C13,25 34,56 66,71 C70,54 49,27 20,9 C10,3 5,0 4,0 Z",
+    support: "M4,0 C5,23 8,52 14,70 C17,79 27,82 33,75 C37,67 28,42 19,22 C12,8 6,1 4,0 Z",
+    write: "M4,0 C6,27 10,61 16,80 C19,90 29,93 35,85 C39,76 30,49 20,24 C12,8 6,1 4,0 Z",
+    type: "M4,0 C9,21 22,49 34,63 C40,71 51,71 56,63 C59,54 42,31 22,14 C12,5 6,1 4,0 Z",
+    clap: "M4,0 C18,8 39,22 56,29 C64,33 71,28 69,20 C67,13 43,5 22,1 C12,-1 6,-1 4,0 Z",
+    grip: "M4,0 C-16,-8 -42,-13 -61,-9 C-71,-7 -75,2 -69,9 C-62,17 -39,14 -18,9 C-4,6 3,2 4,0 Z",
+    facepalm: "M2,0 C5,-32 11,-70 20,-91 C24,-100 32,-103 37,-96 C42,-89 38,-78 32,-71 C26,-61 24,-44 22,-27 C19,-13 10,-4 2,0 Z",
+    chin: "M2,0 C6,-18 12,-38 20,-52 C24,-60 31,-62 35,-57 C39,-52 36,-45 31,-41 C25,-35 21,-25 18,-13 C15,-3 10,4 6,5 C3,4 2,2 2,0 Z",
     coverts: "M4,6 C-10,16 -18,36 -8,52 C2,44 8,22 4,6 Z",
     barbs: ["M2,12 C-10,28 -14,46 -6,58", "M0,18 C-14,34 -20,50 -12,60"],
   },
+};
+
+const WING_ACTION_DETAILS = {
+  front: "M9,8 C15,27 25,49 37,65",
+  support: "M9,8 C10,30 13,56 17,75",
+  write: "M9,8 C10,34 13,65 17,84",
+  type: "M9,8 C14,30 21,53 29,69",
+  clap: "M10,5 C24,13 39,24 51,31",
+  grip: "M0,4 C-18,1 -38,4 -53,9",
+  facepalm: "M7,-7 C10,-27 16,-49 23,-65",
+  chin: "M7,-3 C11,-16 17,-29 24,-38",
 };
 
 /**
@@ -776,25 +907,35 @@ const WING_LOCAL = {
  * doesn't thrash with the raised wing.
  */
 function wingFlap(poseKey, species, side, mode) {
-  if (mode === "face" || mode === "front") return null;
+  if (FACE_WING_MODES.has(mode) || mode === "front") return null;
   const sign = side === "left" ? 1 : -1;
 
   if (mode === "flap") {
-    const dur = species === "hummingbird" ? "0.09s" : species === "owl" ? "0.2s" : "0.14s";
-    const amp = species === "hummingbird" ? 38 : species === "puffin" ? 26 : 32;
+    const dur =
+      species === "hummingbird" ? "0.12s"
+        : species === "owl" ? "0.46s"
+          : species === "puffin" ? "0.26s"
+            : "0.32s";
+    const amp =
+      species === "hummingbird" ? 28
+        : species === "owl" ? 22
+          : species === "puffin" ? 18
+            : 22;
     return {
       values: `${-amp * sign};${amp * sign};${-amp * sign}`,
       dur,
-      begin: side === "right" ? "-0.02s" : "0s",
+      begin: "0s",
+      keyTimes: "0;.36;1",
+      keySplines: ".32 0 .68 1;.22 .6 .36 1",
     };
   }
 
   if (mode === "up") {
-    if (poseKey === "dancing" || poseKey === "celebrate" || poseKey === "clapping") {
-      return { values: `${-10 * sign};${14 * sign};${-10 * sign}`, dur: "0.42s", begin: "0s" };
+    if (poseKey === "celebrate") {
+      return { values: `${-10 * sign};${14 * sign};${-10 * sign}`, dur: "0.52s", begin: "0s" };
     }
     if (poseKey === "wave" || poseKey === "high_five" || poseKey === "thumbs_up" || poseKey === "alarm") {
-      return { values: `${-8 * sign};${12 * sign};${-8 * sign}`, dur: "0.55s", begin: "0s" };
+      return { values: `${-8 * sign};${12 * sign};${-8 * sign}`, dur: "0.78s", begin: "0s" };
     }
     if (poseKey === "proud" || poseKey === "encourage") {
       return { values: `${-4 * sign};${6 * sign};${-4 * sign}`, dur: "1.8s", begin: side === "right" ? "-0.4s" : "0s" };
@@ -805,19 +946,8 @@ function wingFlap(poseKey, species, side, mode) {
   if (mode === "out" && (poseKey === "running" || poseKey === "pointing" || poseKey === "searching")) {
     return {
       values: `${-6 * sign};${8 * sign};${-6 * sign}`,
-      dur: poseKey === "running" ? "0.28s" : "1.2s",
+      dur: poseKey === "running" ? "0.46s" : "1.2s",
       begin: "0s",
-    };
-  }
-
-  if (
-    mode === "rest" &&
-    (poseKey === "idle" || poseKey === "listening" || poseKey === "happy" || poseKey === "proud")
-  ) {
-    return {
-      values: `${-3 * sign};${4 * sign};${-3 * sign}`,
-      dur: "2.6s",
-      begin: side === "right" ? "-0.8s" : "0s",
     };
   }
 
@@ -835,54 +965,59 @@ function WingFeathers({ species, mode, mid, top, base, accent, markFill }) {
     species === "magpie" ? markFill || top
       : species === "hummingbird" || species === "owl" ? top
         : accent;
-  const outline = species === "puffin" ? accent : species === "magpie" ? top : base || top;
-  const flapDur = species === "hummingbird" ? "0.09s" : species === "owl" ? "0.2s" : "0.14s";
+  const outline =
+    species === "puffin" ? (FACE_WING_MODES.has(mode) ? top : accent)
+      : species === "magpie" ? top
+        : base || top;
 
   return (
     <>
-      {/* Root pad — sits under the body when rear-layered, on the shoulder when front */}
-      <ellipse cx={10} cy={12} rx={18} ry={22} fill={fill} />
       <path
         data-ck-wing-primary="1"
         d={primary}
         fill={fill}
         stroke={outline}
         strokeWidth={species === "hummingbird" ? "2.4" : "3.2"}
-        strokeOpacity=".55"
+        strokeOpacity={
+          species === "magpie" ? ".36"
+            : FACE_WING_MODES.has(mode) ? ".42"
+              : ".55"
+        }
         strokeLinejoin="round"
-      >
-        {flapping && (
-          <animate
-            attributeName="d"
-            values={`${kit.up};${kit.down};${kit.up}`}
-            dur={flapDur}
-            repeatCount="indefinite"
-          />
-        )}
-      </path>
+      />
       {flapping ? (
         <path
           data-ck-wing-covert="1"
           d={kit.upCovert}
           fill={top}
           opacity=".45"
-        >
-          <animate
-            attributeName="d"
-            values={`${kit.upCovert};${kit.downCovert};${kit.upCovert}`}
-            dur={flapDur}
-            repeatCount="indefinite"
-          />
-        </path>
-      ) : (
+        />
+      ) : mode === "up" ? (
+        <path
+          data-ck-wing-covert="1"
+          d={kit.upCovert}
+          fill={top}
+          opacity=".4"
+        />
+      ) : mode === "rest" || mode === "out" ? (
         <>
-          <path data-ck-wing-covert="1" d={kit.coverts} fill={top} opacity={species === "magpie" ? ".55" : ".4"} />
-          <g fill="none" stroke={detail} strokeLinecap="round" opacity=".28">
-            {kit.barbs.map((d) => (
+          <path data-ck-wing-covert="1" d={kit.coverts} fill={top} opacity=".34" />
+          <g fill="none" stroke={detail} strokeLinecap="round" opacity=".24">
+            {kit.barbs.slice(0, species === "magpie" ? 1 : undefined).map((d) => (
               <path key={d} d={d} strokeWidth={species === "hummingbird" ? "1.8" : "2.2"} />
             ))}
           </g>
         </>
+      ) : (
+        <path
+          data-ck-wing-covert="1"
+          d={WING_ACTION_DETAILS[mode] || WING_ACTION_DETAILS.front}
+          fill="none"
+          stroke={detail}
+          strokeWidth={species === "hummingbird" ? "1.8" : "2.2"}
+          strokeLinecap="round"
+          opacity=".18"
+        />
       )}
     </>
   );
@@ -915,10 +1050,12 @@ function SpeciesWings({ species, poseKey, mid, top, base, accent, markFill, laye
                 <animateTransform
                   attributeName="transform"
                   type="rotate"
-                  additive="sum"
                   values={flap.values}
                   dur={flap.dur}
                   begin={flap.begin}
+                  calcMode="spline"
+                  keyTimes={flap.keyTimes || "0;.5;1"}
+                  keySplines={flap.keySplines || ".42 0 .58 1;.42 0 .58 1"}
                   repeatCount="indefinite"
                 />
               )}
@@ -941,41 +1078,89 @@ function SpeciesWings({ species, poseKey, mid, top, base, accent, markFill, laye
   );
 }
 
-function SpeciesBody({ species, top, mid, base, feature, core, accent, config, poseKey, face, gid, gorget }) {
-  const showAccessory =
-    !MOBILE_KEYS.has(poseKey) && !PROP_KEYS.has(poseKey);
+/**
+ * Stage furniture is intentionally outside the character motion/stance rig.
+ * It stays planted while the chick breathes, dances, tilts, or changes pose.
+ */
+function SpeciesAccessory({ species, poseKey, top, mid, base, feature, core, accent }) {
+  const visible = !MOBILE_KEYS.has(poseKey) && !PROP_KEYS.has(poseKey);
+  return (
+    <g data-ms-part="accessory">
+      {visible && species === "owl" && (
+        <g transform="translate(304 438) scale(.72) translate(-292 -432)">
+          <ellipse cx="292" cy="456" rx="28" ry="6" fill={base} opacity=".3" />
+          <path
+            d="M268 392 H316 L300 424 H284 Z M284 440 H300 L316 472 H268 Z"
+            fill={core}
+            stroke={feature}
+            strokeWidth="3.5"
+            strokeLinejoin="round"
+          />
+          <path d="M278 404 H306 L298 418 H286 Z" fill={mid} opacity=".7" />
+          <path d="M276 452 H304 L312 468 H272 Z" fill={top} opacity=".55" />
+          <ellipse cx="292" cy="392" rx="26" ry="5" fill={feature} />
+          <ellipse cx="292" cy="472" rx="26" ry="5" fill={feature} />
+          <rect x="286" y="424" width="12" height="16" rx="2" fill={feature} />
+        </g>
+      )}
+      {visible && species === "hummingbird" && (
+        <g transform="translate(292 416) rotate(8)">
+          <path d="M0 13 C-5 27 -5 43 -2 57" fill="none" stroke={base} strokeWidth="5" strokeLinecap="round" />
+          <path d="M-2 43 Q-18 34 -19 49 Q-10 53 -2 48" fill={mid} opacity=".78" />
+          {[0, 72, 144, 216, 288].map((deg) => (
+            <ellipse key={deg} cx="0" cy="-11" rx="9.5" ry="15" fill={core} opacity=".95" transform={`rotate(${deg})`} />
+          ))}
+          <circle cx="0" cy="0" r="8" fill={top} />
+          <circle cx="0" cy="0" r="3.2" fill={feature} opacity=".28" />
+        </g>
+      )}
+      {visible && species === "magpie" && (
+        <g transform="translate(298 462) scale(.78) translate(-278 -464)">
+          <ellipse cx="278" cy="496" rx="34" ry="6" fill={base} opacity=".32" />
+          <path
+            d="M248 468 C250 489 258 494 278 494 C298 494 306 489 308 468Z"
+            fill={mid}
+            stroke={feature}
+            strokeWidth="3"
+            strokeLinejoin="round"
+          />
+          <ellipse cx="278" cy="468" rx="30" ry="11" fill={core} stroke={feature} strokeWidth="3" />
+          <ellipse cx="278" cy="467" rx="20" ry="6" fill={feature} />
+          <ellipse cx="274" cy="465" rx="8" ry="2.5" fill={top} opacity=".35" />
+          <path d="M291 461 Q300 424 313 392" fill="none" stroke={core} strokeWidth="4.4" strokeLinecap="round" />
+          <path d="M313 392 C327 381 341 395 328 410 C316 421 301 403 313 392Z" fill={top} stroke={feature} strokeWidth="2.4" />
+          <path d="M307 398 Q317 401 326 408" fill="none" stroke={core} strokeWidth="2.2" strokeLinecap="round" opacity=".82" />
+        </g>
+      )}
+      {visible && species === "puffin" && (
+        <g transform="translate(322 410) scale(.68)">
+          <ellipse cx="0" cy="72" rx="42" ry="8" fill={base} opacity=".3" />
+          <circle cx="0" cy="28" r="38" fill={core} stroke={feature} strokeWidth="4" />
+          <path d="M-26 2 L-13 16 M26 2 L13 16 M-26 54 L-13 41 M26 54 L13 41" fill="none" stroke={top} strokeWidth="12" strokeLinecap="round" />
+          <circle cx="0" cy="28" r="17" fill={top} stroke={feature} strokeWidth="3" />
+          <path d="M0 11 V45" fill="none" stroke={accent} strokeWidth="3" strokeLinecap="round" opacity=".65" />
+          <path d="M17 19 V-42" fill="none" stroke={feature} strokeWidth="5" strokeLinecap="round" />
+          <path d="M19 -39 L55 -27 L19 -14Z" fill={core} stroke={feature} strokeWidth="3" strokeLinejoin="round" />
+          <circle cx="17" cy="-45" r="7" fill={top} stroke={feature} strokeWidth="3" />
+        </g>
+      )}
+    </g>
+  );
+}
+
+function SpeciesBody({ species, top, mid, base, feature, core, config, face, gid, gorget }) {
   if (species === "owl") {
     return (
       <>
-        <g data-ms-part="accessory">
-          {showAccessory && (
-            <>
-              {/* Side hourglass — classic X bulbs, unmistakably a timer */}
-              <ellipse cx="292" cy="456" rx="28" ry="6" fill={base} opacity=".3" />
-              <path
-                d="M268 392 H316 L300 424 H284 Z M284 440 H300 L316 472 H268 Z"
-                fill={core}
-                stroke={feature}
-                strokeWidth="3.5"
-                strokeLinejoin="round"
-              />
-              <path d="M278 404 H306 L298 418 H286 Z" fill={mid} opacity=".7" />
-              <path d="M276 452 H304 L312 468 H272 Z" fill={top} opacity=".55" />
-              <ellipse cx="292" cy="392" rx="26" ry="5" fill={feature} />
-              <ellipse cx="292" cy="472" rx="26" ry="5" fill={feature} />
-              <rect x="286" y="424" width="12" height="16" rx="2" fill={feature} />
-            </>
-          )}
-        </g>
         <g data-ms-part="body">
-          {/* Wide soft pear — Duo owl proportions */}
+          {/* Soft fledgling pear with continuous shoulder and belly tangents. */}
           <path
-            d="M210 188 C274 188 308 246 304 302 C300 348 278 388 262 418 C246 448 230 458 210 460 C190 458 174 448 158 418 C142 388 120 348 116 302 C112 246 146 188 210 188Z"
+            d="M210 186 C266 186 301 228 304 286 C308 345 282 405 242 442 C224 459 196 459 178 442 C138 405 112 345 116 286 C119 228 154 186 210 186Z"
             fill={`url(#${gid}-body)`}
           />
           {/* Shoulder saddle — wings hinge out of this, not thin air */}
-          <ellipse cx="148" cy="300" rx="22" ry="28" fill={mid} opacity=".55" />
-          <ellipse cx="272" cy="300" rx="22" ry="28" fill={mid} opacity=".55" />
+          <ellipse cx="148" cy="298" rx="19" ry="25" fill={mid} opacity=".38" />
+          <ellipse cx="272" cy="298" rx="19" ry="25" fill={mid} opacity=".38" />
           <path d="M132 286 C140 318 148 348 156 372" fill="none" stroke={base} strokeWidth="5" strokeLinecap="round" opacity=".22" />
           <path d="M288 286 C280 318 272 348 264 372" fill="none" stroke={base} strokeWidth="5" strokeLinecap="round" opacity=".22" />
           {/* Heart facial disk */}
@@ -987,12 +1172,14 @@ function SpeciesBody({ species, top, mid, base, feature, core, accent, config, p
           <path d="M188 354 Q210 362 232 354 M184 374 Q210 384 236 374 M190 394 Q210 402 230 394" fill="none" stroke={feature} strokeWidth="2.4" opacity=".16" strokeLinecap="round" />
           <path d="M162 206 Q210 186 258 206" fill="none" stroke={top} strokeWidth="6" strokeLinecap="round" opacity=".28" />
         </g>
-        <g data-ms-part="app-badge" transform="translate(0,18)"><AppMark mark={config.mark} core={core} feature={feature} /></g>
+        <g data-ms-part="app-badge" transform="translate(210 382) scale(.76) translate(-210 -377)">
+          <AppMark mark={config.mark} core={core} feature={feature} />
+        </g>
         <g data-ms-part="tuft">
-          <path d="M148 208 C128 168 138 132 168 128 C172 162 182 186 196 206" fill={mid} />
-          <path d="M272 208 C292 168 282 132 252 128 C248 162 238 186 224 206" fill={mid} />
-          <path d="M156 176 Q166 154 176 174" fill="none" stroke={top} strokeWidth="3.2" strokeLinecap="round" opacity=".5" />
-          <path d="M264 176 Q254 154 244 174" fill="none" stroke={top} strokeWidth="3.2" strokeLinecap="round" opacity=".5" />
+          <path d="M178 205 C181 184 190 169 202 168 C202 182 206 195 211 207 C199 198 188 198 178 205Z" fill={mid} />
+          <path d="M198 204 C201 178 210 162 219 171 C223 183 218 198 212 209 C209 197 205 190 198 204Z" fill={mid} />
+          <path d="M218 205 C225 184 234 174 243 178 C243 191 235 202 219 209Z" fill={mid} />
+          <path d="M192 187 Q201 176 207 185 M218 184 Q225 176 231 185" fill="none" stroke={top} strokeWidth="2.8" strokeLinecap="round" opacity=".42" />
         </g>
       </>
     );
@@ -1001,48 +1188,41 @@ function SpeciesBody({ species, top, mid, base, feature, core, accent, config, p
   if (species === "hummingbird") {
     return (
       <>
-        <g data-ms-part="accessory">
-          {showAccessory && (
-            <g transform="translate(210 412)">
-              <ellipse cx="0" cy="22" rx="3.2" ry="18" fill={base} />
-              {[0, 72, 144, 216, 288].map((deg) => (
-                <ellipse key={deg} cx="0" cy="-11" rx="9.5" ry="15" fill={core} opacity=".95" transform={`rotate(${deg})`} />
-              ))}
-              <circle cx="0" cy="0" r="8" fill={top} />
-              <circle cx="0" cy="0" r="3.2" fill={feature} opacity=".28" />
-            </g>
-          )}
-        </g>
         <g data-ms-part="body">
-          {/* Compact jewel — smallest silhouette, floats high */}
+          {/* Rounded jewel-chick: compact, but substantial enough to carry expression. */}
           <path
-            d="M210 196 C234 196 250 228 248 274 C246 314 232 344 210 354 C188 344 174 314 172 274 C170 228 186 196 210 196Z"
+            d="M194 346 C188 363 176 379 160 393 C180 390 199 378 208 355 C204 351 200 348 194 346Z"
+            fill={base}
+          />
+          <path
+            d="M226 346 C232 363 244 379 260 393 C240 390 221 378 212 355 C216 351 220 348 226 346Z"
+            fill={base}
+          />
+          <path d="M192 353 C181 371 172 382 164 388" fill="none" stroke={mid} strokeWidth="4" strokeLinecap="round" opacity=".62" />
+          <path d="M228 353 C239 371 248 382 256 388" fill="none" stroke={mid} strokeWidth="4" strokeLinecap="round" opacity=".62" />
+          <path
+            d="M210 184 C246 184 265 220 264 270 C263 319 245 357 210 372 C175 357 157 319 156 270 C155 220 174 184 210 184Z"
             fill={`url(#${gid}-body)`}
           />
-          {/* Tiny shoulder pads where the blur-wings attach */}
-          <ellipse cx="176" cy="268" rx="10" ry="12" fill={mid} opacity=".5" />
-          <ellipse cx="244" cy="268" rx="10" ry="12" fill={mid} opacity=".5" />
+          <ellipse cx="163" cy="267" rx="10" ry="14" fill={mid} opacity=".34" />
+          <ellipse cx="257" cy="267" rx="10" ry="14" fill={mid} opacity=".34" />
           {/* Iridescent gorget collar — below the needle beak */}
           <path
-            d="M188 276 C200 264 220 264 232 276 C226 296 216 308 210 312 C204 308 194 296 188 276Z"
+            d="M184 270 C198 259 222 259 236 270 C230 294 218 308 210 314 C202 308 190 294 184 270Z"
             fill={gorget || core}
             opacity=".95"
           />
-          <ellipse cx="210" cy="292" rx="16" ry="9" fill={top} opacity=".35" />
-          {/* Forked scissor tail */}
-          <path d="M202 344 Q184 368 166 380" fill="none" stroke={base} strokeWidth="11" strokeLinecap="round" />
-          <path d="M218 344 Q236 368 254 380" fill="none" stroke={base} strokeWidth="11" strokeLinecap="round" />
-          <path d="M202 344 Q184 368 166 380" fill="none" stroke={mid} strokeWidth="5" strokeLinecap="round" opacity=".7" />
-          <path d="M218 344 Q236 368 254 380" fill="none" stroke={mid} strokeWidth="5" strokeLinecap="round" opacity=".7" />
-          <path d="M192 210 Q210 196 228 210" fill="none" stroke={top} strokeWidth="3.2" strokeLinecap="round" opacity=".32" />
+          <ellipse cx="210" cy="292" rx="20" ry="10" fill={top} opacity=".3" />
+          <path d="M184 216 Q210 191 236 216" fill="none" stroke={top} strokeWidth="4" strokeLinecap="round" opacity=".3" />
+          <path d="M174 310 C184 337 197 352 210 358 C223 352 236 337 246 310" fill="none" stroke={top} strokeWidth="3" strokeLinecap="round" opacity=".15" />
         </g>
         <g data-ms-part="app-badge">
-          <circle cx="210" cy="332" r="15" fill={core} stroke={feature} strokeWidth="3.5" />
-          <path d="M202 332 l5 5 10-12" fill="none" stroke={feature} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+          <circle cx="210" cy="338" r="15" fill={core} stroke={feature} strokeWidth="3.5" />
+          <path d="M202 338 l5 5 10-12" fill="none" stroke={feature} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
         </g>
         <g data-ms-part="tuft">
-          <path d="M202 202 Q210 184 218 202" fill="none" stroke={core} strokeWidth="5" strokeLinecap="round" />
-          <path d="M206 198 Q210 188 214 198" fill="none" stroke={top} strokeWidth="2.5" strokeLinecap="round" opacity=".7" />
+          <path d="M198 195 Q202 178 210 184 Q218 176 222 197 Q211 189 198 195Z" fill={core} />
+          <path d="M205 190 Q210 183 215 190" fill="none" stroke={top} strokeWidth="2.4" strokeLinecap="round" opacity=".7" />
         </g>
       </>
     );
@@ -1051,54 +1231,46 @@ function SpeciesBody({ species, top, mid, base, feature, core, accent, config, p
   if (species === "magpie") {
     return (
       <>
-        <g data-ms-part="accessory">
-          {showAccessory && (
-            <>
-              {/* Round inkwell pot + dipping quill — journal ritual */}
-              <ellipse cx="278" cy="496" rx="34" ry="6" fill={base} opacity=".32" />
-              <ellipse cx="278" cy="478" rx="32" ry="14" fill={mid} stroke={feature} strokeWidth="3" />
-              <ellipse cx="278" cy="468" rx="28" ry="11" fill={base} />
-              <ellipse cx="278" cy="464" rx="18" ry="7" fill={feature} />
-              <ellipse cx="278" cy="462" rx="10" ry="3.5" fill={base} opacity=".8" />
-              <path d="M292 458 L312 392" stroke={feature} strokeWidth="3.6" strokeLinecap="round" />
-              <path d="M312 392 C326 382 340 396 326 410 C312 418 300 400 312 392Z" fill={top} stroke={feature} strokeWidth="2.2" />
-              <path d="M304 398 L320 406" fill="none" stroke={core} strokeWidth="2" strokeLinecap="round" opacity=".7" />
-            </>
-          )}
-        </g>
         <g data-ms-part="body">
-          {/* Tall narrow collector — longest silhouette */}
+          {/* Splayed tail sits behind the torso and clears both planted feet. */}
           <path
-            d="M210 178 C248 178 268 228 266 292 C264 348 250 392 232 424 C224 438 196 438 188 424 C170 392 156 348 154 292 C152 228 172 178 210 178Z"
-            fill={`url(#${gid}-body)`}
-          />
-          {/* Scapulars — dark wing roots glued to the tall torso */}
-          <ellipse cx="154" cy="304" rx="16" ry="30" fill={base} opacity=".55" />
-          <ellipse cx="266" cy="304" rx="16" ry="30" fill={base} opacity=".55" />
-          <path d="M148 280 C150 320 154 360 160 392" fill="none" stroke={top} strokeWidth="3" strokeLinecap="round" opacity=".28" />
-          <path d="M272 280 C270 320 266 360 260 392" fill="none" stroke={top} strokeWidth="3" strokeLinecap="round" opacity=".28" />
-          {/* White face half-mask + vertical bib */}
-          <ellipse cx="210" cy="238" rx="44" ry="40" fill={top} opacity=".98" />
-          <ellipse cx="210" cy="312" rx="24" ry="58" fill={top} opacity=".96" />
-          {/* Single graduated magpie tail — one wedge, never a tripod of legs */}
-          <path
-            d="M188 418 C196 448 200 478 204 508 L210 516 L216 508 C220 478 224 448 232 418 C220 424 200 424 188 418Z"
+            d="M190 402 C181 429 172 455 164 476 C181 471 197 447 205 414 C200 408 196 404 190 402Z"
             fill={mid}
           />
           <path
-            d="M196 422 C202 452 206 480 208 506 L210 512 L212 506 C214 480 218 452 224 422 C214 426 206 426 196 422Z"
-            fill={base}
+            d="M230 402 C239 429 248 455 256 476 C239 471 223 447 215 414 C220 408 224 404 230 402Z"
+            fill={mid}
           />
-          <path d="M206 500 L210 514 L214 500" fill={top} opacity=".75" />
-          <path d="M200 456 L220 456" fill="none" stroke={top} strokeWidth="3" strokeLinecap="round" opacity=".35" />
-          <path d="M202 478 L218 478" fill="none" stroke={top} strokeWidth="2.5" strokeLinecap="round" opacity=".28" />
+          <path d="M187 420 C180 441 173 459 168 471" fill="none" stroke={top} strokeWidth="3" strokeLinecap="round" opacity=".34" />
+          <path d="M233 420 C240 441 247 459 252 471" fill="none" stroke={top} strokeWidth="3" strokeLinecap="round" opacity=".34" />
+          {/* Tall fledgling collector with rounded head and real lower-body mass. */}
+          <path
+            d="M210 174 C255 174 282 218 280 280 C279 339 260 397 230 434 C220 447 200 447 190 434 C160 397 141 339 140 280 C138 218 165 174 210 174Z"
+            fill={`url(#${gid}-body)`}
+          />
+          <ellipse cx="148" cy="294" rx="14" ry="26" fill={base} opacity=".36" />
+          <ellipse cx="272" cy="294" rx="14" ry="26" fill={base} opacity=".36" />
+          <path d="M148 280 C150 320 154 360 160 392" fill="none" stroke={top} strokeWidth="3" strokeLinecap="round" opacity=".28" />
+          <path d="M272 280 C270 320 266 360 260 392" fill="none" stroke={top} strokeWidth="3" strokeLinecap="round" opacity=".28" />
+          <path
+            d="M210 192 C239 192 258 209 261 235 C265 260 246 282 210 290 C174 282 155 260 159 235 C162 209 181 192 210 192Z"
+            fill={top}
+            opacity=".98"
+          />
+          <path
+            d="M180 282 C194 272 226 272 240 282 C248 326 245 381 229 416 C219 432 201 432 191 416 C175 381 172 326 180 282Z"
+            fill={top}
+            opacity=".96"
+          />
+          <path d="M181 319 Q210 304 239 319 M180 350 Q210 338 240 350" fill="none" stroke={feature} strokeWidth="2.2" strokeLinecap="round" opacity=".12" />
           <path d="M178 198 Q210 178 242 198" fill="none" stroke={top} strokeWidth="3.2" strokeLinecap="round" opacity=".2" />
         </g>
-        <g data-ms-part="app-badge"><AppMark mark={config.mark} core={core} feature={feature} /></g>
+        <g data-ms-part="app-badge" transform="translate(210 366) scale(.76) translate(-210 -372)">
+          <AppMark mark={config.mark} core={core} feature={feature} />
+        </g>
         <g data-ms-part="tuft">
-          <path d="M196 188 Q204 164 214 186" fill="none" stroke={top} strokeWidth="4.5" strokeLinecap="round" />
-          <path d="M208 186 Q218 160 228 184" fill="none" stroke={top} strokeWidth="3.4" strokeLinecap="round" opacity=".85" />
-          <path d="M212 182 Q220 168 224 182" fill="none" stroke={core} strokeWidth="2.2" strokeLinecap="round" opacity=".5" />
+          <path d="M191 188 Q199 165 209 184 Q217 159 229 184 Q213 176 191 188Z" fill={top} />
+          <path d="M204 181 Q210 170 216 181" fill="none" stroke={core} strokeWidth="2.2" strokeLinecap="round" opacity=".5" />
         </g>
       </>
     );
@@ -1107,40 +1279,29 @@ function SpeciesBody({ species, top, mid, base, feature, core, accent, config, p
   /* Puffin */
   return (
     <>
-      <g data-ms-part="accessory">
-        {showAccessory && (
-          <>
-            {/* Striped buoy + flag — team signal, not a flat pedestal */}
-            <ellipse cx="210" cy="500" rx="56" ry="9" fill={base} opacity=".32" />
-            <ellipse cx="210" cy="470" rx="58" ry="24" fill={core} stroke={feature} strokeWidth="3" />
-            <path d="M152 462 Q210 448 268 462 Q210 476 152 462Z" fill={top} />
-            <path d="M158 470 Q210 458 262 470 Q210 482 158 470Z" fill={accent} opacity=".85" />
-            <path d="M164 478 Q210 468 256 478 Q210 488 164 478Z" fill={top} />
-            <rect x="205" y="398" width="10" height="52" rx="3" fill={feature} />
-            <path d="M215 404 L248 416 L215 428Z" fill={core} stroke={feature} strokeWidth="2.5" />
-            <circle cx="210" cy="396" r="9" fill={top} stroke={feature} strokeWidth="2.5" />
-          </>
-        )}
-      </g>
       <g data-ms-part="body">
-        {/* Chunky upright football — widest short silhouette */}
+        {/* Rounded puffin chick with one continuous face-to-belly patch. */}
         <path
-          d="M210 186 C268 186 298 248 298 318 C298 386 260 438 210 452 C160 438 122 386 122 318 C122 248 152 186 210 186Z"
+          d="M210 188 C263 188 292 235 294 302 C296 370 264 423 226 444 C216 451 204 451 194 444 C156 423 124 370 126 302 C128 235 157 188 210 188Z"
           fill={`url(#${gid}-body)`}
         />
-        {/* Stub wing roots — short puffin wings grow from here */}
-        <ellipse cx="148" cy="312" rx="20" ry="24" fill={mid} opacity=".62" />
-        <ellipse cx="272" cy="312" rx="20" ry="24" fill={mid} opacity=".62" />
-        {/* White face + belly mask */}
-        <ellipse cx="210" cy="250" rx="62" ry="54" fill={face} />
-        <ellipse cx="210" cy="356" rx="50" ry="66" fill={top} />
-        <path d="M182 430 Q210 462 238 430" fill={base} />
+        <ellipse cx="146" cy="310" rx="17" ry="22" fill={mid} opacity=".38" />
+        <ellipse cx="274" cy="310" rx="17" ry="22" fill={mid} opacity=".38" />
+        <path
+          d="M210 207 C246 207 268 229 269 258 C270 282 256 299 237 310 C252 342 248 391 225 425 C216 438 204 438 195 425 C172 391 168 342 183 310 C164 299 150 282 151 258 C152 229 174 207 210 207Z"
+          fill={face}
+        />
+        <path d="M174 326 C188 309 232 309 246 326" fill="none" stroke={top} strokeWidth="5" strokeLinecap="round" opacity=".3" />
+        <path d="M183 421 Q210 445 237 421" fill={base} opacity=".7" />
         <path d="M164 204 Q210 182 256 204" fill="none" stroke={top} strokeWidth="4" strokeLinecap="round" opacity=".14" />
       </g>
-      <g data-ms-part="app-badge"><AppMark mark={config.mark} core={core} feature={feature} /></g>
+      <g data-ms-part="app-badge" transform="translate(210 366) scale(.72) translate(-210 -374)">
+        <AppMark mark={config.mark} core={core} feature={feature} />
+      </g>
       <g data-ms-part="tuft">
-        {/* Dark crown peak — puffin widow's peak */}
-        <path d="M152 236 C168 188 194 168 210 168 C226 168 252 188 268 236 C250 214 230 202 210 202 C190 202 170 214 152 236Z" fill={mid} />
+        {/* Soft charcoal hood, rounded at the crown like downy plumage. */}
+        <path d="M150 247 C156 207 177 178 210 174 C243 178 264 207 270 247 C253 225 233 213 210 212 C187 213 167 225 150 247Z" fill={mid} />
+        <path d="M187 195 Q210 180 233 195" fill="none" stroke={top} strokeWidth="3.2" strokeLinecap="round" opacity=".16" />
       </g>
     </>
   );
@@ -1153,9 +1314,9 @@ function SpeciesFeet({ species, core, feature, poseKey, feet }) {
   }
   if (species === "hummingbird") {
     return (
-      <g data-ms-part="feet" stroke={feature} strokeWidth="2.8" strokeLinecap="round" fill="none" opacity=".45">
-        <path d={poseKey === "running" ? "M204 348 L190 364" : "M204 348 L202 358"} />
-        <path d={poseKey === "running" ? "M216 348 L232 360" : "M216 348 L218 358"} />
+      <g data-ms-part="feet" stroke={feature} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity=".58">
+        <path d={poseKey === "running" ? "M198 360 Q186 373 174 381 M174 381 l-7 2 M174 381 l-3 7" : "M198 360 Q197 369 191 375 M191 375 l-6 2 M191 375 l-2 6"} />
+        <path d={poseKey === "running" ? "M222 360 Q233 370 244 377 M244 377 l7 1 M244 377 l3 7" : "M222 360 Q223 369 229 375 M229 375 l6 2 M229 375 l2 6"} />
       </g>
     );
   }
@@ -1163,19 +1324,18 @@ function SpeciesFeet({ species, core, feature, poseKey, feet }) {
     if (poseKey === "running") {
       return (
         <g data-ms-part="feet" fill={fill} stroke={feature} strokeWidth="2.6" strokeLinecap="round">
-          <path d="M170 424 C150 440 126 445 112 438 C132 434 150 422 164 414Z" />
-          <path d="M250 426 C270 444 294 452 309 447 C288 442 270 428 256 416Z" />
+          <path d="M184 426 C170 439 151 447 136 444 C151 438 166 425 178 414Z" />
+          <path d="M236 428 C249 441 266 450 280 448 C266 441 252 428 242 416Z" />
+          <path d="M145 442 l-8 7 M154 439 l-2 10 M266 444 l7 7 M258 440 l1 10" />
         </g>
       );
     }
     return (
-      <g data-ms-part="feet" fill={fill}>
-        <path d="M168 422 C150 446 130 458 124 456 C140 448 156 432 164 420Z" />
-        <path d="M252 422 C270 446 290 458 296 456 C280 448 264 432 256 420Z" />
-        <ellipse cx="140" cy="458" rx="24" ry="9" />
-        <ellipse cx="280" cy="458" rx="24" ry="9" />
-        <path d="M128 456 L118 466 M140 460 L140 470 M152 456 L162 466" fill="none" stroke={feature} strokeWidth="2.6" strokeLinecap="round" opacity=".5" />
-        <path d="M268 456 L258 466 M280 460 L280 470 M292 456 L302 466" fill="none" stroke={feature} strokeWidth="2.6" strokeLinecap="round" opacity=".5" />
+      <g data-ms-part="feet" fill={fill} strokeLinejoin="round">
+        <path d="M184 424 C181 438 171 450 158 456 C166 466 184 466 197 456 C196 442 192 431 184 424Z" />
+        <path d="M236 424 C239 438 249 450 262 456 C254 466 236 466 223 456 C224 442 228 431 236 424Z" />
+        <path d="M164 458 l-8 8 M177 461 l-1 9 M190 458 l7 8" fill="none" stroke={feature} strokeWidth="2.4" strokeLinecap="round" opacity=".48" />
+        <path d="M256 458 l8 8 M243 461 l1 9 M230 458 l-7 8" fill="none" stroke={feature} strokeWidth="2.4" strokeLinecap="round" opacity=".48" />
       </g>
     );
   }
@@ -1216,7 +1376,6 @@ function renderBird(config, key) {
       : species === "owl" ? core
         : feature;
   const beakTip = core;
-  const beakBand = accent;
   const feet = species === "puffin" ? accent : core;
   const markFill = top;
   const gorget = core;
@@ -1224,10 +1383,13 @@ function renderBird(config, key) {
     pose.key === "dancing" ? "ck-dance"
       : pose.key === "running" ? "ck-run"
         : pose.key === "flying" ? "ck-fly"
-          : "ck-float";
+          : pose.key === "talking" ? undefined
+            : "ck-float";
   const gid = `${config.slug}-${pose.key}`;
   const hovering = species === "hummingbird" || pose.key === "flying";
   const isPropPose = PROP_KEYS.has(pose.key);
+  const stance = POSE_STANCE[pose.key] || {};
+  const shadowX = 210 + (stance.shadowX || 0);
 
   return (
     <svg
@@ -1260,14 +1422,14 @@ function renderBird(config, key) {
       <g data-ms-part="shadow">
         <ellipse
           className="ck-pool"
-          cx="210"
+          cx={shadowX}
           cy={hovering ? 498 : 492}
           rx={hovering ? 64 : 98}
           ry={hovering ? 12 : 14}
           fill={`url(#${gid}-pool)`}
         />
         <ellipse
-          cx="210"
+          cx={shadowX}
           cy={hovering ? 498 : 492}
           rx={hovering ? 40 : 70}
           ry="7"
@@ -1284,76 +1446,91 @@ function renderBird(config, key) {
         ry="172"
         fill={`url(#${gid}-halo)`}
       />
-      <g className={bodyClass}>
-        <SpeciesWings
-          species={species}
-          poseKey={pose.key}
-          mid={mid}
-          top={top}
-          base={base}
-          accent={accent}
-          markFill={markFill}
-          layer="rear"
-        />
-        <SpeciesBody
-          species={species}
-          top={top}
-          mid={mid}
-          base={base}
-          feature={feature}
-          core={core}
-          accent={accent}
-          config={config}
-          poseKey={pose.key}
-          face={face}
-          gid={gid}
-          gorget={gorget}
-        />
-        <SpeciesWings
-          species={species}
-          poseKey={pose.key}
-          mid={mid}
-          top={top}
-          base={base}
-          accent={accent}
-          markFill={markFill}
-          layer="front"
-        />
-        <SpeciesFeet species={species} core={core} feature={feature} poseKey={pose.key} feet={feet} />
-        <SpeciesFace
-          species={species}
-          pose={pose}
-          feature={feature}
-          core={core}
-          beak={beak}
-          beakTip={beakTip}
-          beakBand={beakBand}
-          blush={blush}
-          iris={iris}
-          mid={mid}
-          top={top}
-          base={base}
-          accent={accent}
-        />
-        <SpeciesWings
-          species={species}
-          poseKey={pose.key}
-          mid={mid}
-          top={top}
-          base={base}
-          accent={accent}
-          markFill={markFill}
-          layer="face"
-        />
-        <g data-ms-part="prop">
-          {isPropPose && (
-            <PoseVisuals
-              keyName={pose.key}
-              core={core}
-              feature={feature}
+      <SpeciesAccessory
+        species={species}
+        poseKey={pose.key}
+        top={top}
+        mid={mid}
+        base={base}
+        feature={feature}
+        core={core}
+        accent={accent}
+      />
+      <g transform={stance.translate}>
+        {species !== "hummingbird" && (
+          <SpeciesFeet species={species} core={core} feature={feature} poseKey={pose.key} feet={feet} />
+        )}
+        <g transform={stance.lean}>
+          <g className={bodyClass}>
+            <SpeciesWings
               species={species}
+              poseKey={pose.key}
+              mid={mid}
+              top={top}
+              base={base}
+              accent={accent}
+              markFill={markFill}
+              layer="rear"
             />
-          )}
+            <SpeciesBody
+              species={species}
+              top={top}
+              mid={mid}
+              base={base}
+              feature={feature}
+              core={core}
+              config={config}
+              face={face}
+              gid={gid}
+              gorget={gorget}
+            />
+            <SpeciesWings
+              species={species}
+              poseKey={pose.key}
+              mid={mid}
+              top={top}
+              base={base}
+              accent={accent}
+              markFill={markFill}
+              layer="front"
+            />
+            {species === "hummingbird" && (
+              <SpeciesFeet species={species} core={core} feature={feature} poseKey={pose.key} feet={feet} />
+            )}
+            <SpeciesFace
+              species={species}
+              pose={pose}
+              feature={feature}
+              core={core}
+              beak={beak}
+              beakTip={beakTip}
+              blush={blush}
+              iris={iris}
+              mid={mid}
+              top={top}
+              base={base}
+            />
+            <SpeciesWings
+              species={species}
+              poseKey={pose.key}
+              mid={mid}
+              top={top}
+              base={base}
+              accent={accent}
+              markFill={markFill}
+              layer="face"
+            />
+            <g data-ms-part="prop">
+              {isPropPose && (
+                <PoseVisuals
+                  keyName={pose.key}
+                  core={core}
+                  feature={feature}
+                  species={species}
+                />
+              )}
+            </g>
+          </g>
         </g>
       </g>
       <g data-ms-part="effects">

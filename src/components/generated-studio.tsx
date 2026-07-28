@@ -465,8 +465,9 @@ export function GeneratedStudio({
       glow,
       ramp: instrument.ramp,
       enabledParts,
+      paused,
     }),
-    [theme, accent, signal, glow, instrument.ramp, enabledParts]
+    [theme, accent, signal, glow, instrument.ramp, enabledParts, paused]
   );
 
   /* mount / remount SVG for the active gesture */
@@ -581,6 +582,9 @@ export function GeneratedStudio({
       1000
     );
   }, [instrument.ramp]);
+  const triggerDelight = useCallback(() => {
+    if (!paused) delight();
+  }, [delight, paused]);
 
   useEffect(() => {
     if (!active.delight || paused) return;
@@ -634,7 +638,7 @@ export function GeneratedStudio({
           glowLabel: mascot.glowLabel,
           instrument: mascot.instrument,
           themes: mascot.themes,
-          parts: mascot.parts,
+          parts: parts.filter((part) => enabledParts.has(part.key)),
           gestures: mascot.gestures.map((g) => ({
             key: g.key,
             label: g.label,
@@ -814,6 +818,7 @@ export function GeneratedStudio({
       animation:gs-pop 1s ease-out forwards}
     @keyframes gs-pop{0%{opacity:1;transform:translate(0,0) scale(1)}
       100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.4)}}
+    @media (prefers-reduced-motion:reduce){.gs-spark{display:none;animation:none}}
   `;
 
   const stageBg = transparent
@@ -889,8 +894,18 @@ export function GeneratedStudio({
             data-mascot-stage
             className={`relative overflow-hidden rounded-2xl ${transparent ? "gs-checker" : ""}`}
             style={{ background: stageBg, minHeight: 440 }}
+            role="button"
+            tabIndex={0}
+            aria-label={`Interactive ${mascot.name} stage. Activate for sparks.`}
+            aria-disabled={paused}
             onPointerMove={onTrack}
-            onPointerDown={delight}
+            onPointerDown={triggerDelight}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                triggerDelight();
+              }
+            }}
           >
             <div
               className="mx-auto"
@@ -1002,6 +1017,7 @@ export function GeneratedStudio({
               max={100}
               step={1}
               value={signal}
+              aria-label={instrument.label}
               className="gs-range w-full"
               onChange={(e) => setSignal(parseInt(e.target.value, 10))}
               style={{
@@ -1060,6 +1076,7 @@ export function GeneratedStudio({
                           title={gg.tip}
                           className={`gs-pill ${gestureKey === gg.key ? "on" : ""}`}
                           onClick={() => pickGesture(gg)}
+                          aria-pressed={gestureKey === gg.key}
                         >
                           {gg.label}
                         </button>
@@ -1246,6 +1263,8 @@ export function GeneratedStudio({
                     key={k}
                     type="button"
                     title={t.name}
+                    aria-label={t.name}
+                    aria-pressed={themeKey === k}
                     className={`gs-swatch ${themeKey === k ? "on" : ""}`}
                     style={{ background: swatchBg(t) }}
                     onClick={() => setThemeKey(k)}
@@ -1255,6 +1274,8 @@ export function GeneratedStudio({
               <button
                 type="button"
                 title="Custom"
+                aria-label="Custom theme"
+                aria-pressed={themeKey === "custom"}
                 className={`gs-swatch ${themeKey === "custom" ? "on" : ""}`}
                 style={{
                   background: swatchBg(custom),
@@ -1326,6 +1347,7 @@ export function GeneratedStudio({
               max={1}
               step={0.05}
               value={glow}
+              aria-label={mascot.glowLabel || "Spotlight"}
               className="gs-range w-full"
               style={{ background: "#3A3548" }}
               onChange={(e) => setGlow(parseFloat(e.target.value))}
@@ -1338,6 +1360,7 @@ export function GeneratedStudio({
               type="button"
               className={`gs-pill ${paused ? "" : "on"}`}
               onClick={() => setPaused((v) => !v)}
+              aria-pressed={!paused}
             >
               {paused ? "Paused" : "Playing"}
             </button>
