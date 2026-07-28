@@ -55,17 +55,12 @@ export function MascotExampleCard({
             {mascot.blurb}
           </p>
           <p className="mt-4 text-sm font-semibold text-white transition group-hover:text-[var(--brand-accent)]">
-            Open studio →
+            Browse studio →
           </p>
         </div>
       </Link>
-      <div className="relative border-t border-white/10 px-6 py-3 sm:px-7">
-        <Link
-          href={`/remix/${mascot.slug}`}
-          className="text-sm font-semibold text-[var(--brand-accent)] transition hover:text-white"
-        >
-          Remix this mascot →
-        </Link>
+      <div className="relative border-t border-white/10 px-6 py-3 text-xs text-white/50 sm:px-7">
+        Preview only — remix owned mascots from your library or the marketplace.
       </div>
     </article>
   );

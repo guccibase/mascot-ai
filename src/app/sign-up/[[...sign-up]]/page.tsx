@@ -21,6 +21,23 @@ export default function SignUpPage() {
           signInUrl="/sign-in"
           forceRedirectUrl="/onboarding"
         />
+        <p className="mx-auto mt-6 max-w-sm text-center text-xs leading-relaxed text-[var(--brand-muted)]">
+          By creating an account, you agree to the{" "}
+          <Link
+            href="/terms"
+            className="text-white/80 underline decoration-white/25 underline-offset-4 hover:text-white"
+          >
+            Terms of Service
+          </Link>{" "}
+          and acknowledge the{" "}
+          <Link
+            href="/privacy"
+            className="text-white/80 underline decoration-white/25 underline-offset-4 hover:text-white"
+          >
+            Privacy Policy
+          </Link>
+          .
+        </p>
       </div>
     </main>
   );

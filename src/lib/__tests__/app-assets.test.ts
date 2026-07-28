@@ -3,16 +3,20 @@ import {
   APP_ASSET_KINDS,
   filesForKinds,
   isAppAssetKind,
+  packOutputFileCount,
   type AppAssetKind,
 } from "../app-assets/catalog";
 import { expectedPathsForKinds } from "../../../convex/lib/appAssetPaths";
 import {
-  APP_ASSET_PACK_TOKENS_TYPICAL,
-  estimateImageGenTokens,
+  APP_ASSET_MARGIN_MULTIPLIER,
+  APP_ASSET_SAMPLE_USD_PER_IMAGE,
+  estimateAppAssetPackTokens,
+  estimateAppAssetSampleTokens,
   estimateTokens,
-  IMAGE_GEN_USD_PER_IMAGE,
 } from "../token-pricing";
 import { USD_PER_TOKEN } from "../../../convex/lib/plans";
+import { composeAppIconPreview, parseHexColor } from "../app-assets/icon-compose";
+import sharp from "sharp";
 
 describe("app asset catalog", () => {
   it("recognizes valid kinds", () => {
@@ -59,27 +63,84 @@ describe("app asset catalog", () => {
     combinedServer.delete("README.txt");
     expect([...combinedClient].sort()).toEqual([...combinedServer].sort());
   });
+
+  it("packOutputFileCount matches expectedPathsForKinds", () => {
+    const kinds = APP_ASSET_KINDS.map((k) => k.id);
+    expect(packOutputFileCount(kinds)).toBe(expectedPathsForKinds(kinds).size);
+    expect(packOutputFileCount(["favicon"])).toBe(
+      expectedPathsForKinds(["favicon"]).size
+    );
+  });
 });
 
 describe("app asset token pricing", () => {
-  it("charges per image for samples with margin", () => {
-    const three = estimateImageGenTokens(3);
-    const one = estimateImageGenTokens(1);
-    expect(three.typical).toBeGreaterThan(one.typical * 2.5);
-    const raw = (3 * IMAGE_GEN_USD_PER_IMAGE) / USD_PER_TOKEN;
-    expect(three.typical).toBeGreaterThan(raw);
+  it("charges 2× COGS for composited samples (50% gross margin)", () => {
+    const one = estimateAppAssetSampleTokens(1);
+    const rawCogsTokens = APP_ASSET_SAMPLE_USD_PER_IMAGE / USD_PER_TOKEN;
+    expect(one.typical).toBe(
+      Math.ceil(rawCogsTokens * APP_ASSET_MARGIN_MULTIPLIER)
+    );
+    const margin = (one.typical - rawCogsTokens) / one.typical;
+    expect(margin).toBeGreaterThanOrEqual(0.5 - 1e-9);
   });
 
-  it("includes flat pack assembly fee", () => {
-    const quote = estimateTokens({ kind: "appAssetPack" }, "gpt-5.6-sol");
-    expect(quote.typical).toBe(APP_ASSET_PACK_TOKENS_TYPICAL);
+  it("scales sample quotes with image count", () => {
+    const three = estimateAppAssetSampleTokens(3);
+    const one = estimateAppAssetSampleTokens(1);
+    expect(three.typical).toBe(one.typical * 3);
   });
 
-  it("combines image gen for three samples", () => {
-    const quote = estimateTokens(
+  it("scales pack fee with file count", () => {
+    const few = estimateAppAssetPackTokens(4);
+    const many = estimateAppAssetPackTokens(30);
+    expect(many.typical).toBeGreaterThan(few.typical);
+  });
+
+  it("wires estimateTokens for samples and pack", () => {
+    const samples = estimateTokens(
       { kind: "appAssetSamples", images: 3 },
       "gpt-5.6-sol"
     );
-    expect(quote.typical).toBeGreaterThan(estimateImageGenTokens(3).typical - 1);
+    expect(samples.typical).toBe(estimateAppAssetSampleTokens(3).typical);
+
+    const pack = estimateTokens(
+      { kind: "appAssetPack", fileCount: 20 },
+      "gpt-5.6-sol"
+    );
+    expect(pack.typical).toBe(estimateAppAssetPackTokens(20).typical);
+  });
+});
+
+describe("composeAppIconPreview", () => {
+  it("parses hex accents", () => {
+    expect(parseHexColor("#fc0")).toEqual({ r: 255, g: 204, b: 0 });
+    expect(parseHexColor("#D4A843").r).toBe(212);
+  });
+
+  it("keeps output square and embeds the mascot pixels", async () => {
+    // Solid gold circle on transparent — stand-in for a mascot render.
+    const mascotSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+      <circle cx="100" cy="100" r="80" fill="#D4A843"/>
+    </svg>`;
+    const mascotPng = await sharp(Buffer.from(mascotSvg)).png().toBuffer();
+    const icon = await composeAppIconPreview({
+      mascotPng,
+      accent: "#D4A843",
+      variantIndex: 0,
+      size: 256,
+    });
+    const meta = await sharp(icon).metadata();
+    expect(meta.width).toBe(256);
+    expect(meta.height).toBe(256);
+
+    // Center pixel should be near the mascot gold, not a random redesign color.
+    const { data } = await sharp(icon)
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const i = (128 * 256 + 128) * 4;
+    expect(data[i]).toBeGreaterThan(180); // R
+    expect(data[i + 1]!).toBeGreaterThan(140); // G
+    expect(data[i + 2]!).toBeLessThan(120); // B (warm gold, not blue redesign)
   });
 });

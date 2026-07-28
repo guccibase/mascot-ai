@@ -47,9 +47,11 @@ export const PLANS: readonly Plan[] = [
     cyclesPerTerm: 1,
     tagline: "Ship one mascot this week",
     highlights: [
+      "240K tokens per week",
       "All six models",
       "Unlimited saved mascots",
       "Download-ready animated SVGs",
+      "Refine and add gestures anytime",
     ],
   },
   {
@@ -65,6 +67,7 @@ export const PLANS: readonly Plan[] = [
       "5.2x the tokens of weekly",
       "All six models",
       "Refine and add gestures anytime",
+      "Download-ready animated SVGs",
     ],
   },
   {
@@ -80,6 +83,8 @@ export const PLANS: readonly Plan[] = [
       "Same 1.25M tokens every month",
       "Locked-in rate for 12 months",
       "All six models",
+      "Download-ready animated SVGs",
+      "Refine and add gestures anytime",
     ],
   },
 ] as const;

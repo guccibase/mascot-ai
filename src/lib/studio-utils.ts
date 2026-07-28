@@ -98,6 +98,20 @@ export function normalizeSignal(value: unknown, fallback = 50): number {
   return fallback;
 }
 
+export function mergeSvgClassNames(
+  current: string | null | undefined,
+  ...required: string[]
+): string {
+  return [
+    ...new Set(
+      `${current ?? ""} ${required.join(" ")}`
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+    ),
+  ].join(" ");
+}
+
 export function zoneForSignal(score: number) {
   if (score < 34) return "Flat";
   if (score < 67) return "Building";
@@ -150,8 +164,12 @@ function normalizeHex(input: unknown, fallback: string) {
 
 function themeVarsStyle(theme: ThemeSwatch, accent: string) {
   const features = normalizeHex(theme.features ?? "#2A1A0C", "#2A1A0C");
+  const blush = theme.blush
+    ? normalizeHex(theme.blush, "#E8A8A0")
+    : undefined;
+  const blushVar = blush ? `--ms-blush:${blush};` : "";
   return `
-.ms-root{--ms-top:${theme.top};--ms-mid:${theme.mid};--ms-base:${theme.base};--ms-core:${theme.core};--ms-stage:${theme.stage};--ms-features:${features};--ms-accent:${accent};--ms-signal:68;--ms-signal-color:${accent};--ms-glow:.45}
+.ms-root{--ms-top:${theme.top};--ms-mid:${theme.mid};--ms-base:${theme.base};--ms-core:${theme.core};--ms-stage:${theme.stage};--ms-features:${features};--ms-accent:${accent};${blushVar}--ms-signal:68;--ms-signal-color:${accent};--ms-glow:.45}
 .ms-eyes{transition:transform .12s ease-out}
 .ms-glow-halo,.ms-signal-glow{opacity:calc(.18 + var(--ms-glow) * .72)}
 .ms-signal-tint{fill:var(--ms-signal-color);stroke:var(--ms-signal-color)}
@@ -175,6 +193,7 @@ export function applyThemeContract(
     [accent, "var(--ms-accent)"],
   ];
   if (theme.features) pairs.push([theme.features, "var(--ms-features)"]);
+  if (theme.blush) pairs.push([theme.blush, "var(--ms-blush)"]);
 
   for (const [hex, cssVar] of pairs) {
     const h = normalizeHex(hex, "");
@@ -188,11 +207,15 @@ export function applyThemeContract(
     }
   }
 
-  // Ensure root class + style contract
-  if (!/class=["'][^"']*\bms-root\b/.test(out)) {
+  // Merge the root class instead of emitting a second `class` attribute.
+  const rootTag = out.match(/<svg\b[^>]*>/)?.[0] ?? "";
+  if (!/\bclass=["']/.test(rootTag)) {
     out = out.replace(/<svg\b/, '<svg class="ms-root"');
-  } else if (!out.includes("ms-root")) {
-    out = out.replace(/class=["']([^"']*)["']/, 'class="$1 ms-root"');
+  } else if (!/\bclass=["'][^"']*\bms-root\b/.test(rootTag)) {
+    out = out.replace(
+      /(<svg\b[^>]*\bclass=["'])([^"']*)(["'])/,
+      "$1$2 ms-root$3"
+    );
   }
 
   const styleBlock = `<style>${themeVarsStyle(theme, accent)}</style>`;
@@ -265,11 +288,15 @@ export function normalizeGeneratedMascot(
       features: t.features
         ? normalizeHex(t.features, "#2A1A0C")
         : "#2A1A0C",
+      ...(t.blush
+        ? { blush: normalizeHex(t.blush, "#E8A8A0") }
+        : {}),
     };
   }
 
   const primary = themes[themeEntries[0]![0]]!;
   const accent = normalizeHex(raw.accent, primary.mid);
+  const instrumentHidden = raw.instrument?.hidden === true;
   const instrument: StudioInstrument = {
     ...defaultInstrument(raw.product),
     ...(raw.instrument ?? {}),
@@ -280,6 +307,8 @@ export function normalizeGeneratedMascot(
           ) as StudioInstrument["ramp"])
         : DEFAULT_RAMP,
     defaultValue: clamp(raw.instrument?.defaultValue ?? 68),
+    // Spreading defaults must not resurrect a Signal slider the pack hid.
+    hidden: instrumentHidden ? true : raw.instrument?.hidden,
   };
 
   const byKey = new Map(
@@ -408,6 +437,9 @@ export function bakeGestureExport(
     signal: number;
     glow: number;
     ramp: string[];
+    enabledParts?: ReadonlySet<string>;
+    /** Freeze both CSS and declarative SVG animation in the exported file. */
+    paused?: boolean;
   }
 ): string {
   if (typeof DOMParser === "undefined") {
@@ -419,12 +451,30 @@ export function bakeGestureExport(
   if (!svg) {
     return '<?xml version="1.0" encoding="UTF-8"?>\n' + svgMarkup;
   }
-  svg.setAttribute("class", `ms-root ms-g-${opts.gestureKey}`);
+  const gestureClass = `ms-g-${opts.gestureKey.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+  svg.setAttribute(
+    "class",
+    mergeSvgClassNames(svg.getAttribute("class"), "ms-root", gestureClass)
+  );
   svg.setAttribute("width", "420");
   svg.setAttribute("height", "520");
-  svg.removeAttribute("data-paused");
-  const eyes = svg.querySelector(".ms-eyes") as SVGGElement | null;
-  if (eyes) eyes.style.transform = "";
+  if (opts.paused) {
+    svg.setAttribute("data-paused", "1");
+    svg
+      .querySelectorAll("animate, animateMotion, animateTransform, set")
+      .forEach((animation) => animation.remove());
+  } else {
+    svg.removeAttribute("data-paused");
+  }
+  svg.querySelectorAll(".ms-eyes, .bd-pupils").forEach((element) => {
+    (element as SVGElement).style.transform = "";
+  });
+  if (opts.enabledParts) {
+    svg.querySelectorAll("[data-ms-part]").forEach((element) => {
+      const key = element.getAttribute("data-ms-part");
+      if (key && !opts.enabledParts?.has(key)) element.remove();
+    });
+  }
   svg.querySelectorAll('[data-ms-hidden="1"]').forEach((el) => el.remove());
   const baked = [
     `--ms-top:${opts.theme.top}`,

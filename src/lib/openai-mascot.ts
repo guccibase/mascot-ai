@@ -67,6 +67,7 @@ export async function runOpenAIMascotModel(args: {
   images?: MascotImageInput[];
   maxOutputTokens?: number;
   reasoningEffort?: ReasoningEffort;
+  signal?: AbortSignal;
 }): Promise<MascotModelResult> {
   const {
     openai,
@@ -76,6 +77,7 @@ export async function runOpenAIMascotModel(args: {
     images,
     maxOutputTokens = 32000,
     reasoningEffort = "medium",
+    signal,
   } = args;
 
   const inputWithJson = /json/i.test(input)
@@ -100,14 +102,17 @@ export async function runOpenAIMascotModel(args: {
 
   for (const model of candidateOrder(preferredModel)) {
     try {
-      const response = await openai.responses.create({
-        model,
-        reasoning: { effort: reasoningEffort },
-        instructions,
-        input: apiInput,
-        text: { format: { type: "json_object" } },
-        max_output_tokens: maxOutputTokens,
-      });
+      const response = await openai.responses.create(
+        {
+          model,
+          reasoning: { effort: reasoningEffort },
+          instructions,
+          input: apiInput,
+          text: { format: { type: "json_object" } },
+          max_output_tokens: maxOutputTokens,
+        },
+        { signal }
+      );
 
       const text =
         typeof response.output_text === "string"
@@ -162,6 +167,7 @@ export async function runMascotModel(args: {
   input: string;
   maxOutputTokens?: number;
   reasoningEffort?: ReasoningEffort;
+  signal?: AbortSignal;
 }): Promise<MascotModelResult> {
   return runOpenAIMascotModel(args);
 }

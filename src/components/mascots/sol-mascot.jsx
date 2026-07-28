@@ -698,6 +698,14 @@ const SPARK_PATHS = {
    ============================================================ */
 export const POSE_SOURCE = {
   slug: "sol",
+  /** Snapshot palette + no signal slider: Sol drives everything from light. */
+  meta: {
+    accent: THEMES.daybreak.mid,
+    stage: THEMES.daybreak.stage,
+    glowLabel: "Wake light",
+    themes: { ...THEMES },
+    instrument: null,
+  },
   poses: GESTURES.map((g) => ({
     key: g.key,
     label: g.label,

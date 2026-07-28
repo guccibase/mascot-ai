@@ -208,6 +208,31 @@ describe("estimates", () => {
     expect(high.calls).toBe(7);
   });
 
+  it("reserves every full-context refinement batch", () => {
+    const one = estimateTokens(
+      { kind: "refine", batches: 1, payloadChars: 225_000 },
+      "gpt-5.6-sol"
+    );
+    const three = estimateTokens(
+      { kind: "refine", batches: 3, payloadChars: 225_000 },
+      "gpt-5.6-sol"
+    );
+
+    expect(one.calls).toBe(1);
+    expect(three.calls).toBe(3);
+    expect(three.max).toBeGreaterThan(one.max * 2.9);
+    expect(three.typical).toBeGreaterThan(one.typical * 2.9);
+  });
+
+  it("clamps invalid refinement batch counts", () => {
+    expect(
+      estimateTokens({ kind: "refine", batches: 0 }, "gpt-5.6-sol").calls
+    ).toBe(1);
+    expect(
+      estimateTokens({ kind: "refine", batches: 99 }, "gpt-5.6-sol").calls
+    ).toBe(24);
+  });
+
   it("always reserves at least the typical spend", () => {
     for (const option of MASCOT_MODEL_OPTIONS) {
       for (const action of [

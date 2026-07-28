@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useConvexAuth, useQuery } from "convex/react";
-import { Loader2 } from "lucide-react";
+import { PageShellSkeleton } from "@/components/skeletons";
 import { useTokenBalance } from "@/lib/use-token-balance";
 import { api } from "../../convex/_generated/api";
 
@@ -16,7 +16,13 @@ const LIBRARY_PATH = "/library";
  * half-onboarded customer is still allowed to read the pitch and the examples.
  * `/` is matched exactly, since every path starts with a slash.
  */
-const UNGATED_PATHS = ["/sign-in", "/sign-up", "/studio"];
+const UNGATED_PATHS = [
+  "/sign-in",
+  "/sign-up",
+  "/privacy",
+  "/terms",
+  "/studio",
+];
 
 /**
  * Routes that spend tokens. Saved work stays readable without a plan; the
@@ -28,18 +34,37 @@ function matches(pathname: string, paths: string[]) {
   return paths.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
+/** Public marketplace browse (not remix/checkout). */
+function isMarketplaceBrowse(pathname: string) {
+  if (pathname === "/marketplace") return true;
+  if (!pathname.startsWith("/marketplace/")) return false;
+  if (pathname.includes("/remix") || pathname.includes("/checkout")) {
+    return false;
+  }
+  return true;
+}
+
 /**
  * Keeps signed-in users on the right side of onboarding and the paywall.
- * Renders a spinner rather than a flash of the page it is about to leave.
+ * Renders a page skeleton rather than a flash of the page it is about to leave.
  */
 export function AccessGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
 
-  const ungated = pathname === "/" || matches(pathname, UNGATED_PATHS);
+  const ungated =
+    pathname === "/" ||
+    matches(pathname, UNGATED_PATHS) ||
+    isMarketplaceBrowse(pathname);
+  // While Clerk/Convex auth is unresolved, gated routes must not render as
+  // signed-out (empty library / "not found" flashes).
+  const authPending = !ungated && authLoading;
   const gated = isAuthenticated && !ungated;
-  const onPaidPath = matches(pathname, PAID_PATHS);
+  const onPaidPath =
+    matches(pathname, PAID_PATHS) ||
+    pathname.endsWith("/remix") ||
+    pathname.includes("/remix/");
   const onOnboardingPath = pathname === ONBOARDING_PATH;
 
   const me = useQuery(api.users.me, gated ? {} : "skip");
@@ -53,8 +78,9 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
   const balance = useTokenBalance(needsBalance);
 
   const loading =
-    gated &&
-    (authLoading || me === undefined || (needsBalance && balance === undefined));
+    authPending ||
+    (gated &&
+      (me === undefined || (needsBalance && balance === undefined)));
 
   // `me === null` means the Convex row has not synced yet; EnsureConvexUser is
   // still retrying, so hold the current route rather than bouncing anywhere.
@@ -74,11 +100,7 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
   }, [destination, router]);
 
   if (loading || destination) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--brand-bg)] text-[var(--brand-muted)]">
-        <Loader2 className="size-6 animate-spin text-[var(--brand-accent)]" />
-      </div>
-    );
+    return <PageShellSkeleton />;
   }
 
   return children;

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { useRevenueCat } from "@/components/providers/revenuecat-provider";
+import { PriceSkeleton } from "@/components/skeletons";
 import { buttonVariants } from "@/components/ui/button";
 import { formatTokens } from "@/lib/token-pricing";
 import { cn } from "@/lib/utils";
@@ -22,7 +23,7 @@ function PriceAmount({
   loading: boolean;
 }) {
   if (loading) {
-    return <span className="opacity-40">…</span>;
+    return <PriceSkeleton className="h-8 w-20" />;
   }
   if (!formatted) {
     return (
@@ -46,7 +47,7 @@ export function HomePricingTeaser() {
             Pay for what you generate
           </h2>
           <p className="mt-3 max-w-xl text-[var(--brand-muted)]">
-            Every plan includes all six models from OpenAI and Anthropic. You
+            Every plan includes six models from OpenAI and Anthropic. You
             see the token cost before you hit create.
           </p>
         </div>
@@ -93,7 +94,7 @@ export function HomePricingTeaser() {
                   </span>
                 )}
               </div>
-              <p className="mt-3 flex items-baseline gap-1 font-[family-name:var(--font-display)] text-3xl tabular-nums">
+              <div className="mt-3 flex items-baseline gap-1 font-[family-name:var(--font-display)] text-3xl tabular-nums">
                 <PriceAmount
                   formatted={price?.formattedPrice ?? null}
                   loading={loading}
@@ -103,7 +104,7 @@ export function HomePricingTeaser() {
                     {TERM_LABEL[plan.term]}
                   </span>
                 )}
-              </p>
+              </div>
               <p className="mt-2 text-sm text-[var(--brand-muted)]">
                 {formatTokens(plan.tokensPerCycle)} tokens every {plan.cycle}
               </p>

@@ -13,6 +13,15 @@ import {
   Sparkles,
 } from "lucide-react";
 import { answered, oneOf, trackEvent } from "@/lib/analytics";
+import {
+  OLD_WAY_POINTS,
+  ONBOARDING_FLOW_VERSION,
+  ONBOARDING_STEPS,
+  type OnboardingDraft,
+  type OnboardingStep,
+  parseOnboardingDraft,
+  serializeOnboardingDraft,
+} from "@/lib/onboarding-flow";
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,47 +30,21 @@ import { PROOF_POINTS, PROOF_QUOTE } from "@/lib/proof";
 import { cn } from "@/lib/utils";
 import { api } from "../../../convex/_generated/api";
 
-const STEPS = ["pitch", "building", "context", "proof", "examples"] as const;
-type Step = (typeof STEPS)[number];
+const STEPS = ONBOARDING_STEPS;
+type Step = OnboardingStep;
 
 const DRAFT_KEY = "mascot-ai:onboarding-draft";
 
-type OnboardingDraft = {
-  step: Step;
-  useCase: string | null;
-  stack: string;
-  referral: string | null;
-  paidBefore: string | null;
-  favorite: string | null;
-};
-
-function isStep(value: unknown): value is Step {
-  return typeof value === "string" && (STEPS as readonly string[]).includes(value);
-}
-
 function loadDraft(): OnboardingDraft | null {
   if (typeof window === "undefined") return null;
-  try {
-    const raw = sessionStorage.getItem(DRAFT_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<OnboardingDraft>;
-    if (!isStep(parsed.step)) return null;
-    return {
-      step: parsed.step,
-      useCase: typeof parsed.useCase === "string" ? parsed.useCase : null,
-      stack: typeof parsed.stack === "string" ? parsed.stack : "",
-      referral: typeof parsed.referral === "string" ? parsed.referral : null,
-      paidBefore: typeof parsed.paidBefore === "string" ? parsed.paidBefore : null,
-      favorite: typeof parsed.favorite === "string" ? parsed.favorite : null,
-    };
-  } catch {
-    return null;
-  }
+  const raw = sessionStorage.getItem(DRAFT_KEY);
+  if (!raw) return null;
+  return parseOnboardingDraft(raw);
 }
 
 function saveDraft(draft: OnboardingDraft) {
   try {
-    sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    sessionStorage.setItem(DRAFT_KEY, serializeOnboardingDraft(draft));
   } catch {
     /* quota / private mode */
   }
@@ -118,9 +101,9 @@ const REFERRALS = [
 ] as const;
 
 const PAID_BEFORE = [
-  { id: "agency", label: "Yes, an agency or freelancer" },
-  { id: "marketplace", label: "Yes, stock or a marketplace" },
-  { id: "never", label: "No, this would be my first" },
+  { id: "agency", label: "Yes — agency or freelancer" },
+  { id: "marketplace", label: "Yes — stock or marketplace" },
+  { id: "never", label: "No — first time for me" },
 ] as const;
 
 function firstName(name: string | null | undefined) {
@@ -203,7 +186,12 @@ export function OnboardingFlow() {
     setStep(target);
     // Only forward moves count: a step re-entered via Back would otherwise
     // read as extra progress and flatten the drop-off curve.
-    if (delta > 0) trackEvent("onboarding_step", { step: target });
+    if (delta > 0) {
+      trackEvent("onboarding_step", {
+        step: target,
+        flow: String(ONBOARDING_FLOW_VERSION),
+      });
+    }
   };
 
   const finish = async () => {
@@ -304,6 +292,40 @@ export function OnboardingFlow() {
             </div>
           )}
 
+          {step === "old-way" && (
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--brand-accent)]">
+                The usual path
+              </p>
+              <h2 className="mt-3 font-[family-name:var(--font-display)] text-3xl tracking-tight sm:text-4xl">
+                A custom mascot used to be a project, not a feature
+              </h2>
+              <p className="mt-2 text-[var(--brand-muted)]">
+                Most teams still buy one the hard way.
+              </p>
+
+              <div className="mt-8 space-y-3">
+                {OLD_WAY_POINTS.map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-[1.25rem] border border-white/10 bg-white/[0.03] p-5"
+                  >
+                    <p className="font-medium text-white/95">{item.label}</p>
+                    <p className="mt-1.5 text-sm leading-relaxed text-[var(--brand-muted)]">
+                      {item.detail}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <p className="mt-6 text-[15px] leading-relaxed text-white/90">
+                We built the studio so you can skip that gauntlet — gestural
+                mascots you can iterate on and ship without waiting on a studio
+                timeline.
+              </p>
+            </div>
+          )}
+
           {step === "building" && (
             <div>
               <h2 className="font-[family-name:var(--font-display)] text-3xl tracking-tight sm:text-4xl">
@@ -397,7 +419,7 @@ export function OnboardingFlow() {
                   </div>
                 </Question>
 
-                <Question label="Have you ever paid for animated mascot design?">
+                <Question label="Have you commissioned a mascot before?">
                   <div className="flex flex-wrap gap-2">
                     {PAID_BEFORE.map((option) => (
                       <Chip
@@ -464,7 +486,7 @@ export function OnboardingFlow() {
                 Here&apos;s the bar
               </h2>
               <p className="mt-2 text-[var(--brand-muted)]">
-                Four studios we built for real products. Pick the one closest to
+                {MASCOTS.length} studios we built for real products. Pick the one closest to
                 what you want, or skip and start clean.
               </p>
 

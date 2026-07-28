@@ -20,6 +20,23 @@ export type { MascotModelId, MascotImageInput };
 export { asMascotModelId };
 export { MASCOT_MODEL_OPTIONS, DEFAULT_MASCOT_MODEL };
 
+export class MascotModelResponseError extends Error {
+  constructor(
+    message: string,
+    readonly model: string,
+    readonly usage: NonNullable<MascotModelResult["usage"]>
+  ) {
+    super(message);
+    this.name = "MascotModelResponseError";
+  }
+}
+
+/**
+ * The Anthropic SDK requires streaming above this output-token ceiling to
+ * avoid idle HTTP connections for requests it estimates may exceed 10 minutes.
+ */
+const CLAUDE_MAX_NON_STREAMING_TOKENS = 21_333;
+
 function hasProviderKey(option: MascotModelOption): boolean {
   return Boolean(process.env[option.envKey]);
 }
@@ -124,6 +141,7 @@ async function runClaudeMascotModel(args: {
   images?: MascotImageInput[];
   maxOutputTokens: number;
   reasoningEffort: ReasoningEffort;
+  signal?: AbortSignal;
 }): Promise<MascotModelResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
@@ -146,7 +164,7 @@ async function runClaudeMascotModel(args: {
   const anthropic = new Anthropic({ apiKey });
   const maxTokens = Math.max(args.maxOutputTokens, CLAUDE_MIN_OUTPUT_TOKENS);
 
-  const response = await anthropic.messages.create({
+  const request = {
     model,
     max_tokens: maxTokens,
     system: `${args.instructions}\n\nRespond with a single valid JSON object only. No markdown fences.`,
@@ -158,27 +176,40 @@ async function runClaudeMascotModel(args: {
     ],
     thinking: { type: "disabled" },
     output_config: { effort: args.reasoningEffort },
-  });
+  } satisfies Anthropic.Messages.MessageCreateParamsNonStreaming;
 
+  const response =
+    maxTokens > CLAUDE_MAX_NON_STREAMING_TOKENS
+      ? await anthropic.messages
+          .stream(request, { signal: args.signal })
+          .finalMessage()
+      : await anthropic.messages.create(request, { signal: args.signal });
+
+  const usage = {
+    input_tokens: response.usage.input_tokens,
+    output_tokens: response.usage.output_tokens,
+  };
   const text = extractClaudeText(response.content);
   if (!text) {
-    throw new Error(
-      `Empty output from ${model} (stop=${response.stop_reason ?? "unknown"})`
+    throw new MascotModelResponseError(
+      `Empty output from ${model} (stop=${response.stop_reason ?? "unknown"})`,
+      model,
+      usage
     );
   }
-  if (response.stop_reason === "max_tokens") {
-    throw new Error(
-      `Claude hit max_tokens (${maxTokens}) mid-response. Try fewer gestures or regenerate`
-    );
+  if (response.stop_reason !== "end_turn") {
+    const reason = response.stop_reason ?? "unknown";
+    const detail =
+      reason === "max_tokens"
+        ? `Claude hit max_tokens (${maxTokens}) mid-response. Try fewer gestures or regenerate`
+        : `Claude stopped before completing the response (reason=${reason})`;
+    throw new MascotModelResponseError(detail, model, usage);
   }
 
   return {
     model,
     text,
-    usage: {
-      input_tokens: response.usage.input_tokens,
-      output_tokens: response.usage.output_tokens,
-    },
+    usage,
   };
 }
 
@@ -192,6 +223,7 @@ export async function runMascotModel(args: {
   images?: MascotImageInput[];
   maxOutputTokens?: number;
   reasoningEffort?: ReasoningEffort;
+  signal?: AbortSignal;
 }): Promise<MascotModelResult> {
   const {
     model,
@@ -200,6 +232,7 @@ export async function runMascotModel(args: {
     images,
     maxOutputTokens = 32000,
     reasoningEffort = "medium",
+    signal,
   } = args;
 
   const option = mascotModelOption(model);
@@ -212,6 +245,7 @@ export async function runMascotModel(args: {
       images,
       maxOutputTokens,
       reasoningEffort,
+      signal,
     });
   }
 
@@ -227,6 +261,7 @@ export async function runMascotModel(args: {
     images,
     maxOutputTokens,
     reasoningEffort,
+    signal,
   });
 }
 

@@ -128,6 +128,49 @@
   html {
     @apply font-sans;
   }
+
+  /* Interactive elements should show a pointer; text fields show I-beam. */
+  a[href],
+  button:not(:disabled),
+  input[type="button"]:not(:disabled),
+  input[type="submit"]:not(:disabled),
+  input[type="reset"]:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  input[type="file"]:not(:disabled),
+  input[type="range"]:not(:disabled),
+  select:not(:disabled),
+  summary,
+  label:has(> input[type="checkbox"]:not(:disabled)),
+  label:has(> input[type="radio"]:not(:disabled)),
+  label:has(> input[type="file"]:not(:disabled)),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]),
+  [role="menuitem"]:not([aria-disabled="true"]),
+  [role="option"]:not([aria-disabled="true"]),
+  [role="link"][href] {
+    @apply cursor-pointer;
+  }
+
+  label:has(> input[type="checkbox"]:disabled),
+  label:has(> input[type="radio"]:disabled) {
+    @apply cursor-not-allowed;
+  }
+
+  button:disabled,
+  input:disabled,
+  select:disabled,
+  textarea:disabled,
+  [aria-disabled="true"] {
+    @apply cursor-not-allowed;
+  }
+
+  input:not([type="button"]):not([type="submit"]):not([type="reset"]):not(
+      [type="checkbox"]
+    ):not([type="radio"]):not([type="file"]):not([type="range"]):not(:disabled),
+  textarea:not(:disabled) {
+    @apply cursor-text;
+  }
 }
 
 :root {
@@ -171,9 +214,11 @@
   }
 }
 
-/* Generated studio SVGs should fill their stage */
-[data-paused] svg,
-.relative > svg {
+/* Generated studio SVGs should fill their stage.
+   Do NOT target `.relative > svg` — that also hits Lucide icons
+   (e.g. marketplace search) and blows them up to full width. */
+[data-mascot-stage] svg,
+svg[data-paused] {
   width: 100%;
   height: auto;
   display: block;

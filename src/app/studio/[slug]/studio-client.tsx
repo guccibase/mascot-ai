@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import type { MascotSlug } from "@/lib/mascots";
+import type { GeneratedMascot } from "@/lib/types";
 
 /**
  * One chunk per studio. No `loading` UI — a loading fallback was previously
@@ -13,8 +14,41 @@ const BudStudio = dynamic(() => import("@/components/mascots/bud-mascot"));
 const FanousStudio = dynamic(
   () => import("@/components/mascots/fanous-mascot")
 );
+const GeneratedStudio = dynamic(() =>
+  import("@/components/generated-studio").then(
+    (module) => module.GeneratedStudio
+  )
+);
+const ByteStudio = dynamic(() => import("@/components/mascots/byte-mascot"));
+const NumiStudio = dynamic(() => import("@/components/mascots/numi-mascot"));
+const LexaStudio = dynamic(() => import("@/components/mascots/lexa-mascot"));
+const CodaStudio = dynamic(() => import("@/components/mascots/coda-mascot"));
+const KelpStudio = dynamic(() => import("@/components/mascots/kelp-mascot"));
+const NoriStudio = dynamic(() => import("@/components/mascots/nori-mascot"));
+const HayStudio = dynamic(() => import("@/components/mascots/hay-mascot"));
 
-export function StudioClient({ slug }: { slug: MascotSlug }) {
+/** Same shell as create / library / marketplace — pack-driven GeneratedStudio. */
+function ExampleGeneratedStudio({
+  initialMascot,
+}: {
+  initialMascot: GeneratedMascot;
+}) {
+  return (
+    <GeneratedStudio
+      mascot={initialMascot}
+      fullPage
+      capabilities={{ export: false, edit: false, parts: true }}
+    />
+  );
+}
+
+export function StudioClient({
+  slug,
+  initialMascot,
+}: {
+  slug: MascotSlug;
+  initialMascot?: GeneratedMascot;
+}) {
   switch (slug) {
     case "lyra":
       return <LyraStudio />;
@@ -24,6 +58,50 @@ export function StudioClient({ slug }: { slug: MascotSlug }) {
       return <BudStudio />;
     case "fanous":
       return <FanousStudio />;
+    case "granary":
+    case "nox":
+    case "zest":
+    case "quill":
+    case "pip":
+    case "bolt":
+    case "relay":
+    case "orbit":
+    case "brew":
+    case "lumen":
+    case "shade":
+    case "watt":
+    case "arc":
+    case "aura":
+    case "glint":
+    case "trove":
+    case "zephyr":
+      return initialMascot ? (
+        <ExampleGeneratedStudio
+          key={slug}
+          initialMascot={initialMascot}
+        />
+      ) : (
+        <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 px-6 text-center text-white/80">
+          <p className="text-lg font-semibold text-white">Studio pack unavailable</p>
+          <p className="max-w-md text-sm text-white/55">
+            This example couldn&apos;t load its pose pack. Refresh, or open another studio from home.
+          </p>
+        </div>
+      );
+    case "byte":
+      return <ByteStudio />;
+    case "numi":
+      return <NumiStudio />;
+    case "lexa":
+      return <LexaStudio />;
+    case "coda":
+      return <CodaStudio />;
+    case "kelp":
+      return <KelpStudio />;
+    case "nori":
+      return <NoriStudio />;
+    case "hay":
+      return <HayStudio />;
     default:
       return null;
   }

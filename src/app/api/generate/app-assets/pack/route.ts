@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { rateLimit, readJsonBody } from "@/lib/api-guard";
+import { packOutputFileCount, type AppAssetKind } from "@/lib/app-assets/catalog";
 import { buildAssetFiles, type BuiltAssetFile } from "@/lib/app-assets/pack-builder";
 import { uploadConvexBlob } from "@/lib/convex-upload";
 import { authedConvexClient } from "@/lib/convex-server";
@@ -14,6 +15,10 @@ export const runtime = "nodejs";
 export const maxDuration = 90;
 
 const MAX_BODY_BYTES = 8_000;
+
+function generationServerSecret(): string | undefined {
+  return process.env.GENERATION_SERVER_SECRET;
+}
 
 export async function POST(req: Request) {
   const limited = await rateLimit(req, {
@@ -62,7 +67,8 @@ export async function POST(req: Request) {
   }
   const model = resolved.model;
 
-  const metered = await openMeter({ kind: "appAssetPack" }, model);
+  const fileCount = packOutputFileCount(pack.kinds as AppAssetKind[]);
+  const metered = await openMeter({ kind: "appAssetPack", fileCount }, model);
   if (!metered.ok) return metered.response;
   const { meter } = metered;
 
@@ -88,7 +94,7 @@ export async function POST(req: Request) {
       tagline: mascot.tagline,
     });
 
-    meter.recordFallback({ kind: "appAssetPack" });
+    meter.recordFallback({ kind: "appAssetPack", fileCount });
 
     const masterStorageId = await uploadConvexBlob(client, masterPng, "image/png");
     const storedFiles: Array<{
@@ -115,6 +121,7 @@ export async function POST(req: Request) {
       selectedSampleId: body.selectedSampleId,
       masterStorageId,
       files: storedFiles,
+      serverSecret: generationServerSecret(),
     });
 
     const detail = await client.query(api.mascotAppAssets.getPack, {

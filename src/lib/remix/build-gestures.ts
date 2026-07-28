@@ -1,8 +1,7 @@
 import { getMascot } from "@/lib/mascots";
 import { loadPosePack } from "@/lib/example-poses";
 import { annotateStudioContract } from "@/lib/remix/contract";
-import { indexPosePack } from "@/lib/remix/cross-pose";
-import { applyPaletteMap, collectPalette, sanitizePalette } from "@/lib/remix/palette";
+import { applyPaletteMap } from "@/lib/remix/palette";
 import { applyEdits, mergeEdits, preservationGate } from "@/lib/remix/patch";
 import type { GestureRequest, GeneratedGesture } from "@/lib/types";
 import type { MascotSlug } from "@/lib/mascots";
@@ -19,7 +18,7 @@ export type RemixBuildResult = {
  * preservation gate, and stamp the ms- studio contract.
  */
 export function buildRemixGestures(args: {
-  slug: MascotSlug;
+  slug?: MascotSlug | "owned";
   indexed: PoseElements[];
   gestureRequests: GestureRequest[];
   sharedEdits: import("./types").RemixEdit[];
@@ -55,7 +54,7 @@ export function buildRemixGestures(args: {
       continue;
     }
 
-    svg = annotateStudioContract(svg, args.slug);
+    svg = annotateStudioContract(svg, args.slug ?? "owned");
 
     const orig = args.originalPoses.find((p) => p.key === pose.key);
     gestures.push({
@@ -92,19 +91,4 @@ export function measureRemixPayload(args: {
     chars += JSON.stringify(rows).length;
   }
   return chars;
-}
-
-export function prepareRemixIndex(
-  pack: Awaited<ReturnType<typeof loadPosePack>>,
-  selectedKeys: string[]
-) {
-  const { indexed, sharedManifest, variantManifests } = indexPosePack(
-    pack.poses,
-    pack.css,
-    selectedKeys
-  );
-  const paletteEntries = collectPalette(
-    indexed.map((p) => p.svg)
-  );
-  return { indexed, sharedManifest, variantManifests, paletteEntries };
 }

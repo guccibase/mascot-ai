@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { marketplaceCategoryValidator } from "./lib/marketplaceCategories";
 
 const themeSwatch = v.object({
   name: v.string(),
@@ -19,6 +20,8 @@ const instrument = v.object({
   highLabel: v.string(),
   defaultValue: v.number(),
   ramp: v.array(v.string()),
+  /** Studio ships no signal slider; the ramp still colours sparks/accents. */
+  hidden: v.optional(v.boolean()),
 });
 
 const mascotPart = v.object({
@@ -192,11 +195,148 @@ export default defineSchema({
     productContext: v.optional(v.string()),
     personality: v.optional(v.string()),
     model: v.optional(v.string()),
+    /** How this row entered the library. Omitted on legacy creates. */
+    source: v.optional(
+      v.union(
+        v.literal("created"),
+        v.literal("purchased"),
+        v.literal("remixed")
+      )
+    ),
+    sourceListingId: v.optional(v.id("marketplaceListings")),
     pack,
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_user_updated", ["userId", "updatedAt"]),
+
+  /**
+   * Admin-curated mascots for sale. Canonical payload is always `pack`
+   * (same shape as library mascots). Public browse may return the full pack
+   * for interactive preview; export/save is gated in the client + mutations.
+   */
+  marketplaceListings: defineTable({
+    slug: v.string(),
+    name: v.string(),
+    tagline: v.string(),
+    description: v.string(),
+    category: marketplaceCategoryValidator,
+    status: v.union(
+      v.literal("draft"),
+      v.literal("available"),
+      v.literal("reserved"),
+      v.literal("sold"),
+      v.literal("archived")
+    ),
+    pack,
+    previewSvg: v.string(),
+    /**
+     * @deprecated Previews used to render a built-in studio component for
+     * example listings, which showed themes and controls the pack a buyer
+     * receives does not have. Everything now plays the stored pack. Kept so
+     * listings written before that change still validate; `adminUpsert` clears
+     * it on the next save.
+     */
+    exampleSlug: v.optional(
+      v.union(
+        v.literal("bud"),
+        v.literal("lyra"),
+        v.literal("sol"),
+        v.literal("fanous"),
+        v.literal("granary"),
+        v.literal("byte"),
+        v.literal("numi"),
+        v.literal("lexa"),
+        v.literal("coda"),
+        v.literal("kelp"),
+        v.literal("nori"),
+        v.literal("hay"),
+        v.literal("nox"),
+        v.literal("zest"),
+        v.literal("quill"),
+        v.literal("pip"),
+        v.literal("bolt"),
+        v.literal("relay"),
+        v.literal("orbit"),
+        v.literal("brew"),
+        v.literal("lumen"),
+        v.literal("shade"),
+        v.literal("watt"),
+        v.literal("arc"),
+        v.literal("aura"),
+        v.literal("glint"),
+        v.literal("trove"),
+        v.literal("zephyr")
+      )
+    ),
+
+    /** Fingerprint of gesture SVGs — used to block unpaid save of listed packs. */
+    packFingerprint: v.string(),
+    /** Lowercase blob for full-text search (name, category, pose labels, …). */
+    searchText: v.string(),
+    createdByAdminUserId: v.id("users"),
+    reservedByUserId: v.optional(v.id("users")),
+    reservedUntil: v.optional(v.number()),
+    stripeCheckoutSessionId: v.optional(v.string()),
+    soldToUserId: v.optional(v.id("users")),
+    soldAt: v.optional(v.number()),
+    buyerMascotId: v.optional(v.id("mascots")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_status_updated", ["status", "updatedAt"])
+    .index("by_category_status_updated", ["category", "status", "updatedAt"])
+    .index("by_reserved_until", ["status", "reservedUntil"])
+    .index("by_pack_fingerprint", ["packFingerprint"])
+    .searchIndex("search_listings", {
+      searchField: "searchText",
+      filterFields: ["status", "category"],
+    }),
+
+  /** One Stripe Checkout attempt for a marketplace SKU. */
+  marketplaceOrders: defineTable({
+    userId: v.id("users"),
+    listingId: v.id("marketplaceListings"),
+    sku: v.union(v.literal("remix"), v.literal("buy_to_own")),
+    amountCents: v.number(),
+    currency: v.string(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("paid"),
+      v.literal("fulfilled"),
+      v.literal("refunded"),
+      v.literal("expired")
+    ),
+    stripeCheckoutSessionId: v.optional(v.string()),
+    stripePaymentIntentId: v.optional(v.string()),
+    remixUnlockExpiresAt: v.optional(v.number()),
+    remixConsumedAt: v.optional(v.number()),
+    buyerMascotId: v.optional(v.id("mascots")),
+    refundReason: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_session", ["stripeCheckoutSessionId"])
+    .index("by_user_created", ["userId", "createdAt"])
+    .index("by_user_listing_sku", ["userId", "listingId", "sku"])
+    .index("by_listing_sku_status", ["listingId", "sku", "status"])
+    .index("by_status_created", ["status", "createdAt"]),
+
+  /** Stripe webhook idempotency (mirrors billingEvents for RC). */
+  stripeEvents: defineTable({
+    eventId: v.string(),
+    type: v.string(),
+    /** Terminal outcome — only written after fulfill or successful refund. */
+    outcome: v.union(
+      v.literal("fulfilled"),
+      v.literal("refunded"),
+      v.literal("ignored")
+    ),
+    processedAt: v.number(),
+  })
+    .index("by_event", ["eventId"])
+    .index("by_processed", ["processedAt"]),
 
   /** Generated app icon / favicon / PWA asset packs for a mascot. */
   mascotAppAssetPacks: defineTable({

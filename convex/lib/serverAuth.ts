@@ -4,28 +4,20 @@ import { ConvexError } from "convex/values";
  * Shared secret proving a call came from our Next.js generation routes rather
  * than from a browser.
  *
- * `reserve` and `settle` are public mutations authenticated with the end
- * user's own Clerk token, the same credential the browser holds. Without this
- * check, the only thing stopping someone settling their own reservation for
- * zero (a free generation) is that they never learn the reservation id. That
- * is true today but is one stray log line away from being false.
+ * `reserve` / `settle`, remix unlock claim/restore, and app-asset saves are
+ * public mutations that also accept the end user's Clerk token. Without this
+ * check, a browser client can call them directly and bypass metering.
  *
- * Unset means unenforced, so an existing deployment keeps working; set
- * `GENERATION_SERVER_SECRET` in both the Convex dashboard and `.env.local` to
- * turn it on. The warning is there so "unset" cannot be mistaken for "secure".
+ * Fail closed when unset — set `GENERATION_SERVER_SECRET` in both the Convex
+ * dashboard and Next.js (`.env.local` / Vercel) to the same value.
  */
-let warned = false;
-
 export function assertServerCaller(secret: string | undefined): void {
   const expected = process.env.GENERATION_SERVER_SECRET;
   if (!expected) {
-    if (!warned) {
-      warned = true;
-      console.warn(
-        "[tokens] GENERATION_SERVER_SECRET is unset. Token mutations are reachable with a user token alone"
-      );
-    }
-    return;
+    throw new ConvexError({
+      code: "MISCONFIGURED",
+      message: "GENERATION_SERVER_SECRET is not configured",
+    });
   }
   if (secret !== expected) {
     throw new ConvexError({ code: "FORBIDDEN" });

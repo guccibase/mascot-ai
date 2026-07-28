@@ -302,5 +302,67 @@
       "signal": 62,
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 420 520\" width=\"100%\" role=\"img\" aria-label=\"Fanous the lantern mascot: Announce\" class=\"lm-svg lm-g-announce \" style=\"--g:0.4;cursor:pointer\"><title>Fanous, the lantern mascot</title><style></style><defs><filter id=\"lm-grain\" x=\"-25%\" y=\"-15%\" width=\"150%\" height=\"130%\"><feTurbulence type=\"fractalNoise\" baseFrequency=\"0.8\" numOctaves=\"2\" seed=\"7\" result=\"n\"></feTurbulence><feColorMatrix in=\"n\" type=\"matrix\" values=\"0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.16 0\" result=\"a\"></feColorMatrix><feComposite in=\"a\" in2=\"SourceGraphic\" operator=\"in\" result=\"g\"></feComposite><feMerge><feMergeNode in=\"SourceGraphic\"></feMergeNode><feMergeNode in=\"g\"></feMergeNode></feMerge></filter><filter id=\"lm-desatP\"><feColorMatrix type=\"saturate\" values=\"0.45\"></feColorMatrix></filter><filter id=\"lm-desatD\"><feColorMatrix type=\"saturate\" values=\"0.12\"></feColorMatrix></filter><linearGradient id=\"lm-bodyG\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#495c66\"></stop><stop offset=\".5\" stop-color=\"#1C3340\"></stop><stop offset=\"1\" stop-color=\"#162933\"></stop></linearGradient><linearGradient id=\"lm-baseG\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#1C3340\"></stop><stop offset=\"1\" stop-color=\"#14242d\"></stop></linearGradient><linearGradient id=\"lm-goldG\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#ebca7e\"></stop><stop offset=\".45\" stop-color=\"#DFA92F\"></stop><stop offset=\"1\" stop-color=\"#a57d23\"></stop></linearGradient><radialGradient id=\"lm-faceG\" cx=\".5\" cy=\".42\" r=\".75\"><stop offset=\"0\" stop-color=\"#f7d069\"></stop><stop offset=\".62\" stop-color=\"#F5C74C\"></stop><stop offset=\"1\" stop-color=\"#e1b746\"></stop></radialGradient><radialGradient id=\"lm-glowG\" cx=\".5\" cy=\".5\" r=\".5\"><stop offset=\"0\" stop-color=\"rgba(246,206,97,0.9)\"></stop><stop offset=\".4\" stop-color=\"rgba(246,206,97,0.38)\"></stop><stop offset=\".75\" stop-color=\"rgba(246,206,97,0.1)\"></stop><stop offset=\"1\" stop-color=\"rgba(246,206,97,0)\"></stop></radialGradient><radialGradient id=\"lm-knobG\" cx=\".35\" cy=\".3\" r=\".9\"><stop offset=\"0\" stop-color=\"#efd497\"></stop><stop offset=\".55\" stop-color=\"#DFA92F\"></stop><stop offset=\"1\" stop-color=\"#9c7621\"></stop></radialGradient><radialGradient id=\"lm-sheenG\" cx=\".5\" cy=\".5\" r=\".5\"><stop offset=\"0\" stop-color=\"#ffffff\" stop-opacity=\".24\"></stop><stop offset=\"1\" stop-color=\"#ffffff\" stop-opacity=\"0\"></stop></radialGradient><linearGradient id=\"lm-aoG\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#000000\" stop-opacity=\".22\"></stop><stop offset=\"1\" stop-color=\"#000000\" stop-opacity=\"0\"></stop></linearGradient><clipPath id=\"lm-faceclip\"><rect x=\"118.9\" y=\"207\" width=\"181.6\" height=\"144.9\" rx=\"70\"></rect></clipPath><clipPath id=\"lm-domeclip\"><path d=\"M114.8,171.9 C114.8,137.2 200.9,94.3 200.9,91.2 L219.1,91.2 C219.1,94.3 305.2,137.2 305.2,171.9 Z\"></path></clipPath></defs><g transform=\"translate(210,452)\"><ellipse class=\"lm-shadowO\" cx=\"0\" cy=\"0\" rx=\"104\" ry=\"10\" fill=\"#000000\"><animateTransform attributeName=\"transform\" type=\"scale\" additive=\"sum\" values=\"1 1;0.88 1;1 1\" keyTimes=\"0;0.5;1\" dur=\"3.8s\" repeatCount=\"indefinite\"></animateTransform></ellipse></g><g class=\"lm-float\"><g transform=\"translate(210,460)\"><animateTransform attributeName=\"transform\" type=\"translate\" additive=\"sum\" begin=\"lm-hit.click\" dur=\"0.62s\" fill=\"remove\" values=\"0 0;0 9;0 -15;0 3;0 0\" keyTimes=\"0;0.26;0.56;0.8;1\"></animateTransform><animateTransform attributeName=\"transform\" type=\"scale\" additive=\"sum\" begin=\"lm-hit.click\" dur=\"0.62s\" fill=\"remove\" values=\"1 1;1.06 0.9;0.95 1.08;1.02 0.97;1 1\" keyTimes=\"0;0.26;0.56;0.8;1\"></animateTransform><g transform=\"rotate(0)\"><g transform=\"translate(-210,-460)\"><g id=\"lm-hit\" filter=\"url(#lm-grain)\"><g><ellipse class=\"lm-glow\" cx=\"210\" cy=\"280\" rx=\"122\" ry=\"96\" fill=\"url(#lm-glowG)\"></ellipse><g transform=\"translate(113.1,318)\"><animateTransform id=\"lm-armAnim\" attributeName=\"transform\" type=\"rotate\" additive=\"sum\" values=\"-3;3;-3\" dur=\"3.6s\" repeatCount=\"indefinite\"></animateTransform><animateTransform attributeName=\"transform\" type=\"rotate\" additive=\"sum\" begin=\"lm-hit.click\" dur=\"0.9s\" fill=\"remove\" values=\"0;26;-8;22;0\" keyTimes=\"0;0.3;0.55;0.8;1\"></animateTransform><path d=\"M0,0 Q-14,28 -20,56\" fill=\"none\" stroke=\"#1C3340\" stroke-width=\"39\" stroke-linecap=\"round\"></path></g><g transform=\"translate(306.9,318)\"><animateTransform attributeName=\"transform\" type=\"rotate\" additive=\"sum\" values=\"2.5;-3;2.5\" dur=\"4.1s\" repeatCount=\"indefinite\"></animateTransform><path d=\"M0,0 Q-10,24 -24,40\" fill=\"none\" stroke=\"#1C3340\" stroke-width=\"41\" stroke-linecap=\"round\"></path></g><path d=\"M127.4,396.3 L292.6,396.3 L315.5,442.2 L104.5,442.2 Z\" fill=\"#1C3340\"></path><path d=\"M135,400 L143,400 L129,438 L121,438 Z\" fill=\"#ffffff\" opacity=\".1\" style=\"display:none\"></path><path d=\"M107,190.1 L313,190.1 C316,261.8 334,268.4 334,320.5 C334,349.9 299.1,353.1 293.1,385.7 L126.9,385.7 C120.9,353.1 86,349.9 86,320.5 C86,268.4 104,261.8 107,190.1 Z\" fill=\"#1C3340\"></path><rect x=\"107\" y=\"190\" width=\"206\" height=\"13\" fill=\"url(#lm-aoG)\" style=\"display:none\"></rect><ellipse cx=\"152\" cy=\"252\" rx=\"44\" ry=\"70\" fill=\"url(#lm-sheenG)\" style=\"display:none\"></ellipse><rect x=\"118.9\" y=\"207\" width=\"181.6\" height=\"144.9\" rx=\"70\" fill=\"#F5C74C\" stroke=\"#bf9b3b\" stroke-width=\"6.2\"></rect><g clip-path=\"url(#lm-faceclip)\"><rect x=\"118.9\" y=\"207\" width=\"181.6\" height=\"30\" fill=\"url(#lm-aoG)\" opacity=\".5\" style=\"display:none\"></rect><circle cx=\"156\" cy=\"306\" r=\"9\" fill=\"#ec8944\" opacity=\".45\" style=\"display:none\"></circle><circle cx=\"264\" cy=\"306\" r=\"9\" fill=\"#ec8944\" opacity=\".45\" style=\"display:none\"></circle><g class=\"lm-eyes\"><g class=\"lm-pop\" transform=\"translate(0,0)\"><g fill=\"none\" stroke=\"#14242d\" stroke-width=\"7.5\" stroke-linecap=\"round\"><path d=\"M152,231 Q171,219 190,229\"></path><path d=\"M230,229 Q249,219 268,231\"></path></g><path d=\"M-17.9,4.5 Q0.5,-17.1 17.8,4.3\" transform=\"translate(171.5,260.7)\" fill=\"none\" stroke=\"#14242d\" stroke-width=\"10\" stroke-linecap=\"round\"></path><g transform=\"translate(246.7,260.7)\"><animateTransform attributeName=\"transform\" type=\"scale\" additive=\"sum\" values=\"1 1;1 1;1 0.08;1 1;1 1\" keyTimes=\"0;0.9;0.922;0.945;1\" dur=\"5.4s\" repeatCount=\"indefinite\"></animateTransform><animateTransform attributeName=\"transform\" type=\"scale\" additive=\"sum\" begin=\"lm-hit.click\" dur=\"0.5s\" fill=\"remove\" values=\"1 1;1 0.1;1 1;1 0.1;1 1\" keyTimes=\"0;0.2;0.45;0.7;1\"></animateTransform><ellipse cx=\"0\" cy=\"0\" rx=\"11.8\" ry=\"17.7\" fill=\"#14242d\"></ellipse><circle cx=\"-4\" cy=\"-6.5\" r=\"3.2\" fill=\"#ffffff\" opacity=\".9\" style=\"display:none\"></circle></g></g></g><g class=\"lm-pop\"><g><ellipse cx=\"210\" cy=\"306\" rx=\"19\" ry=\"22\" fill=\"#14242d\"></ellipse><path d=\"M198,320 Q210,312 222,320 Q210,330 198,320 Z\" fill=\"#ec8944\" opacity=\".8\"></path></g></g><rect x=\"132\" y=\"218\" width=\"62\" height=\"26\" rx=\"13\" fill=\"#ffffff\" opacity=\".2\" transform=\"rotate(-14 163 231)\" style=\"display:none\"></rect></g><g><rect x=\"125.2\" y=\"377.7\" width=\"169.2\" height=\"17.6\" rx=\"8.8\" fill=\"#DFA92F\"></rect></g><g><rect x=\"101.4\" y=\"436.2\" width=\"217.3\" height=\"23.8\" rx=\"11.9\" fill=\"#DFA92F\"></rect></g><path d=\"M114.8,171.9 C114.8,137.2 200.9,94.3 200.9,91.2 L219.1,91.2 C219.1,94.3 305.2,137.2 305.2,171.9 Z\" fill=\"#1C3340\"></path><g clip-path=\"url(#lm-domeclip)\" style=\"display:none\"><ellipse cx=\"168\" cy=\"138\" rx=\"40\" ry=\"24\" fill=\"url(#lm-sheenG)\"></ellipse><ellipse class=\"lm-gleam\" cx=\"210\" cy=\"140\" rx=\"11\" ry=\"30\" fill=\"#ffffff\" opacity=\"0\"></ellipse></g><g><rect x=\"98.3\" y=\"172.4\" width=\"223.5\" height=\"21.7\" rx=\"10.85\" fill=\"#DFA92F\"></rect></g><circle cx=\"210\" cy=\"78\" r=\"13\" fill=\"#DFA92F\"></circle><circle cx=\"205\" cy=\"73\" r=\"3.4\" fill=\"#ffffff\" opacity=\".75\" style=\"display:none\"></circle><g class=\"lm-pop\"><g><path d=\"M308,352 Q296,326 288,300\" fill=\"none\" stroke=\"#1C3340\" stroke-width=\"39\" stroke-linecap=\"round\"></path><g transform=\"rotate(-24 300 268)\"><path d=\"M286,254 L286,282 L332,298 L332,238 Z\" fill=\"#DFA92F\" stroke=\"#bf9b3b\" stroke-width=\"3\" stroke-linejoin=\"round\"></path><rect x=\"272\" y=\"256\" width=\"16\" height=\"24\" rx=\"5\" fill=\"#bf9b3b\"></rect></g><g class=\"lm-ring\" fill=\"none\" stroke=\"#DFA92F\" stroke-width=\"5\" stroke-linecap=\"round\"><path d=\"M350,214 Q368,228 362,250\"></path><path d=\"M368,196 Q396,220 386,254\" style=\"animation-delay:.2s\"></path></g></g></g></g></g></g></g></g></g></svg>"
     }
-  ]
+  ],
+  "meta": {
+    "accent": "#E8B54B",
+    "stage": "#33707A",
+    "glowLabel": "Lantern glow",
+    "themes": {
+      "teal": {
+        "name": "Midnight Teal",
+        "top": "#f7d16c",
+        "mid": "#DFA92F",
+        "base": "#1C3340",
+        "core": "#F5C74C",
+        "stage": "#33707A",
+        "features": "#14242d"
+      },
+      "violet": {
+        "name": "Ramadan Violet",
+        "top": "#ffe3a6",
+        "mid": "#F3BE5E",
+        "base": "#2E2160",
+        "core": "#FFDD93",
+        "stage": "#171034",
+        "features": "#201743"
+      },
+      "emerald": {
+        "name": "Emerald Mosque",
+        "top": "#ffeaac",
+        "mid": "#D9B24C",
+        "base": "#0F3D32",
+        "core": "#FFE59A",
+        "stage": "#0B2B24",
+        "features": "#0b2b23"
+      },
+      "moon": {
+        "name": "Moonlight",
+        "top": "#eef6ff",
+        "mid": "#C9D6EA",
+        "base": "#10264F",
+        "core": "#EAF4FF",
+        "stage": "#0A1830",
+        "features": "#0b1b37"
+      },
+      "desert": {
+        "name": "Desert Amber",
+        "top": "#ffedcb",
+        "mid": "#E8A94E",
+        "base": "#6E3A1F",
+        "core": "#FFE9BF",
+        "stage": "#3B2113",
+        "features": "#4d2916"
+      },
+      "rose": {
+        "name": "Rose Dusk",
+        "top": "#ffe0b1",
+        "mid": "#F0A75F",
+        "base": "#5A2340",
+        "core": "#FFD9A0",
+        "stage": "#33122A",
+        "features": "#3f192d"
+      }
+    },
+    "instrument": null
+  }
 }

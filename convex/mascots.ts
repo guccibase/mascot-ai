@@ -7,10 +7,34 @@ import {
   getCurrentUserOrNull,
   requireOwnedMascot,
 } from "./lib/auth";
+import type { Doc, Id } from "./_generated/dataModel";
+import type { MutationCtx } from "./_generated/server";
+import { assertPack, packFingerprint } from "./lib/marketplace";
 import { validators } from "./schema";
 
-/** Soft cap under Convex's 1MB document limit (SVG packs get large). */
-const MAX_PACK_JSON_BYTES = 900_000;
+/** Reject unpaid copies of live marketplace packs (insert + update). */
+async function assertPackNotMarketplaceLocked(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  pack: Doc<"mascots">["pack"]
+): Promise<void> {
+  const fingerprint = packFingerprint(pack);
+  const listed = await ctx.db
+    .query("marketplaceListings")
+    .withIndex("by_pack_fingerprint", (q) =>
+      q.eq("packFingerprint", fingerprint)
+    )
+    .take(5);
+  for (const listing of listed) {
+    if (listing.status === "draft" || listing.status === "archived") continue;
+    if (listing.status === "sold" && listing.soldToUserId === userId) {
+      continue;
+    }
+    throw new Error(
+      "This mascot is listed on the marketplace. Remix or buy to own before saving it to your library."
+    );
+  }
+}
 
 const listItem = v.object({
   _id: v.id("mascots"),
@@ -107,24 +131,6 @@ export const getMine = query({
   },
 });
 
-function assertPack(pack: {
-  gestures: unknown[];
-  instrument: { ramp: string[] };
-}) {
-  if (pack.gestures.length < 1 || pack.gestures.length > 12) {
-    throw new Error("Mascot must have 1 to 12 gestures");
-  }
-  if (pack.instrument.ramp.length !== 5) {
-    throw new Error("Instrument ramp must have exactly 5 colors");
-  }
-  const bytes = JSON.stringify(pack).length;
-  if (bytes > MAX_PACK_JSON_BYTES) {
-    throw new Error(
-      "Mascot pack is too large to save. Remove a gesture or simplify SVGs."
-    );
-  }
-}
-
 export const save = mutation({
   args: {
     mascotId: v.optional(v.id("mascots")),
@@ -133,12 +139,28 @@ export const save = mutation({
     personality: v.optional(v.string()),
     model: v.optional(v.string()),
     pack: validators.pack,
+    source: v.optional(
+      v.union(
+        v.literal("created"),
+        v.literal("purchased"),
+        v.literal("remixed")
+      )
+    ),
+    sourceListingId: v.optional(v.id("marketplaceListings")),
   },
   returns: v.id("mascots"),
   handler: async (ctx, args) => {
     const user = await ensureCurrentUser(ctx);
     const now = Date.now();
     assertPack(args.pack);
+
+    // Clients must not self-attest a purchase; fulfill writes those rows.
+    if (args.source === "purchased") {
+      throw new Error("Purchased mascots are granted by checkout only");
+    }
+
+    // Block unpaid saves/overwrites of marketplace packs (preview returns full pack).
+    await assertPackNotMarketplaceLocked(ctx, user._id, args.pack);
 
     if (args.mascotId) {
       const { mascot } = await requireOwnedMascot(ctx, args.mascotId);
@@ -163,6 +185,8 @@ export const save = mutation({
       productContext: args.productContext,
       personality: args.personality,
       model: args.model,
+      source: args.source ?? "created",
+      sourceListingId: args.sourceListingId,
       pack: args.pack,
       createdAt: now,
       updatedAt: now,

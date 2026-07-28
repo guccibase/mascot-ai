@@ -104,16 +104,25 @@ function bearerToken(header: string): string {
 type RevenueCatEvent = {
   id?: string;
   type?: string;
-  event_timestamp_ms?: number;
+  event_timestamp_ms?: number | null;
   app_user_id?: string;
   original_app_user_id?: string;
-  product_id?: string;
-  purchased_at_ms?: number;
-  expiration_at_ms?: number;
-  store?: string;
-  environment?: string;
-  cancel_reason?: string;
+  product_id?: string | null;
+  purchased_at_ms?: number | null;
+  expiration_at_ms?: number | null;
+  store?: string | null;
+  environment?: string | null;
+  cancel_reason?: string | null;
 };
+
+/** Convex v.optional rejects JSON null; RevenueCat sends null for unset fields. */
+function rcOptionalNumber(value: number | null | undefined): number | undefined {
+  return value ?? undefined;
+}
+
+function rcOptionalString(value: string | null | undefined): string | undefined {
+  return value ?? undefined;
+}
 
 /**
  * RevenueCat authenticates webhooks with a shared secret sent in the
@@ -161,13 +170,13 @@ http.route({
           eventId: event.id,
           type: event.type,
           appUserId,
-          eventAtMs: event.event_timestamp_ms,
-          productId: event.product_id,
-          purchasedAtMs: event.purchased_at_ms,
-          expiresAtMs: event.expiration_at_ms,
-          store: event.store,
-          environment: event.environment,
-          cancelReason: event.cancel_reason,
+          eventAtMs: rcOptionalNumber(event.event_timestamp_ms),
+          productId: rcOptionalString(event.product_id),
+          purchasedAtMs: rcOptionalNumber(event.purchased_at_ms),
+          expiresAtMs: rcOptionalNumber(event.expiration_at_ms),
+          store: rcOptionalString(event.store),
+          environment: rcOptionalString(event.environment),
+          cancelReason: rcOptionalString(event.cancel_reason),
         }
       );
       if (!result.handled) {
@@ -187,6 +196,30 @@ http.route({
       return new Response("Retry", { status: 500 });
     }
 
+    return new Response(null, { status: 200 });
+  }),
+});
+
+/**
+ * Stripe marketplace checkout webhooks. Signature verification runs in the
+ * Node action (Stripe SDK); this HTTP action only forwards the raw body.
+ */
+http.route({
+  path: "/stripe-webhook",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const signature = request.headers.get("stripe-signature");
+    if (!signature) {
+      return new Response("Missing stripe-signature", { status: 400 });
+    }
+    const payload = await request.text();
+    const result = await ctx.runAction(internal.marketplaceStripe.fulfillWebhook, {
+      signature,
+      payload,
+    });
+    if (!result.success) {
+      return new Response(result.error ?? "Webhook Error", { status: 400 });
+    }
     return new Response(null, { status: 200 });
   }),
 });

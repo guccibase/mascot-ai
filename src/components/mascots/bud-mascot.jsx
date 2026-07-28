@@ -753,6 +753,33 @@ const SPARK_PATHS = {
    ============================================================ */
 export const POSE_SOURCE = {
   slug: "bud",
+  /**
+   * What an exported pack must reproduce: the palette these snapshots are drawn
+   * with, and `instrument: null` because this studio has no signal slider, only
+   * a glow. Marketplace previews and the copies buyers receive play the pack,
+   * so anything not declared here would show up as a control Bud never had.
+   */
+  meta: {
+    accent: THEMES.dawn.body,
+    stage: THEMES.dawn.stage,
+    glowLabel: "Dawn glow",
+    // Every studio theme — buyers must see the same swatches as /studio/bud.
+    themes: Object.fromEntries(
+      Object.entries(THEMES).map(([key, t]) => [
+        key,
+        {
+          name: t.name,
+          top: light(t.body, 0.3),
+          mid: t.body,
+          base: dark(t.body, 0.28),
+          core: t.belly,
+          stage: t.stage,
+          features: "#33231A",
+        },
+      ])
+    ),
+    instrument: null,
+  },
   poses: GESTURES.map((g) => ({
     key: g.key,
     label: g.label,

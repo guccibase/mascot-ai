@@ -156,6 +156,18 @@ export function filesForKinds(kinds: AppAssetKind[]): AppAssetFileSpec[] {
   return [...byPath.values()];
 }
 
+/**
+ * Output file count for a pack build (mirrors pack-builder extras + README).
+ * Used for infra token estimates so UI and server quote the same number.
+ */
+export function packOutputFileCount(kinds: readonly AppAssetKind[]): number {
+  if (kinds.length === 0) return 0;
+  let count = filesForKinds([...kinds]).length + 1; // README.txt
+  if (kinds.includes("app_icon")) count += 1; // ios/Contents.json
+  if (kinds.includes("pwa")) count += 1; // pwa/site.webmanifest
+  return count;
+}
+
 export function isAppAssetKind(value: string): value is AppAssetKind {
   return APP_ASSET_KINDS.some((k) => k.id === value);
 }

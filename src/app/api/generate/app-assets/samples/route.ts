@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { boundedText, rateLimit, readJsonBody } from "@/lib/api-guard";
 import { isAppAssetKind, type AppAssetKind } from "@/lib/app-assets/catalog";
+import { composeAppIconPreview } from "@/lib/app-assets/icon-compose";
 import { svgToSquarePng } from "@/lib/app-assets/raster";
 import { uploadConvexBlob } from "@/lib/convex-upload";
 import { authedConvexClient } from "@/lib/convex-server";
 import { openMeter } from "@/lib/metering";
-import { buildIconPrompt, generateAppIconImage } from "@/lib/openai-image";
 import { resolveMascotModel } from "@/lib/mascot-model";
 import { sanitizeSvg } from "@/lib/sanitize-svg";
 import type { AppAssetSamplesRequest } from "@/lib/types";
@@ -13,10 +13,17 @@ import { api } from "../../../../../../convex/_generated/api";
 import type { Id } from "../../../../../../convex/_generated/dataModel";
 
 export const runtime = "nodejs";
-export const maxDuration = 120;
+/** Deterministic composite + uploads — no long image-model wait. */
+export const maxDuration = 60;
 
 const MAX_BODY_BYTES = 16_000;
 const SAMPLE_LABELS = ["Option A", "Option B", "Option C"] as const;
+const SAMPLE_IDS = ["a", "b", "c"] as const;
+const PREVIEW_ENGINE = "mascot-composite";
+
+function generationServerSecret(): string | undefined {
+  return process.env.GENERATION_SERVER_SECRET;
+}
 
 function parseKinds(raw: unknown): AppAssetKind[] | null {
   if (!Array.isArray(raw) || raw.length < 1) return null;
@@ -26,10 +33,6 @@ function parseKinds(raw: unknown): AppAssetKind[] | null {
     if (!kinds.includes(item)) kinds.push(item);
   }
   return kinds.length > 0 ? kinds : null;
-}
-
-function imageModelFromEnv(): string {
-  return process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-2";
 }
 
 export async function POST(req: Request) {
@@ -84,35 +87,34 @@ export async function POST(req: Request) {
   const started = Date.now();
 
   try {
-    const referencePng = await svgToSquarePng(sanitizeSvg(idle.svg), 1024);
-    const stored: Array<{ id: string; label: string; storageId: Id<"_storage"> }> = [];
+    const mascotPng = await svgToSquarePng(sanitizeSvg(idle.svg), 1024);
+    const accent = mascot.pack.accent || "#D4A843";
 
-    for (let i = 0; i < 3; i++) {
-      const prompt = buildIconPrompt({
-        mascotName: mascot.name,
-        tagline: mascot.tagline,
-        styleDescription,
-        kinds,
-        variantIndex: i,
-      });
-      const image = await generateAppIconImage({ prompt, referencePng });
-      meter.recordFallback({ kind: "appAssetSamples", images: 1 });
-
-      const storageId = await uploadConvexBlob(client, image.buffer, "image/png");
-      stored.push({
-        id: ["a", "b", "c"][i]!,
-        label: SAMPLE_LABELS[i]!,
-        storageId,
-      });
-    }
+    const generated = await Promise.all(
+      SAMPLE_IDS.map(async (id, i) => {
+        const buffer = await composeAppIconPreview({
+          mascotPng,
+          accent,
+          variantIndex: i,
+        });
+        meter.recordFallback({ kind: "appAssetSamples", images: 1 });
+        const storageId = await uploadConvexBlob(client, buffer, "image/png");
+        return {
+          id,
+          label: SAMPLE_LABELS[i]!,
+          storageId,
+        };
+      })
+    );
 
     const packId = await client.mutation(api.mascotAppAssets.saveSamples, {
       mascotId: body.mascotId as Id<"mascots">,
       kinds,
       styleDescription,
-      imageModel: imageModelFromEnv(),
-      samples: stored,
+      imageModel: PREVIEW_ENGINE,
+      samples: generated,
       packId: body.packId as Id<"mascotAppAssetPacks"> | undefined,
+      serverSecret: generationServerSecret(),
     });
 
     const detail = await client.query(api.mascotAppAssets.getPack, { packId });
@@ -122,7 +124,7 @@ export async function POST(req: Request) {
       packId,
       samples: detail?.sampleOptions ?? [],
       _meta: {
-        model: imageModelFromEnv(),
+        model: PREVIEW_ENGINE,
         elapsedMs: Date.now() - started,
         tokens: tokens.tokens,
         balance: tokens.balance,

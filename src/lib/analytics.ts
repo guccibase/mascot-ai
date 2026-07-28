@@ -27,7 +27,7 @@ export type GenerateAction =
  */
 type Events = {
   /** Fired on entering each onboarding step, to show where people drop out. */
-  onboarding_step: { step: string };
+  onboarding_step: { step: string; flow: string };
   onboarding_completed: { useCase: string; referral: string };
   /** The second half of `onboarding_completed`, split to fit the key budget. */
   onboarding_profile: { stack: string; paidBefore: string };
@@ -38,6 +38,7 @@ type Events = {
   checkout_failed: { product: string; errorCode: number };
   /** Tokens actually landed, which the RevenueCat webhook drives. */
   checkout_completed: { kind: "plan" | "topup"; plan: string };
+  billing_portal_opened: { plan: string };
 
   model_selected: { model: string; provider: string };
 

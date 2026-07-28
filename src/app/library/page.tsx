@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { usePaginatedQuery, useMutation } from "convex/react";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
+import { AdminListingsPanel } from "@/components/marketplace/admin-listings-panel";
+import { MascotCardGridSkeleton, MascotCardSkeleton } from "@/components/skeletons";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { sanitizeSvg } from "@/lib/sanitize-svg";
 import { cn } from "@/lib/utils";
@@ -59,12 +61,7 @@ export default function LibraryPage() {
             </Link>
           </div>
 
-          {status === "LoadingFirstPage" && (
-            <div className="mt-16 flex items-center gap-2 text-[var(--brand-muted)]">
-              <Loader2 className="size-4 animate-spin" />
-              Loading your mascots…
-            </div>
-          )}
+          {status === "LoadingFirstPage" && <MascotCardGridSkeleton />}
 
           {status !== "LoadingFirstPage" && results.length === 0 && (
             <div className="mt-16 rounded-[1.75rem] border border-dashed border-white/15 bg-white/[0.03] px-8 py-16 text-center">
@@ -127,6 +124,10 @@ export default function LibraryPage() {
                 </div>
               </article>
             ))}
+            {status === "LoadingMore" &&
+              Array.from({ length: 3 }, (_, i) => (
+                <MascotCardSkeleton key={`more-${i}`} />
+              ))}
           </div>
 
           {status === "CanLoadMore" && (
@@ -141,11 +142,8 @@ export default function LibraryPage() {
               </Button>
             </div>
           )}
-          {status === "LoadingMore" && (
-            <div className="mt-8 flex justify-center text-[var(--brand-muted)]">
-              <Loader2 className="size-4 animate-spin" />
-            </div>
-          )}
+
+          <AdminListingsPanel />
         </main>
       </div>
     </div>

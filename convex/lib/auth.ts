@@ -137,3 +137,34 @@ export async function requireOwnedMascot(
   if (mascot.userId !== user._id) throw new Error("Unauthorized");
   return { user, mascot };
 }
+
+/**
+ * Admin gate via Clerk JWT custom claim.
+ * Add to the Clerk "convex" JWT template:
+ *   "role": "{{user.public_metadata.role}}"
+ * and set the user's publicMetadata.role = "admin".
+ */
+export function roleFromIdentity(
+  identity: { [key: string]: unknown } | null | undefined
+): string | undefined {
+  if (!identity) return undefined;
+  if (typeof identity.role === "string") return identity.role;
+  const meta = identity.public_metadata ?? identity.publicMetadata;
+  if (meta && typeof meta === "object" && meta !== null) {
+    const role = (meta as { role?: unknown }).role;
+    if (typeof role === "string") return role;
+  }
+  return undefined;
+}
+
+export async function requireAdmin(
+  ctx: Ctx
+): Promise<{ user: Doc<"users">; identity: NonNullable<Awaited<ReturnType<Ctx["auth"]["getUserIdentity"]>>> }> {
+  const identity = await getIdentity(ctx);
+  const role = roleFromIdentity(identity as { [key: string]: unknown });
+  if (role !== "admin") {
+    throw new ConvexError({ code: "FORBIDDEN", message: "Admin only" });
+  }
+  const user = await getCurrentUser(ctx);
+  return { user, identity };
+}

@@ -858,6 +858,31 @@ const SPARK_PATHS = {
    ============================================================ */
 export const POSE_SOURCE = {
   slug: "lyra",
+  /**
+   * Snapshot palette, plus `instrument: null`. Her tail is baked per pose at
+   * that pose's score, so an exported pack cannot answer a live Delivery
+   * slider — offering one would be a control that does nothing.
+   */
+  meta: {
+    accent: AMBER,
+    stage: THEMES.slate.stage,
+    glowLabel: "Spotlight",
+    themes: Object.fromEntries(
+      Object.entries(THEMES).map(([key, t]) => [
+        key,
+        {
+          name: t.name,
+          top: t.breast,
+          mid: t.body,
+          base: dark(t.body, 0.3),
+          core: light(t.breast, 0.3),
+          stage: t.stage,
+          features: "#221A16",
+        },
+      ])
+    ),
+    instrument: null,
+  },
   poses: GESTURES.map((g) => ({
     key: g.key,
     label: g.label,

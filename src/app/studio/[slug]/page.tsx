@@ -3,10 +3,62 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/json-ld";
 import { getMascot, type MascotSlug } from "@/lib/mascots";
+import { loadExampleMarketplacePack } from "@/lib/marketplace/example-packs";
 import { studioMetadata, studioSoftwareJsonLd } from "@/lib/seo";
+import { normalizeGeneratedMascot } from "@/lib/studio-utils";
 import { StudioClient } from "./studio-client";
 
-const SLUGS: MascotSlug[] = ["lyra", "sol", "bud", "fanous"];
+const SLUGS: MascotSlug[] = [
+  "lyra",
+  "sol",
+  "bud",
+  "fanous",
+  "granary",
+  "byte",
+  "numi",
+  "lexa",
+  "coda",
+  "kelp",
+  "nori",
+  "hay",
+  "nox",
+  "zest",
+  "quill",
+  "pip",
+  "bolt",
+  "relay",
+  "orbit",
+  "brew",
+  "lumen",
+  "shade",
+  "watt",
+  "arc",
+  "aura",
+  "glint",
+  "trove",
+  "zephyr",
+];
+
+const GENERATED_STUDIO_SLUGS = new Set<MascotSlug>([
+  "granary",
+  "nox",
+  "zest",
+  "quill",
+  "pip",
+  "bolt",
+  "relay",
+  "orbit",
+  "brew",
+  "lumen",
+  "shade",
+  "watt",
+  "arc",
+  "aura",
+  "glint",
+  "trove",
+  "zephyr",
+]);
+
 
 export function generateStaticParams() {
   return SLUGS.map((slug) => ({ slug }));
@@ -31,6 +83,13 @@ export default async function StudioPage({
   const { slug } = await params;
   const mascot = getMascot(slug);
   if (!mascot) notFound();
+  const isGeneratedStudio = GENERATED_STUDIO_SLUGS.has(mascot.slug);
+  const examplePack = isGeneratedStudio
+    ? await loadExampleMarketplacePack(mascot.slug)
+    : undefined;
+  const initialMascot = examplePack
+    ? normalizeGeneratedMascot(examplePack, examplePack.gestures)
+    : undefined;
 
   return (
     <div className="relative min-h-screen bg-[#0a0e18]">
@@ -46,10 +105,10 @@ export default async function StudioPage({
           ← Home
         </Link>
         <Link
-          href={`/remix/${mascot.slug}`}
+          href="/marketplace"
           className="rounded-full border border-[var(--brand-accent)]/40 bg-[var(--brand-accent)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--brand-accent)] backdrop-blur hover:bg-[var(--brand-accent)]/20"
         >
-          Remix this
+          Marketplace
         </Link>
         <Link
           href="/create"
@@ -71,7 +130,7 @@ export default async function StudioPage({
         </div>
       </noscript>
       <main>
-        <StudioClient slug={mascot.slug} />
+        <StudioClient slug={mascot.slug} initialMascot={initialMascot} />
       </main>
     </div>
   );

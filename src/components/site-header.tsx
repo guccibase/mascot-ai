@@ -61,6 +61,12 @@ export function SiteHeader() {
           <>
             <TokenBalance />
             <Link
+              href="/marketplace"
+              className={cn(ghostLink, "hidden sm:inline-flex")}
+            >
+              Marketplace
+            </Link>
+            <Link
               href="/library"
               className={cn(ghostLink, "hidden sm:inline-flex")}
             >
@@ -73,6 +79,12 @@ export function SiteHeader() {
           </>
         ) : (
           <>
+            <Link
+              href="/marketplace"
+              className={cn(ghostLink, "hidden sm:inline-flex")}
+            >
+              Marketplace
+            </Link>
             <Link
               href="/#examples"
               className={cn(ghostLink, "hidden sm:inline-flex")}

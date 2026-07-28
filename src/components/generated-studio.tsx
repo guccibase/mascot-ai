@@ -3,17 +3,25 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { MascotEditPanel } from "@/components/mascot-edit-panel";
+import {
+  MascotEditPanel,
+  MascotPartsPanel,
+} from "@/components/mascot-edit-panel";
 import { AppAssetsPanel } from "@/components/app-assets-panel";
 import { GESTURE_PRESETS } from "@/lib/gesture-presets";
+import { DEFAULT_MASCOT_MODEL } from "@/lib/mascot-model-options";
 import { applyPartVisibility, extractPartsFromMascot } from "@/lib/mascot-parts";
 import { sanitizeSvg } from "@/lib/sanitize-svg";
+import { estimateTokens } from "@/lib/token-pricing";
+import { packHasLiveSignal } from "@/lib/mascot-pack";
+import { useAffordability } from "@/lib/use-affordability";
 import {
   bakeGestureExport,
   rampColor,
@@ -43,6 +51,17 @@ import {
 } from "@/hooks/use-mascot-undo";
 import { isReferenceId } from "@/lib/reference-image-client";
 
+export type StudioCapabilities = {
+  /** Download pose/pack ZIP and copy SVG. */
+  export?: boolean;
+  /** Show AI edit / undo / add-gesture controls that mutate the pack. */
+  edit?: boolean;
+  /** Show reversible SVG element toggles without enabling AI mutation. */
+  parts?: boolean;
+  /** App-asset generation panel. */
+  appAssets?: boolean;
+};
+
 type Props = {
   mascot: GeneratedMascot;
   /** When true, fills the viewport like /studio/[slug] examples. */
@@ -52,6 +71,11 @@ type Props = {
   /** Saved mascot id — required for persisted app asset packs. */
   mascotId?: Id<"mascots"> | null;
   onMascotChange?: (mascot: GeneratedMascot) => void;
+  /**
+   * Marketplace / example previews pass export:false so visitors can play
+   * poses but cannot save, copy, or download files.
+   */
+  capabilities?: StudioCapabilities;
 };
 
 type Spark = {
@@ -165,6 +189,60 @@ function applyLiveVars(
   });
 }
 
+/** Scope paint-server and event IDs so two inline copies cannot collide. */
+function scopeInlineSvgIds(svg: SVGSVGElement, prefix: string) {
+  const idMap = new Map<string, string>();
+  const identified = [
+    ...(svg.matches("[id]") ? [svg] : []),
+    ...svg.querySelectorAll<SVGElement>("[id]"),
+  ];
+
+  for (const element of identified) {
+    const oldId = element.id;
+    if (!oldId) continue;
+    const nextId = `${prefix}-${oldId}`;
+    idMap.set(oldId, nextId);
+    element.id = nextId;
+  }
+  if (idMap.size === 0) return;
+
+  const allElements = [svg, ...svg.querySelectorAll<SVGElement>("*")];
+  for (const element of allElements) {
+    for (const attribute of [...element.attributes]) {
+      if (attribute.name === "id") continue;
+      let value = attribute.value;
+      for (const [oldId, nextId] of idMap) {
+        value = value
+          .replaceAll(`url(#${oldId})`, `url(#${nextId})`)
+          .replaceAll(`url("#${oldId}")`, `url("#${nextId}")`)
+          .replaceAll(`url('#${oldId}')`, `url('#${nextId}')`);
+        if (
+          (attribute.name === "href" ||
+            attribute.name === "xlink:href") &&
+          value === `#${oldId}`
+        ) {
+          value = `#${nextId}`;
+        }
+        if (
+          attribute.name === "aria-labelledby" ||
+          attribute.name === "aria-describedby"
+        ) {
+          value = value
+            .split(/\s+/)
+            .map((token) => (token === oldId ? nextId : token))
+            .join(" ");
+        }
+        if (attribute.name === "begin" || attribute.name === "end") {
+          value = value.replaceAll(`${oldId}.`, `${nextId}.`);
+        }
+      }
+      if (value !== attribute.value) {
+        element.setAttribute(attribute.name, value);
+      }
+    }
+  }
+}
+
 export function GeneratedStudio({
   mascot,
   fullPage = true,
@@ -172,7 +250,13 @@ export function GeneratedStudio({
   model,
   mascotId = null,
   onMascotChange,
+  capabilities,
 }: Props) {
+  const canExport = capabilities?.export !== false;
+  const canEdit = capabilities?.edit !== false && Boolean(onMascotChange);
+  const canToggleParts = capabilities?.parts ?? canEdit;
+  const canAppAssets = capabilities?.appAssets !== false && Boolean(mascotId);
+  const svgInstanceId = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const parts = useMemo(() => extractPartsFromMascot(mascot), [mascot]);
   const themeKeys = Object.keys(mascot.themes);
   const firstKey = themeKeys[0] ?? "primary";
@@ -186,7 +270,7 @@ export function GeneratedStudio({
   const [glow, setGlow] = useState(0.45);
   const [paused, setPaused] = useState(false);
   const [transparent, setTransparent] = useState(true);
-  const [gestureKey, setGestureKey] = useState(
+  const [selectedGestureKey, setSelectedGestureKey] = useState(
     mascot.gestures[0]?.key ?? "idle"
   );
   const [signal, setSignal] = useState(() =>
@@ -200,6 +284,33 @@ export function GeneratedStudio({
   const [customGestureLabel, setCustomGestureLabel] = useState("");
   const [customGestureTip, setCustomGestureTip] = useState("");
   const [referenceId, setReferenceId] = useState<string | undefined>();
+  const currentMascotRef = useRef(mascot);
+  const aiMutationRef = useRef(false);
+  const aiMutationMascotRef = useRef<GeneratedMascot | null>(null);
+  const [aiMutationBusy, setAiMutationBusy] = useState(false);
+
+  useEffect(() => {
+    currentMascotRef.current = mascot;
+  }, [mascot]);
+
+  const beginAiMutation = useCallback(() => {
+    if (aiMutationRef.current) return false;
+    aiMutationRef.current = true;
+    aiMutationMascotRef.current = currentMascotRef.current;
+    setAiMutationBusy(true);
+    return true;
+  }, []);
+
+  const endAiMutation = useCallback(() => {
+    aiMutationRef.current = false;
+    aiMutationMascotRef.current = null;
+    setAiMutationBusy(false);
+  }, []);
+
+  const isAiMutationCurrent = useCallback(
+    () => aiMutationMascotRef.current === currentMascotRef.current,
+    []
+  );
 
   const { pushSnapshot, undo, canUndo, clear: clearUndo } = useMascotUndo(
     useCallback(
@@ -223,6 +334,10 @@ export function GeneratedStudio({
 
   const handleUndo = useCallback(() => {
     if (!onMascotChange) return;
+    if (aiMutationRef.current) {
+      toast.error("Wait for the current AI change to finish");
+      return;
+    }
     if (!undo()) {
       toast.error("Nothing to revert");
     }
@@ -256,11 +371,6 @@ export function GeneratedStudio({
     knownPartKeysRef.current = partKeysSig;
   }, [partKeysSig, parts]);
 
-  useEffect(() => {
-    if (mascot.gestures.some((g) => g.key === gestureKey)) return;
-    setGestureKey(mascot.gestures[0]?.key ?? "idle");
-  }, [mascot.gestures, gestureKey]);
-
   const togglePart = (key: string) => {
     setEnabledParts((prev) => {
       const next = new Set(prev);
@@ -280,9 +390,24 @@ export function GeneratedStudio({
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
 
   const theme = themeKey === "custom" ? custom : mascot.themes[themeKey]!;
+  const gestureKey = mascot.gestures.some(
+    (gesture) => gesture.key === selectedGestureKey
+  )
+    ? selectedGestureKey
+    : (mascot.gestures[0]?.key ?? "idle");
   const active: GeneratedGesture =
     mascot.gestures.find((g) => g.key === gestureKey) ?? mascot.gestures[0]!;
   const instrument = mascot.instrument;
+  /**
+   * Snapshot packs (and studios that only expose a glow) declare no signal
+   * control. The ramp still colours sparks, chrome and exports; the slider and
+   * its readouts are simply not offered, so a marketplace preview shows the
+   * same controls as the copy a buyer receives.
+   */
+  // Never show a Signal slider the artwork can't answer — stale marketplace
+  // packs sometimes shipped a non-hidden instrument without `.ms-signal-*`.
+  const showSignal =
+    !instrument.hidden && packHasLiveSignal(mascot.gestures);
   const accent = mascot.accent;
   const zone = zoneForSignal(signal);
   const signalColor = rampColor(signalAnim, instrument.ramp);
@@ -294,6 +419,32 @@ export function GeneratedStudio({
     }
     return cats;
   }, [mascot.gestures]);
+
+  /**
+   * The hold `/api/generate/gesture` will place. Quoted here so the control is
+   * refused before the request rather than after a 402.
+   */
+  const gestureReservation = useMemo(
+    () => {
+      if (!canEdit) return 0;
+      return estimateTokens(
+        {
+          kind: "gesture",
+          payloadChars: mascot.gestures.reduce(
+            (total, g) => total + g.svg.length + 120,
+            0
+          ),
+          referenceImages: isReferenceId(referenceId) ? 1 : 0,
+        },
+        model ?? DEFAULT_MASCOT_MODEL
+      ).max;
+    },
+    [canEdit, mascot.gestures, model, referenceId]
+  );
+  const { blocked: gestureBlocked } = useAffordability(
+    gestureReservation,
+    canEdit
+  );
 
   const availablePresets = useMemo(() => {
     const have = new Set(mascot.gestures.map((g) => g.key));
@@ -313,8 +464,10 @@ export function GeneratedStudio({
       signal,
       glow,
       ramp: instrument.ramp,
+      enabledParts,
+      paused,
     }),
-    [theme, accent, signal, glow, instrument.ramp]
+    [theme, accent, signal, glow, instrument.ramp, enabledParts, paused]
   );
 
   /* mount / remount SVG for the active gesture */
@@ -324,26 +477,17 @@ export function GeneratedStudio({
     host.innerHTML = sanitizeSvg(active.svg);
     const svg = host.querySelector("svg") as SVGSVGElement | null;
     svgRef.current = svg;
+    if (svg) scopeInlineSvgIds(svg, `${svgInstanceId}-${gestureKey}`);
     eyesRefs.current = [
       ...host.querySelectorAll<SVGGElement>(".ms-eyes, .bd-pupils"),
     ];
-    if (svg) {
-      svg.setAttribute("width", "420");
-      svg.setAttribute("height", "520");
-      svg.style.width = "100%";
-      svg.style.height = "auto";
-      svg.style.display = "block";
-      applyLiveVars(
-        svg,
-        theme,
-        accent,
-        signalAnim,
-        glow,
-        instrument.ramp
-      );
-      applyPartVisibility(svg, enabledParts);
-    }
-  }, [active?.svg, active?.key]); // theme/signal/parts applied separately
+    if (!svg) return;
+    svg.setAttribute("width", "420");
+    svg.setAttribute("height", "520");
+    svg.style.width = "100%";
+    svg.style.height = "auto";
+    svg.style.display = "block";
+  }, [active?.key, active?.svg, gestureKey, svgInstanceId]); // theme/signal/parts applied separately
 
   useEffect(() => {
     applyLiveVars(
@@ -354,7 +498,7 @@ export function GeneratedStudio({
       glow,
       instrument.ramp
     );
-  }, [theme, accent, signalAnim, glow, instrument.ramp]);
+  }, [theme, accent, signalAnim, glow, instrument.ramp, active?.svg]);
 
   useEffect(() => {
     applyPartVisibility(svgRef.current, enabledParts);
@@ -362,17 +506,25 @@ export function GeneratedStudio({
 
   useEffect(() => {
     const m = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (m.matches) setPaused(true);
+    const initialPauseTimer = m.matches
+      ? window.setTimeout(() => setPaused(true), 0)
+      : undefined;
     const onC = (e: MediaQueryListEvent) => e.matches && setPaused(true);
     m.addEventListener?.("change", onC);
-    return () => m.removeEventListener?.("change", onC);
+    return () => {
+      if (initialPauseTimer !== undefined) {
+        window.clearTimeout(initialPauseTimer);
+      }
+      m.removeEventListener?.("change", onC);
+    };
   }, []);
 
   useEffect(() => {
     const svg = svgRef.current;
     if (!svg) return;
     try {
-      paused ? svg.pauseAnimations() : svg.unpauseAnimations();
+      if (paused) svg.pauseAnimations();
+      else svg.unpauseAnimations();
     } catch {
       /* noop */
     }
@@ -381,7 +533,7 @@ export function GeneratedStudio({
   }, [paused, gestureKey, active?.svg]);
 
   const pickGesture = (g: GeneratedGesture) => {
-    setGestureKey(g.key);
+    setSelectedGestureKey(g.key);
     if (typeof g.signal === "number") setSignal(normalizeSignal(g.signal));
   };
 
@@ -393,18 +545,20 @@ export function GeneratedStudio({
       const r = svg.getBoundingClientRect();
       const sx = ((e.clientX - r.left) / r.width) * 420;
       const sy = ((e.clientY - r.top) / r.height) * 520;
-      let dx = sx - 210;
-      let dy = sy - 262;
+      const dx = sx - 210;
+      const dy = sy - 262;
       const len = Math.hypot(dx, dy) || 1;
       const m = Math.min(len / 46, 1) * 3.8;
       const transform = `translate(${(dx / len) * m}px, ${(dy / len) * m}px)`;
-      for (const eye of eyes) eye.style.transform = transform;
+      for (const eye of eyes) eye.style.setProperty("transform", transform);
     },
     [paused, active.track]
   );
 
   useEffect(() => {
-    for (const eye of eyesRefs.current) eye.style.transform = "translate(0,0)";
+    for (const eye of eyesRefs.current) {
+      eye.style.setProperty("transform", "translate(0,0)");
+    }
   }, [gestureKey]);
 
   const delight = useCallback(() => {
@@ -428,57 +582,29 @@ export function GeneratedStudio({
       1000
     );
   }, [instrument.ramp]);
+  const triggerDelight = useCallback(() => {
+    if (!paused) delight();
+  }, [delight, paused]);
 
   useEffect(() => {
     if (!active.delight || paused) return;
-    delight();
-    const iv = setInterval(delight, 1600);
-    return () => clearInterval(iv);
+    const initialBurstTimer = window.setTimeout(delight, 0);
+    const interval = window.setInterval(delight, 1600);
+    return () => {
+      window.clearTimeout(initialBurstTimer);
+      window.clearInterval(interval);
+    };
   }, [active.delight, paused, delight, gestureKey]);
 
   const buildExport = useCallback(() => {
-    // Prefer live DOM (respects current hidden parts); fall back to baked string
-    const svg = svgRef.current;
-    if (svg) {
-      const node = svg.cloneNode(true) as SVGSVGElement;
-      node.setAttribute("class", `ms-root ms-g-${gestureKey}`);
-      node.setAttribute("width", "420");
-      node.setAttribute("height", "520");
-      node.removeAttribute("data-paused");
-      node.querySelectorAll(".ms-eyes, .bd-pupils").forEach((el) => {
-        (el as SVGGElement).style.transform = "";
-      });
-      node.querySelectorAll('[data-ms-hidden="1"]').forEach((el) => el.remove());
-      const baked = [
-        `--ms-top:${theme.top}`,
-        `--ms-mid:${theme.mid}`,
-        `--ms-base:${theme.base}`,
-        `--ms-core:${theme.core}`,
-        `--ms-features:${theme.features ?? "#2A1A0C"}`,
-        `--ms-accent:${accent}`,
-        `--ms-signal:${Math.round(signal)}`,
-        `--ms-signal-color:${rampColor(signal, instrument.ramp)}`,
-        `--ms-glow:${glow}`,
-      ].join(";");
-      node.setAttribute("style", baked);
-      return (
-        '<?xml version="1.0" encoding="UTF-8"?>\n' +
-        new XMLSerializer().serializeToString(node)
-      );
-    }
     return bakeGestureExport(active.svg, exportOpts(gestureKey));
-  }, [
-    gestureKey,
-    theme,
-    accent,
-    signal,
-    glow,
-    instrument.ramp,
-    active.svg,
-    exportOpts,
-  ]);
+  }, [active.svg, exportOpts, gestureKey]);
 
   const downloadPose = () => {
+    if (!canExport) {
+      toast.error("Purchase this mascot to download files");
+      return;
+    }
     const blob = new Blob([buildExport()], { type: "image/svg+xml" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -490,6 +616,10 @@ export function GeneratedStudio({
   };
 
   const downloadPack = () => {
+    if (!canExport) {
+      toast.error("Purchase this mascot to download files");
+      return;
+    }
     const files: Record<string, Uint8Array> = {};
     for (const g of mascot.gestures) {
       const markup =
@@ -508,7 +638,7 @@ export function GeneratedStudio({
           glowLabel: mascot.glowLabel,
           instrument: mascot.instrument,
           themes: mascot.themes,
-          parts: mascot.parts,
+          parts: parts.filter((part) => enabledParts.has(part.key)),
           gestures: mascot.gestures.map((g) => ({
             key: g.key,
             label: g.label,
@@ -544,6 +674,10 @@ export function GeneratedStudio({
   };
 
   const copySVG = async () => {
+    if (!canExport) {
+      toast.error("Purchase this mascot to copy files");
+      return;
+    }
     try {
       await navigator.clipboard.writeText(buildExport());
       setCopied(true);
@@ -554,7 +688,7 @@ export function GeneratedStudio({
   };
 
   const addGesture = async (req: GestureRequest) => {
-    if (!onMascotChange) {
+    if (!canEdit || !onMascotChange) {
       toast.error("Gesture editing isn’t available here");
       return;
     }
@@ -566,10 +700,22 @@ export function GeneratedStudio({
       toast.error("Studio is limited to 12 gestures");
       return;
     }
+    if (gestureBlocked) {
+      toast.error("Adding a gesture needs tokens. Top up to continue.");
+      return;
+    }
+    if (!beginAiMutation()) {
+      toast.error("Wait for the current AI change to finish");
+      return;
+    }
+
     setAddingGesture(true);
-    trackEvent("generate_started", { action: "gesture", model: model ?? "auto" });
     let errorCode: string | undefined;
     try {
+      trackEvent("generate_started", {
+        action: "gesture",
+        model: model ?? "auto",
+      });
       const res = await fetch("/api/generate/gesture", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -587,12 +733,14 @@ export function GeneratedStudio({
         mascot?: GeneratedMascot;
         gesture?: GeneratedGesture;
       };
+      if (!isAiMutationCurrent()) return;
+
       if (!res.ok || !data.mascot || !data.gesture) {
         errorCode = data.code;
         throw new Error(data.error || "Couldn’t add that gesture");
       }
       applyMascotChange(data.mascot);
-      setGestureKey(data.gesture.key);
+      setSelectedGestureKey(data.gesture.key);
       if (typeof data.gesture.signal === "number") {
         setSignal(normalizeSignal(data.gesture.signal));
       }
@@ -605,10 +753,13 @@ export function GeneratedStudio({
       });
       toast.success(`${data.gesture.label} added to the studio`);
     } catch (err) {
+      if (!isAiMutationCurrent()) return;
+
       trackGenerationFailure("gesture", errorCode);
       toast.error(err instanceof Error ? err.message : "Add gesture failed");
     } finally {
       setAddingGesture(false);
+      endAiMutation();
     }
   };
 
@@ -667,6 +818,7 @@ export function GeneratedStudio({
       animation:gs-pop 1s ease-out forwards}
     @keyframes gs-pop{0%{opacity:1;transform:translate(0,0) scale(1)}
       100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.4)}}
+    @media (prefers-reduced-motion:reduce){.gs-spark{display:none;animation:none}}
   `;
 
   const stageBg = transparent
@@ -717,12 +869,13 @@ export function GeneratedStudio({
         {/* ---------- stage ---------- */}
         <section className="gs-card flex flex-col gap-4 p-5 sm:p-6">
           <div className="flex items-center justify-between">
-            <span className="gs-eyebrow">Stage</span>
+            <h2 className="gs-eyebrow">Stage</h2>
             <div className="flex gap-2">
               <button
                 type="button"
                 className={`gs-pill ${transparent ? "on" : ""}`}
                 onClick={() => setTransparent(true)}
+                aria-pressed={transparent}
               >
                 Transparent
               </button>
@@ -730,6 +883,7 @@ export function GeneratedStudio({
                 type="button"
                 className={`gs-pill ${!transparent ? "on" : ""}`}
                 onClick={() => setTransparent(false)}
+                aria-pressed={!transparent}
               >
                 In-app
               </button>
@@ -737,10 +891,21 @@ export function GeneratedStudio({
           </div>
 
           <div
+            data-mascot-stage
             className={`relative overflow-hidden rounded-2xl ${transparent ? "gs-checker" : ""}`}
             style={{ background: stageBg, minHeight: 440 }}
+            role="button"
+            tabIndex={0}
+            aria-label={`Interactive ${mascot.name} stage. Activate for sparks.`}
+            aria-disabled={paused}
             onPointerMove={onTrack}
-            onPointerDown={delight}
+            onPointerDown={triggerDelight}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                triggerDelight();
+              }
+            }}
           >
             <div
               className="mx-auto"
@@ -773,32 +938,66 @@ export function GeneratedStudio({
               </span>
             ))}
 
-            <div
-              style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                bottom: 8,
-                display: "flex",
-                justifyContent: "center",
-                pointerEvents: "none",
-              }}
-            >
-              <SignalWave score={signalAnim} ramp={instrument.ramp} />
-            </div>
+            {showSignal && (
+              <div
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  right: 0,
+                  bottom: 8,
+                  display: "flex",
+                  justifyContent: "center",
+                  pointerEvents: "none",
+                }}
+              >
+                <SignalWave score={signalAnim} ramp={instrument.ramp} />
+              </div>
+            )}
           </div>
 
           <p style={{ fontSize: 12.5, color: "#B5AC9A", textAlign: "center" }}>
-            drag {instrument.label}. Strip &amp; accents share one ramp
-            &nbsp;·&nbsp; tap for bounce &amp; sparks &nbsp;·&nbsp;
+            {showSignal && (
+              <>
+                drag {instrument.label}. Strip &amp; accents share one ramp
+                &nbsp;·&nbsp;{" "}
+              </>
+            )}
+            tap for bounce &amp; sparks &nbsp;·&nbsp;
             {active.track
               ? "eyes follow your cursor"
               : "this pose locks gaze"}
           </p>
+
+          {canToggleParts && (
+            <MascotPartsPanel
+              parts={parts}
+              enabledParts={enabledParts}
+              onTogglePart={togglePart}
+              accent={accent}
+            />
+          )}
+
+          {canEdit && (
+            <MascotEditPanel
+              mascot={{ ...mascot, parts }}
+              look={look}
+              model={model}
+              enabledParts={enabledParts}
+              onMascotChange={applyMascotChange}
+              referenceId={referenceId}
+              onReferenceIdChange={setReferenceId}
+              mutationBusy={aiMutationBusy}
+              onMutationStart={beginAiMutation}
+              onMutationEnd={endAiMutation}
+              isMutationCurrent={isAiMutationCurrent}
+              accent={accent}
+            />
+          )}
         </section>
 
         {/* ---------- controls ---------- */}
         <section className="gs-card flex flex-col gap-6 p-5 sm:p-6">
+          {showSignal && (
           <div>
             <div className="mb-2 flex items-baseline justify-between">
               <span className="gs-eyebrow">{instrument.label}</span>
@@ -818,6 +1017,7 @@ export function GeneratedStudio({
               max={100}
               step={1}
               value={signal}
+              aria-label={instrument.label}
               className="gs-range w-full"
               onChange={(e) => setSignal(parseInt(e.target.value, 10))}
               style={{
@@ -843,6 +1043,7 @@ export function GeneratedStudio({
               {instrument.description}
             </p>
           </div>
+          )}
 
           <div>
             <div className="mb-3 flex items-baseline justify-between">
@@ -875,6 +1076,7 @@ export function GeneratedStudio({
                           title={gg.tip}
                           className={`gs-pill ${gestureKey === gg.key ? "on" : ""}`}
                           onClick={() => pickGesture(gg)}
+                          aria-pressed={gestureKey === gg.key}
                         >
                           {gg.label}
                         </button>
@@ -900,13 +1102,19 @@ export function GeneratedStudio({
               </p>
             </div>
 
-            {onMascotChange && (
+            {canEdit && mascot.gestures.length < 12 && (
               <div className="mt-4">
                 <button
                   type="button"
                   className={`gs-pill ${showAddGesture ? "on" : ""}`}
-                  disabled={addingGesture}
+                  disabled={addingGesture || aiMutationBusy || gestureBlocked}
                   onClick={() => setShowAddGesture((v) => !v)}
+                  aria-expanded={showAddGesture}
+                  title={
+                    gestureBlocked
+                      ? "Generating a new pose needs tokens"
+                      : undefined
+                  }
                 >
                   <Plus className="mr-1 inline size-3.5" />
                   Add gesture
@@ -956,6 +1164,7 @@ export function GeneratedStudio({
                                   type="button"
                                   title={p.tip}
                                   className="gs-pill"
+                                  disabled={aiMutationBusy}
                                   onClick={() => void addGesture(p)}
                                 >
                                   {p.label}
@@ -1014,7 +1223,9 @@ export function GeneratedStudio({
                             <button
                               type="button"
                               className="gs-btn"
-                              disabled={!customGestureLabel.trim()}
+                              disabled={
+                                aiMutationBusy || !customGestureLabel.trim()
+                              }
                               onClick={addCustomGesture}
                             >
                               Generate &amp; add
@@ -1039,7 +1250,9 @@ export function GeneratedStudio({
                   letterSpacing: 0,
                 }}
               >
-                (plumage / body; the signal ramp stays product-fixed)
+                {showSignal
+                  ? "(plumage / body; the signal ramp stays product-fixed)"
+                  : "(plumage / body)"}
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -1050,6 +1263,8 @@ export function GeneratedStudio({
                     key={k}
                     type="button"
                     title={t.name}
+                    aria-label={t.name}
+                    aria-pressed={themeKey === k}
                     className={`gs-swatch ${themeKey === k ? "on" : ""}`}
                     style={{ background: swatchBg(t) }}
                     onClick={() => setThemeKey(k)}
@@ -1059,6 +1274,8 @@ export function GeneratedStudio({
               <button
                 type="button"
                 title="Custom"
+                aria-label="Custom theme"
+                aria-pressed={themeKey === "custom"}
                 className={`gs-swatch ${themeKey === "custom" ? "on" : ""}`}
                 style={{
                   background: swatchBg(custom),
@@ -1130,6 +1347,7 @@ export function GeneratedStudio({
               max={1}
               step={0.05}
               value={glow}
+              aria-label={mascot.glowLabel || "Spotlight"}
               className="gs-range w-full"
               style={{ background: "#3A3548" }}
               onChange={(e) => setGlow(parseFloat(e.target.value))}
@@ -1142,72 +1360,75 @@ export function GeneratedStudio({
               type="button"
               className={`gs-pill ${paused ? "" : "on"}`}
               onClick={() => setPaused((v) => !v)}
+              aria-pressed={!paused}
             >
               {paused ? "Paused" : "Playing"}
             </button>
           </div>
 
           <div className="flex flex-col gap-2">
-            {onMascotChange && canUndo && (
+            {canEdit && canUndo && (
               <button
                 type="button"
                 className="gs-btn ghost w-full inline-flex items-center justify-center gap-2"
+                disabled={aiMutationBusy}
                 onClick={handleUndo}
               >
                 <Undo2 className="size-4" />
                 Revert last AI change
               </button>
             )}
-            <div className="flex gap-3">
-              <button
-                type="button"
-                className="gs-btn flex-1"
-                onClick={downloadPose}
-              >
-                Download pose
-              </button>
-              <button
-                type="button"
-                className="gs-btn ghost flex-1"
-                onClick={downloadPack}
-              >
-                Download pack
-              </button>
-            </div>
-            <button
-              type="button"
-              className="gs-btn ghost w-full"
-              onClick={copySVG}
-            >
-              {copied ? "Copied ✓" : "Copy pose SVG"}
-            </button>
+            {canExport ? (
+              <>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    className="gs-btn flex-1"
+                    onClick={downloadPose}
+                  >
+                    Download pose
+                  </button>
+                  <button
+                    type="button"
+                    className="gs-btn ghost flex-1"
+                    onClick={downloadPack}
+                  >
+                    Download pack
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  className="gs-btn ghost w-full"
+                  onClick={copySVG}
+                >
+                  {copied ? "Copied ✓" : "Copy pose SVG"}
+                </button>
+                <p style={{ fontSize: 11.5, color: "#8D8472", lineHeight: 1.5 }}>
+                  Pose exports the selected gesture at the current{" "}
+                  {(showSignal
+                    ? instrument.label
+                    : mascot.glowLabel || "glow"
+                  ).toLowerCase()}
+                  . Pack is a zip of every pose
+                  plus <code style={{ color: "#C6BCA7" }}>pack.json</code>.
+                </p>
+              </>
+            ) : (
+              <p style={{ fontSize: 11.5, color: "#8D8472", lineHeight: 1.5 }}>
+                Preview only — remix or buy to own to save, copy, and download
+                files.
+              </p>
+            )}
           </div>
-          <p style={{ fontSize: 11.5, color: "#8D8472", lineHeight: 1.5 }}>
-            Pose exports the selected gesture at the current{" "}
-            {instrument.label.toLowerCase()}. Pack is a zip of every pose plus{" "}
-            <code style={{ color: "#C6BCA7" }}>pack.json</code>.
-          </p>
 
-          <AppAssetsPanel
-            mascotId={mascotId ?? null}
-            mascotName={mascot.name}
-            model={model}
-          />
+          {canAppAssets && (
+            <AppAssetsPanel
+              mascotId={mascotId ?? null}
+              mascotName={mascot.name}
+              model={model}
+            />
+          )}
         </section>
-
-        <div className="lg:col-span-2">
-          <MascotEditPanel
-            mascot={{ ...mascot, parts }}
-            look={look}
-            model={model}
-            enabledParts={enabledParts}
-            onTogglePart={togglePart}
-            onMascotChange={applyMascotChange}
-            referenceId={referenceId}
-            onReferenceIdChange={setReferenceId}
-            accent={accent}
-          />
-        </div>
       </main>
     </div>
   );

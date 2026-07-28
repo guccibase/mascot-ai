@@ -67,9 +67,13 @@ export function extractPartsFromMascot(
   mascot: Pick<GeneratedMascot, "gestures" | "parts" | "instrument">
 ): MascotPart[] {
   const byKey = new Map<string, MascotPart>();
+  const declaredKeys = new Set<string>();
 
   for (const p of mascot.parts ?? []) {
-    if (p?.key) byKey.set(p.key, p);
+    if (p?.key) {
+      byKey.set(p.key, p);
+      declaredKeys.add(p.key);
+    }
   }
 
   for (const g of mascot.gestures) {
@@ -86,16 +90,20 @@ export function extractPartsFromMascot(
       }
     }
     for (const s of STRUCTURAL_PARTS) {
-      if (s.match.test(svg) && !byKey.has(s.key)) {
-        byKey.set(s.key, {
-          key: s.key,
-          label:
-            s.key === "instrument"
-              ? mascot.instrument?.label || s.label
-              : s.label,
-          category: s.category,
-          essential: s.essential,
-        });
+      if (!s.match.test(svg)) continue;
+      const structural = {
+        key: s.key,
+        label:
+          s.key === "instrument"
+            ? mascot.instrument?.label || s.label
+            : s.label,
+        category: s.category,
+        essential: s.essential,
+      };
+      if (!byKey.has(s.key)) {
+        byKey.set(s.key, structural);
+      } else if (!declaredKeys.has(s.key)) {
+        byKey.set(s.key, { ...byKey.get(s.key)!, ...structural });
       }
     }
   }
