@@ -512,7 +512,7 @@ describe("example pose packs", () => {
         expect(lower?.[1]).not.toBe(cavity?.[1]);
       });
 
-      it(`${slug} uses ordered, static rear and foreground wing geometry`, () => {
+      it(`${slug} uses ordered rear/front wing layers with shoulder-hinged flapping`, () => {
         const pack = buildPosePack(slug);
         const foregroundPoseKeys = new Set([
           "wave",
@@ -522,9 +522,7 @@ describe("example pose packs", () => {
           "alarm",
           "encourage",
           "thumbs_up",
-          "shrug",
           "working",
-          "flying",
           "high_five",
           "clapping",
         ]);
@@ -565,8 +563,9 @@ describe("example pose packs", () => {
 
           const wings = `${rear ?? ""}${front ?? ""}${face ?? ""}`;
           expect(wings.match(/<path\b/g)?.length).toBeGreaterThanOrEqual(4);
-          expect(wings).not.toMatch(/\b(?:class|style|transform)=/);
-          expect(wings).not.toContain("<animate");
+          // Shoulder pivot + feather layers (not a single lazy blob).
+          expect(wings).toContain("translate(");
+          expect(wings).toContain("data-ck-wing-primary");
 
           if (foregroundPoseKeys.has(pose.key)) {
             expect(front).toContain("<path");
@@ -575,6 +574,27 @@ describe("example pose packs", () => {
             expect(face).toContain("<path");
           }
         }
+
+        const flying = pack.poses.find((pose) => pose.key === "flying")!;
+        const flyingRear = svgGroupBlockByAttribute(
+          flying.svg,
+          "data-ck-wing-layer",
+          "rear"
+        );
+        expect(flyingRear).toContain('data-ck-wing-mode="flap"');
+        expect(flyingRear).toContain("<animateTransform");
+        expect(flyingRear).toContain('attributeName="d"');
+        // Hummingbird blurs fastest; others still flap hard.
+        expect(flyingRear).toMatch(/dur="0\.0?9s"|dur="0\.14s"|dur="0\.2s"/);
+
+        const idle = pack.poses.find((pose) => pose.key === "idle")!;
+        const idleRear = svgGroupBlockByAttribute(
+          idle.svg,
+          "data-ck-wing-layer",
+          "rear"
+        );
+        expect(idleRear).toContain("<animateTransform");
+        expect(idleRear).toContain("2.6s");
       });
 
       it(`${slug} keeps held props attached to the floating character`, () => {

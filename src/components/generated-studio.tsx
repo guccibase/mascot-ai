@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -188,6 +189,60 @@ function applyLiveVars(
   });
 }
 
+/** Scope paint-server and event IDs so two inline copies cannot collide. */
+function scopeInlineSvgIds(svg: SVGSVGElement, prefix: string) {
+  const idMap = new Map<string, string>();
+  const identified = [
+    ...(svg.matches("[id]") ? [svg] : []),
+    ...svg.querySelectorAll<SVGElement>("[id]"),
+  ];
+
+  for (const element of identified) {
+    const oldId = element.id;
+    if (!oldId) continue;
+    const nextId = `${prefix}-${oldId}`;
+    idMap.set(oldId, nextId);
+    element.id = nextId;
+  }
+  if (idMap.size === 0) return;
+
+  const allElements = [svg, ...svg.querySelectorAll<SVGElement>("*")];
+  for (const element of allElements) {
+    for (const attribute of [...element.attributes]) {
+      if (attribute.name === "id") continue;
+      let value = attribute.value;
+      for (const [oldId, nextId] of idMap) {
+        value = value
+          .replaceAll(`url(#${oldId})`, `url(#${nextId})`)
+          .replaceAll(`url("#${oldId}")`, `url("#${nextId}")`)
+          .replaceAll(`url('#${oldId}')`, `url('#${nextId}')`);
+        if (
+          (attribute.name === "href" ||
+            attribute.name === "xlink:href") &&
+          value === `#${oldId}`
+        ) {
+          value = `#${nextId}`;
+        }
+        if (
+          attribute.name === "aria-labelledby" ||
+          attribute.name === "aria-describedby"
+        ) {
+          value = value
+            .split(/\s+/)
+            .map((token) => (token === oldId ? nextId : token))
+            .join(" ");
+        }
+        if (attribute.name === "begin" || attribute.name === "end") {
+          value = value.replaceAll(`${oldId}.`, `${nextId}.`);
+        }
+      }
+      if (value !== attribute.value) {
+        element.setAttribute(attribute.name, value);
+      }
+    }
+  }
+}
+
 export function GeneratedStudio({
   mascot,
   fullPage = true,
@@ -201,6 +256,7 @@ export function GeneratedStudio({
   const canEdit = capabilities?.edit !== false && Boolean(onMascotChange);
   const canToggleParts = capabilities?.parts ?? canEdit;
   const canAppAssets = capabilities?.appAssets !== false && Boolean(mascotId);
+  const svgInstanceId = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const parts = useMemo(() => extractPartsFromMascot(mascot), [mascot]);
   const themeKeys = Object.keys(mascot.themes);
   const firstKey = themeKeys[0] ?? "primary";
@@ -420,6 +476,7 @@ export function GeneratedStudio({
     host.innerHTML = sanitizeSvg(active.svg);
     const svg = host.querySelector("svg") as SVGSVGElement | null;
     svgRef.current = svg;
+    if (svg) scopeInlineSvgIds(svg, `${svgInstanceId}-${gestureKey}`);
     eyesRefs.current = [
       ...host.querySelectorAll<SVGGElement>(".ms-eyes, .bd-pupils"),
     ];
@@ -429,7 +486,7 @@ export function GeneratedStudio({
     svg.style.width = "100%";
     svg.style.height = "auto";
     svg.style.display = "block";
-  }, [active?.key, active?.svg]); // theme/signal/parts applied separately
+  }, [active?.key, active?.svg, gestureKey, svgInstanceId]); // theme/signal/parts applied separately
 
   useEffect(() => {
     applyLiveVars(

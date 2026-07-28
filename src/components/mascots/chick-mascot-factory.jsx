@@ -690,6 +690,7 @@ function SpeciesFace({ species, pose, feature, core, beak, beakTip, beakBand, bl
 }
 
 function wingMode(key, side) {
+  if (key === "flying") return "flap";
   if (key === "shrug") return "out";
   if (key === "facepalm" && side === "left") return "face";
   if ((key === "thinking" || key === "blowing_kiss") && side === "right") return "face";
@@ -701,104 +702,182 @@ function wingMode(key, side) {
 
 const FOREGROUND_WING_MODES = new Set(["up", "front"]);
 const FACE_WING_MODES = new Set(["face"]);
+/** Left-shoulder pivot in canvas space; right wing mirrors X. */
+const WING_SHOULDER = {
+  owl: [154, 296],
+  hummingbird: [178, 268],
+  magpie: [158, 302],
+  puffin: [158, 308],
+};
 
-const WING_GEOMETRY = {
+/**
+ * Left-wing paths in shoulder-local space (0,0 = hinge on body).
+ * Negative X = outboard. Kept tucked so tips never float off the silhouette.
+ */
+const WING_LOCAL = {
   owl: {
-    rest: [[168, 300], [128, 286], [98, 322], [104, 372], [116, 402], [154, 394], [172, 360]],
-    up: [[168, 308], [142, 272], [126, 230], [112, 204], [106, 188], [128, 196], [154, 206], [182, 260], [172, 308]],
-    out: [[168, 308], [130, 284], [84, 286], [52, 312], [86, 344], [132, 358], [172, 360]],
-    front: [[168, 308], [172, 338], [188, 370], [210, 382], [216, 360], [196, 320], [168, 308]],
-    face: [[168, 304], [170, 270], [176, 244], [188, 226], [198, 246], [184, 280], [168, 304]],
+    rest: "M0,0 C-10,14 -18,46 -12,82 C-6,102 8,96 10,62 C8,34 4,12 0,0 Z",
+    up: "M0,0 C-16,-10 -40,-40 -52,-70 C-36,-78 -14,-52 -2,-22 C0,-10 0,0 0,0 Z",
+    down: "M0,0 C-22,10 -50,34 -66,28 C-54,48 -24,42 -4,14 C-1,6 0,0 0,0 Z",
+    out: "M0,0 C-34,2 -64,18 -78,40 C-58,52 -28,42 -4,14 C-1,6 0,0 0,0 Z",
+    front: "M0,0 C6,22 18,48 34,62 C40,50 28,28 14,12 C6,4 0,0 0,0 Z",
+    face: "M0,0 C4,-18 14,-36 28,-42 C24,-24 14,-10 4,-2 Z",
+    coverts: "M0,2 C-8,18 -10,40 -4,58 C2,48 4,24 0,2 Z",
+    barbs: ["M-2,8 C-14,28 -16,52 -10,72", "M-4,16 C-20,36 -28,56 -24,70"],
   },
   hummingbird: {
-    rest: [[178, 262], [118, 228], [62, 236], [36, 262], [68, 280], [128, 286], [178, 274]],
-    up: [[178, 266], [148, 218], [108, 176], [74, 180], [88, 216], [128, 256], [178, 276]],
-    out: [[178, 262], [116, 236], [66, 244], [38, 266], [72, 282], [126, 286], [178, 274]],
-    front: [[178, 268], [170, 296], [182, 328], [206, 344], [212, 322], [196, 286], [178, 268]],
-    face: [[178, 268], [180, 248], [184, 230], [192, 220], [200, 232], [190, 254], [178, 268]],
+    rest: "M0,0 C-36,-10 -70,-6 -92,8 C-74,18 -40,16 -8,6 C-2,2 0,0 0,0 Z",
+    up: "M0,0 C-28,-24 -54,-52 -66,-70 C-48,-62 -22,-36 -4,-12 C-1,-4 0,0 0,0 Z",
+    down: "M0,0 C-30,16 -58,34 -74,30 C-56,44 -26,28 -4,8 C-1,3 0,0 0,0 Z",
+    out: "M0,0 C-38,-4 -72,2 -96,14 C-76,24 -42,18 -8,6 C-2,2 0,0 0,0 Z",
+    front: "M0,0 C4,18 12,40 24,52 C28,40 18,20 8,8 C3,3 0,0 0,0 Z",
+    face: "M0,0 C2,-12 8,-24 16,-28 C14,-16 8,-6 2,-1 Z",
+    coverts: "M0,1 C-18,-2 -36,0 -48,6 C-34,10 -16,8 0,1 Z",
+    barbs: ["M-6,0 C-40,-8 -68,-4 -86,6", "M-10,4 C-44,0 -70,8 -84,16"],
   },
   magpie: {
-    rest: [[166, 296], [126, 298], [100, 336], [106, 378], [120, 400], [152, 388], [170, 360]],
-    up: [[166, 304], [142, 268], [126, 228], [114, 204], [106, 184], [128, 194], [152, 206], [180, 260], [170, 304]],
-    out: [[166, 304], [126, 284], [78, 288], [48, 314], [84, 342], [130, 356], [170, 358]],
-    front: [[166, 306], [170, 338], [186, 368], [208, 380], [214, 358], [194, 318], [166, 306]],
-    face: [[166, 302], [170, 268], [176, 240], [188, 222], [198, 244], [184, 280], [166, 302]],
+    rest: "M0,0 C-8,18 -14,52 -8,92 C-2,112 10,104 12,68 C10,36 4,12 0,0 Z",
+    up: "M0,0 C-14,-12 -36,-44 -48,-74 C-32,-80 -12,-52 -2,-22 C0,-10 0,0 0,0 Z",
+    down: "M0,0 C-20,12 -46,38 -60,34 C-48,52 -22,44 -4,14 C-1,6 0,0 0,0 Z",
+    out: "M0,0 C-32,4 -60,22 -74,44 C-54,54 -26,44 -4,14 C-1,6 0,0 0,0 Z",
+    front: "M0,0 C6,24 16,50 30,64 C36,52 24,28 12,12 C5,4 0,0 0,0 Z",
+    face: "M0,0 C4,-20 12,-40 24,-46 C20,-28 12,-12 4,-2 Z",
+    coverts: "M0,2 C-6,20 -8,46 -2,68 C4,54 4,24 0,2 Z",
+    barbs: ["M-2,10 C-12,34 -14,62 -8,84", "M-4,20 C-18,44 -26,68 -20,86"],
   },
   puffin: {
-    rest: [[168, 312], [138, 318], [122, 354], [130, 386], [144, 404], [164, 390], [174, 364]],
-    up: [[168, 312], [142, 278], [124, 244], [108, 220], [98, 198], [122, 208], [148, 222], [178, 266], [174, 312]],
-    out: [[168, 314], [132, 294], [90, 300], [60, 324], [94, 348], [134, 360], [174, 366]],
-    front: [[168, 314], [172, 344], [188, 374], [210, 388], [216, 366], [196, 328], [168, 314]],
-    face: [[168, 310], [172, 278], [178, 250], [190, 234], [200, 254], [186, 288], [168, 310]],
+    rest: "M0,0 C-8,12 -16,38 -10,64 C-4,78 8,72 10,46 C8,24 4,8 0,0 Z",
+    up: "M0,0 C-12,-8 -30,-30 -40,-52 C-26,-58 -10,-38 -2,-16 C0,-6 0,0 0,0 Z",
+    down: "M0,0 C-16,8 -36,26 -48,22 C-38,36 -18,32 -4,12 C-1,5 0,0 0,0 Z",
+    out: "M0,0 C-24,2 -46,16 -56,32 C-40,40 -20,32 -4,12 C-1,5 0,0 0,0 Z",
+    front: "M0,0 C5,18 14,40 26,52 C30,42 20,22 10,10 C4,4 0,0 0,0 Z",
+    face: "M0,0 C3,-14 10,-28 20,-32 C16,-18 10,-8 3,-2 Z",
+    coverts: "M0,2 C-6,14 -8,34 -2,50 C4,40 4,18 0,2 Z",
+    barbs: ["M-2,8 C-12,24 -14,44 -8,58", "M-4,14 C-16,30 -22,48 -16,58"],
   },
 };
 
-function mirrorWing(points) {
-  return points.map(([x, y]) => [420 - x, y]);
-}
-
-function wingPath(points) {
-  if (points.length === 9) {
-    const [start, c1, c2, capStart, cap, capEnd, c3, c4, end] = points;
-    return `M${start[0]},${start[1]} C${c1[0]},${c1[1]} ${c2[0]},${c2[1]} ${capStart[0]},${capStart[1]} Q${cap[0]},${cap[1]} ${capEnd[0]},${capEnd[1]} C${c3[0]},${c3[1]} ${c4[0]},${c4[1]} ${end[0]},${end[1]} Z`;
+/** Rotate amplitude / tempo at the shoulder hinge. */
+function wingFlap(poseKey, species, side) {
+  if (poseKey === "flying") {
+    const dur = species === "hummingbird" ? "0.09s" : species === "owl" ? "0.2s" : "0.14s";
+    const amp = species === "hummingbird" ? 38 : species === "puffin" ? 26 : 32;
+    const sign = side === "left" ? 1 : -1;
+    return {
+      values: `${-amp * sign};${amp * sign};${-amp * sign}`,
+      dur,
+      begin: side === "right" ? "-0.02s" : "0s",
+    };
   }
-  const [start, c1, c2, tip, c3, c4, end] = points;
-  return `M${start[0]},${start[1]} C${c1[0]},${c1[1]} ${c2[0]},${c2[1]} ${tip[0]},${tip[1]} C${c3[0]},${c3[1]} ${c4[0]},${c4[1]} ${end[0]},${end[1]} Z`;
+  if (poseKey === "dancing" || poseKey === "celebrate" || poseKey === "clapping") {
+    const sign = side === "left" ? 1 : -1;
+    return { values: `${-10 * sign};${14 * sign};${-10 * sign}`, dur: "0.42s", begin: "0s" };
+  }
+  if (poseKey === "running" || poseKey === "wave" || poseKey === "high_five") {
+    const sign = side === "left" ? 1 : -1;
+    return { values: `${-8 * sign};${12 * sign};${-8 * sign}`, dur: poseKey === "running" ? "0.28s" : "0.55s", begin: "0s" };
+  }
+  if (poseKey === "idle" || poseKey === "listening" || poseKey === "happy" || poseKey === "proud") {
+    const sign = side === "left" ? 1 : -1;
+    return { values: `${-3 * sign};${4 * sign};${-3 * sign}`, dur: "2.6s", begin: side === "right" ? "-0.8s" : "0s" };
+  }
+  return null;
 }
 
-function SpeciesWings({ species, poseKey, mid, top, accent, markFill, layer }) {
-  const leftMode = wingMode(poseKey, "left");
-  const rightMode = wingMode(poseKey, "right");
-  const wings = [
-    {
-      side: "left",
-      mode: leftMode,
-      points: WING_GEOMETRY[species][leftMode],
-    },
-    {
-      side: "right",
-      mode: rightMode,
-      points: mirrorWing(WING_GEOMETRY[species][rightMode]),
-    },
-  ].filter(({ mode }) =>
-    layer === "face"
-      ? FACE_WING_MODES.has(mode)
-      : layer === "front"
-        ? FOREGROUND_WING_MODES.has(mode)
-        : !FOREGROUND_WING_MODES.has(mode) && !FACE_WING_MODES.has(mode)
-  );
+function WingFeathers({ species, mode, mid, top, accent, markFill, layer }) {
+  const kit = WING_LOCAL[species];
+  const primary = mode === "flap" ? kit.up : kit[mode] || kit.rest;
   const detail =
     species === "magpie" ? markFill || top
       : species === "hummingbird" || species === "owl" ? top
         : accent;
   const outline = species === "puffin" ? accent : top;
+  const strokeFront = layer === "front" || mode === "flap";
+
+  return (
+    <>
+      {/* Soft under-wing so the hinge reads attached to the body */}
+      <ellipse cx={-2} cy={6} rx={10} ry={14} fill={mid} opacity=".55" />
+      <path
+        data-ck-wing-primary="1"
+        d={primary}
+        fill={mid}
+        stroke={strokeFront ? outline : "none"}
+        strokeWidth={strokeFront ? (species === "hummingbird" ? "2" : "2.8") : undefined}
+        strokeOpacity={strokeFront ? ".7" : undefined}
+        strokeLinejoin="round"
+      >
+        {mode === "flap" && (
+          <animate
+            attributeName="d"
+            values={`${kit.up};${kit.down};${kit.up}`}
+            dur={species === "hummingbird" ? "0.09s" : "0.14s"}
+            repeatCount="indefinite"
+          />
+        )}
+      </path>
+      <path d={kit.coverts} fill={top} opacity={species === "magpie" ? ".55" : ".38"} />
+      {species === "hummingbird" && mode === "flap" && (
+        <path d={kit.out} fill={top} opacity=".22">
+          <animate attributeName="opacity" values=".08;.28;.08" dur="0.09s" repeatCount="indefinite" />
+        </path>
+      )}
+      <g fill="none" stroke={detail} strokeLinecap="round" opacity={species === "magpie" ? ".7" : ".42"}>
+        {kit.barbs.map((d) => (
+          <path key={d} d={d} strokeWidth={species === "hummingbird" ? "2.2" : "2.8"} />
+        ))}
+      </g>
+    </>
+  );
+}
+
+function SpeciesWings({ species, poseKey, mid, top, accent, markFill, layer }) {
+  const leftMode = wingMode(poseKey, "left");
+  const rightMode = wingMode(poseKey, "right");
+  const [sx, sy] = WING_SHOULDER[species];
+  const wings = [
+    { side: "left", mode: leftMode },
+    { side: "right", mode: rightMode },
+  ].filter(({ mode }) =>
+    layer === "face"
+      ? FACE_WING_MODES.has(mode)
+      : layer === "front"
+        ? FOREGROUND_WING_MODES.has(mode)
+        : // flap/rest/out sit behind the body so feathers insert at the shoulder
+          !FOREGROUND_WING_MODES.has(mode) && !FACE_WING_MODES.has(mode)
+  );
 
   return (
     <g data-ms-part="wings" data-ck-wing-layer={layer}>
-      {wings.map(({ side, mode, points }) => {
-        const ridgeTip = points[points.length === 9 ? 4 : 3];
+      {wings.map(({ side, mode }) => {
+        const x = side === "left" ? sx : 420 - sx;
+        const flap = wingFlap(poseKey, species, side);
         return (
-          <g key={side} data-ck-wing={side} data-ck-wing-mode={mode}>
-            <path
-              d={wingPath(points)}
-              fill={mid}
-              stroke={layer === "front" ? outline : "none"}
-              strokeWidth={layer === "front" ? (species === "hummingbird" ? "2" : "3") : undefined}
-              strokeOpacity={layer === "front" ? (species === "puffin" ? ".86" : ".62") : undefined}
-              strokeLinejoin="round"
-              opacity={layer === "front" && species === "puffin" ? ".96" : undefined}
-            />
-            {species === "hummingbird" && (
-              <path d={wingPath(points)} fill={top} opacity=".28" />
-            )}
-            <path
-              d={`M${points[0][0]},${points[0][1]} Q${points[2][0]},${points[2][1]} ${ridgeTip[0]},${ridgeTip[1]}`}
-              fill="none"
-              stroke={detail}
-              strokeWidth={species === "hummingbird" ? "3" : "4"}
-              strokeLinecap="round"
-              opacity={species === "magpie" ? ".75" : ".38"}
-            />
+          <g key={side} data-ck-wing={side} data-ck-wing-mode={mode} transform={`translate(${x},${sy})`}>
+            <g>
+              {flap && (
+                <animateTransform
+                  attributeName="transform"
+                  type="rotate"
+                  additive="sum"
+                  values={flap.values}
+                  dur={flap.dur}
+                  begin={flap.begin}
+                  repeatCount="indefinite"
+                />
+              )}
+              <g transform={side === "right" ? "scale(-1,1)" : undefined}>
+                <WingFeathers
+                  species={species}
+                  mode={mode}
+                  mid={mid}
+                  top={top}
+                  accent={accent}
+                  markFill={markFill}
+                  layer={layer}
+                />
+              </g>
+            </g>
           </g>
         );
       })}
@@ -838,6 +917,11 @@ function SpeciesBody({ species, top, mid, base, feature, core, accent, config, p
             d="M210 188 C274 188 308 246 304 302 C300 348 278 388 262 418 C246 448 230 458 210 460 C190 458 174 448 158 418 C142 388 120 348 116 302 C112 246 146 188 210 188Z"
             fill={`url(#${gid}-body)`}
           />
+          {/* Shoulder saddle — wings hinge out of this, not thin air */}
+          <ellipse cx="148" cy="300" rx="22" ry="28" fill={mid} opacity=".55" />
+          <ellipse cx="272" cy="300" rx="22" ry="28" fill={mid} opacity=".55" />
+          <path d="M132 286 C140 318 148 348 156 372" fill="none" stroke={base} strokeWidth="5" strokeLinecap="round" opacity=".22" />
+          <path d="M288 286 C280 318 272 348 264 372" fill="none" stroke={base} strokeWidth="5" strokeLinecap="round" opacity=".22" />
           {/* Heart facial disk */}
           <path
             d="M210 198 C246 198 278 222 286 258 C292 292 278 318 248 332 C228 342 210 346 210 346 C210 346 192 342 172 332 C142 318 128 292 134 258 C142 222 174 198 210 198Z"
@@ -855,6 +939,8 @@ function SpeciesBody({ species, top, mid, base, feature, core, accent, config, p
           <path d="M272 208 C292 168 282 132 252 128 C248 162 238 186 224 206" fill={mid} />
           <path d="M156 176 Q166 154 176 174" fill="none" stroke={top} strokeWidth="3.2" strokeLinecap="round" opacity=".5" />
           <path d="M264 176 Q254 154 244 174" fill="none" stroke={top} strokeWidth="3.2" strokeLinecap="round" opacity=".5" />
+          <path d="M160 150 Q168 136 174 152" fill="none" stroke={core} strokeWidth="2.4" strokeLinecap="round" opacity=".45" />
+          <path d="M260 150 Q252 136 246 152" fill="none" stroke={core} strokeWidth="2.4" strokeLinecap="round" opacity=".45" />
         </g>
       </>
     );
@@ -881,6 +967,9 @@ function SpeciesBody({ species, top, mid, base, feature, core, accent, config, p
             d="M210 196 C234 196 250 228 248 274 C246 314 232 344 210 354 C188 344 174 314 172 274 C170 228 186 196 210 196Z"
             fill={`url(#${gid}-body)`}
           />
+          {/* Tiny shoulder pads where the blur-wings attach */}
+          <ellipse cx="176" cy="268" rx="10" ry="12" fill={mid} opacity=".5" />
+          <ellipse cx="244" cy="268" rx="10" ry="12" fill={mid} opacity=".5" />
           {/* Iridescent gorget collar — below the needle beak */}
           <path
             d="M188 276 C200 264 220 264 232 276 C226 296 216 308 210 312 C204 308 194 296 188 276Z"
@@ -931,6 +1020,11 @@ function SpeciesBody({ species, top, mid, base, feature, core, accent, config, p
             d="M210 178 C248 178 268 228 266 292 C264 348 250 392 232 424 C224 438 196 438 188 424 C170 392 156 348 154 292 C152 228 172 178 210 178Z"
             fill={`url(#${gid}-body)`}
           />
+          {/* Scapulars — dark wing roots glued to the tall torso */}
+          <ellipse cx="154" cy="304" rx="16" ry="30" fill={base} opacity=".55" />
+          <ellipse cx="266" cy="304" rx="16" ry="30" fill={base} opacity=".55" />
+          <path d="M148 280 C150 320 154 360 160 392" fill="none" stroke={top} strokeWidth="3" strokeLinecap="round" opacity=".28" />
+          <path d="M272 280 C270 320 266 360 260 392" fill="none" stroke={top} strokeWidth="3" strokeLinecap="round" opacity=".28" />
           {/* White face half-mask + vertical bib */}
           <ellipse cx="210" cy="238" rx="44" ry="40" fill={top} opacity=".98" />
           <ellipse cx="210" cy="312" rx="24" ry="58" fill={top} opacity=".96" />
@@ -982,6 +1076,11 @@ function SpeciesBody({ species, top, mid, base, feature, core, accent, config, p
           d="M210 186 C268 186 298 248 298 318 C298 386 260 438 210 452 C160 438 122 386 122 318 C122 248 152 186 210 186Z"
           fill={`url(#${gid}-body)`}
         />
+        {/* Stub wing roots — short puffin wings grow from here */}
+        <ellipse cx="148" cy="312" rx="20" ry="24" fill={mid} opacity=".62" />
+        <ellipse cx="272" cy="312" rx="20" ry="24" fill={mid} opacity=".62" />
+        <path d="M138 300 C142 328 148 352 156 372" fill="none" stroke={accent} strokeWidth="3.5" strokeLinecap="round" opacity=".35" />
+        <path d="M282 300 C278 328 272 352 264 372" fill="none" stroke={accent} strokeWidth="3.5" strokeLinecap="round" opacity=".35" />
         {/* White face + belly mask */}
         <ellipse cx="210" cy="250" rx="62" ry="54" fill={face} />
         <ellipse cx="210" cy="356" rx="50" ry="66" fill={top} />

@@ -26,7 +26,7 @@ describe("trackEvent", () => {
 
   it("never sends more than the two properties Vercel keeps", () => {
     for (const [name, props] of [
-      ["onboarding_step", { step: "proof" }],
+      ["onboarding_step", { step: "proof", flow: "2" }],
       ["checkout_started", { product: "mascotai_monthly", kind: "plan" }],
       ["generate_started", { action: "studio", model: "gpt-5.6-sol" }],
       ["mascot_downloaded", { kind: "pack", gestures: 6 }],

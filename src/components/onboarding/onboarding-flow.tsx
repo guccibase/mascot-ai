@@ -13,6 +13,15 @@ import {
   Sparkles,
 } from "lucide-react";
 import { answered, oneOf, trackEvent } from "@/lib/analytics";
+import {
+  OLD_WAY_POINTS,
+  ONBOARDING_FLOW_VERSION,
+  ONBOARDING_STEPS,
+  type OnboardingDraft,
+  type OnboardingStep,
+  parseOnboardingDraft,
+  serializeOnboardingDraft,
+} from "@/lib/onboarding-flow";
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,65 +30,21 @@ import { PROOF_POINTS, PROOF_QUOTE } from "@/lib/proof";
 import { cn } from "@/lib/utils";
 import { api } from "../../../convex/_generated/api";
 
-const STEPS = ["pitch", "old-way", "building", "context", "proof", "examples"] as const;
-type Step = (typeof STEPS)[number];
-
-const OLD_WAY_POINTS = [
-  {
-    label: "Hundreds — sometimes thousands",
-    detail:
-      "Hiring a designer or studio usually runs hundreds of dollars, sometimes into the thousands, for a character and a handful of poses.",
-  },
-  {
-    label: "Weeks to months",
-    detail:
-      "Turnaround is commonly weeks to months — and every revision loop starts the clock again.",
-  },
-  {
-    label: "Still unfinished for product",
-    detail:
-      "You get static art, maybe a few expressions, then still have to figure out animation, exports, and how it lives in the app.",
-  },
-] as const;
+const STEPS = ONBOARDING_STEPS;
+type Step = OnboardingStep;
 
 const DRAFT_KEY = "mascot-ai:onboarding-draft";
 
-type OnboardingDraft = {
-  step: Step;
-  useCase: string | null;
-  stack: string;
-  referral: string | null;
-  paidBefore: string | null;
-  favorite: string | null;
-};
-
-function isStep(value: unknown): value is Step {
-  return typeof value === "string" && (STEPS as readonly string[]).includes(value);
-}
-
 function loadDraft(): OnboardingDraft | null {
   if (typeof window === "undefined") return null;
-  try {
-    const raw = sessionStorage.getItem(DRAFT_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<OnboardingDraft>;
-    if (!isStep(parsed.step)) return null;
-    return {
-      step: parsed.step,
-      useCase: typeof parsed.useCase === "string" ? parsed.useCase : null,
-      stack: typeof parsed.stack === "string" ? parsed.stack : "",
-      referral: typeof parsed.referral === "string" ? parsed.referral : null,
-      paidBefore: typeof parsed.paidBefore === "string" ? parsed.paidBefore : null,
-      favorite: typeof parsed.favorite === "string" ? parsed.favorite : null,
-    };
-  } catch {
-    return null;
-  }
+  const raw = sessionStorage.getItem(DRAFT_KEY);
+  if (!raw) return null;
+  return parseOnboardingDraft(raw);
 }
 
 function saveDraft(draft: OnboardingDraft) {
   try {
-    sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    sessionStorage.setItem(DRAFT_KEY, serializeOnboardingDraft(draft));
   } catch {
     /* quota / private mode */
   }
@@ -136,9 +101,9 @@ const REFERRALS = [
 ] as const;
 
 const PAID_BEFORE = [
-  { id: "agency", label: "Yes, an agency or freelancer" },
-  { id: "marketplace", label: "Yes, stock or a marketplace" },
-  { id: "never", label: "No, this would be my first" },
+  { id: "agency", label: "Yes — agency or freelancer" },
+  { id: "marketplace", label: "Yes — stock or marketplace" },
+  { id: "never", label: "No — first time for me" },
 ] as const;
 
 function firstName(name: string | null | undefined) {
@@ -221,7 +186,12 @@ export function OnboardingFlow() {
     setStep(target);
     // Only forward moves count: a step re-entered via Back would otherwise
     // read as extra progress and flatten the drop-off curve.
-    if (delta > 0) trackEvent("onboarding_step", { step: target });
+    if (delta > 0) {
+      trackEvent("onboarding_step", {
+        step: target,
+        flow: String(ONBOARDING_FLOW_VERSION),
+      });
+    }
   };
 
   const finish = async () => {
@@ -349,8 +319,9 @@ export function OnboardingFlow() {
               </div>
 
               <p className="mt-6 text-[15px] leading-relaxed text-white/90">
-                We built the studio so you can skip that gauntlet — a gestural
-                mascot you can iterate on and ship the same day.
+                We built the studio so you can skip that gauntlet — gestural
+                mascots you can iterate on and ship without waiting on a studio
+                timeline.
               </p>
             </div>
           )}
@@ -448,7 +419,7 @@ export function OnboardingFlow() {
                   </div>
                 </Question>
 
-                <Question label="Have you ever paid for animated mascot design?">
+                <Question label="Have you commissioned a mascot before?">
                   <div className="flex flex-wrap gap-2">
                     {PAID_BEFORE.map((option) => (
                       <Chip

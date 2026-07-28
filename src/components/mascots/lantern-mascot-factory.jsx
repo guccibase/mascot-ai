@@ -281,33 +281,37 @@ const GESTURES = [
     tip: "Soft bob and blink while the glow-eyes follow your cursor.",
     armL: A.rest, armR: mir(A.rest), eye: "open", mouth: "smile", track: true },
   { key: "wave", label: "Wave", cat: "Core", use: "Hello · goodbye",
-    tip: "One arm lifts high and flaps a friendly hello.",
-    armL: A.rest, armR: mir(A.high), wave: true, eye: "open", mouth: "grin", brow: "up" },
+    tip: "One open palm lifts high and flaps a friendly hello.",
+    armL: A.rest, armR: mir(A.high), wave: true, eye: "open", mouth: "grin", brow: "up",
+    handL: "mitt", handR: "palm" },
   { key: "happy", label: "Happy", cat: "Core", use: "Good news",
     tip: "Creased eyes and a warm lit grin.",
-    armL: A.up, armR: mir(A.up), eye: "arch", mouth: "grin" },
+    armL: A.up, armR: mir(A.up), eye: "arch", mouth: "grin", handL: "palm", handR: "palm" },
   { key: "thinking", label: "Thinking", cat: "Core", use: "Loading · AI planning",
     tip: "Hand to chin, gaze drifting up while a little spark of an idea ticks over.",
     armL: A.chin, armR: mir(A.rest), eye: "open", mouth: "flat", brow: "oneUp",
-    look: [3, -6], prop: "think" },
+    look: [3, -6], prop: "think", handL: "fist", handR: "mitt" },
   { key: "listening", label: "Listening", cat: "Core", use: "Voice input",
     tip: "Leans in with soft focus while the audio bars breathe.",
     armL: A.rest, armR: mir(A.rest), bow: 5, eye: "open", mouth: "tiny", prop: "eq" },
   { key: "talking", label: "Talking", cat: "Core", use: "AI reply",
     tip: "Mouth mid-word with soft speech arcs carrying off the glow.",
-    armL: A.out, armR: mir(A.rest), eye: "open", mouth: "talk", brow: "up", prop: "speech" },
+    armL: A.out, armR: mir(A.rest), eye: "open", mouth: "talk", brow: "up", prop: "speech",
+    handL: "palm", handR: "mitt" },
   { key: "pointing", label: "Pointing", cat: "Core", use: "Tour · callout",
-    tip: "One arm out, directing attention to the next page.",
+    tip: "One arm out, open palm directing attention to the next page.",
     armL: A.rest, armR: mir(A.point), eye: "open", mouth: "smile", brow: "up",
-    look: [6, -2], prop: "point" },
+    look: [6, -2], prop: "point", handL: "mitt", handR: "palm" },
   { key: "writing", label: "Writing", cat: "Core", use: "Compose · notes",
     tip: "Both hands on a floating keyboard while the caret blinks.",
-    armL: A.write, armR: mir(A.write), eye: "open", mouth: "flat", look: [0, 5], prop: "keyboard" },
+    armL: A.write, armR: mir(A.write), eye: "open", mouth: "flat", look: [0, 5], prop: "keyboard",
+    handL: "fist", handR: "fist" },
 
   /* Moods */
   { key: "celebrate", label: "Celebrate", cat: "Moods", use: "Streak · success",
     tip: "Arms up and bright confetti raining after a finished chapter.",
-    armL: A.high, armR: mir(A.high), eye: "arch", mouth: "grin", prop: "confetti" },
+    armL: A.high, armR: mir(A.high), eye: "arch", mouth: "grin", prop: "confetti",
+    handL: "fist", handR: "fist" },
   { key: "love", label: "Love", cat: "Moods", use: "Thanks · rating",
     tip: "Hearts in both eyes and more drifting off the warm glow.",
     armL: A.rest, armR: mir(A.rest), eye: "heart", mouth: "smile", prop: "hearts" },
@@ -319,81 +323,97 @@ const GESTURES = [
     armL: A.droop, armR: mir(A.droop), eye: "cry", mouth: "frown", brow: "sad", prop: "tears" },
   { key: "grumpy", label: "Grumpy", cat: "Moods", use: "Too early · friction",
     tip: "Brows down, flat mouth. Someone dimmed the room again.",
-    armL: A.rest, armR: mir(A.rest), bow: 3, eye: "flat", mouth: "frown", brow: "angry", prop: "steam" },
+    armL: A.rest, armR: mir(A.rest), bow: 3, eye: "flat", mouth: "frown", brow: "angry", prop: "steam",
+    handL: "fist", handR: "fist" },
   { key: "sleepy", label: "Sleepy", cat: "Moods", use: "Night mode",
     tip: "Heavy lids and a soft Z drifting off the top tip.",
     armL: A.droop, armR: mir(A.droop), eye: "half", mouth: "tiny", prop: "zzz" },
   { key: "proud", label: "Proud", cat: "Moods", use: "Milestone",
     tip: "Chin up, glow bright, a badge earned for steady focus.",
-    armL: A.out, armR: mir(A.out), eye: "open", mouth: "grin", brow: "up", prop: "badge" },
+    armL: A.out, armR: mir(A.out), eye: "open", mouth: "grin", brow: "up", prop: "badge",
+    handL: "fist", handR: "fist" },
   { key: "oops", label: "Oops", cat: "Moods", use: "Rough take, kindly",
     tip: "Sheepish smile and one bead of light-sweat. Soft fail, no shame.",
-    armL: A.rest, armR: mir(A.up), eye: "open", mouth: "wry", brow: "oneUp", look: [-3, 2], prop: "oops" },
+    armL: A.rest, armR: mir(A.up), eye: "open", mouth: "wry", brow: "oneUp", look: [-3, 2], prop: "oops",
+    handL: "mitt", handR: "palm" },
   { key: "surprised", label: "Surprised", cat: "Moods", use: "Wow · discovery",
     tip: "Wide bright eyes and a small jump of delight.",
-    armL: A.out, armR: mir(A.out), eye: "wide", mouth: "o", brow: "up", prop: "spark" },
+    armL: A.out, armR: mir(A.out), eye: "wide", mouth: "o", brow: "up", prop: "spark",
+    handL: "palm", handR: "palm" },
   { key: "blowing_kiss", label: "Blowing kiss", cat: "Moods", use: "Thanks · affection",
     tip: "Hand to the mouth, a heart blown toward the reader.",
     armL: A.chin, armR: mir(A.rest), eye: "arch", mouth: "kiss", brow: "up",
-    look: [6, -2], prop: "kissHeart" },
+    look: [6, -2], prop: "kissHeart", handL: "palm", handR: "mitt" },
   { key: "facepalm", label: "Facepalm", cat: "Moods", use: "Facepalm moment",
     tip: "Palm flat on the glass over a very classic misstep.",
-    armL: A.palm, armR: mir(A.droop), eye: "flat", mouth: "wry", brow: "sad" },
+    armL: A.palm, armR: mir(A.droop), eye: "flat", mouth: "wry", brow: "sad",
+    handL: "palm", handR: "mitt" },
   { key: "dancing", label: "Dancing", cat: "Moods", use: "Fun · celebration",
     tip: "Arms swinging and body swaying after a good session.",
-    armL: A.high, armR: mir(A.out), sway: true, eye: "arch", mouth: "grin", prop: "notes" },
+    armL: A.high, armR: mir(A.out), sway: true, eye: "arch", mouth: "grin", prop: "notes",
+    handL: "palm", handR: "palm" },
 
   /* Action */
   { key: "alarm", label: "Alarm!", cat: "Action", use: "Notification · alarm",
     tip: "Wide eyes, ringing energy, whole lamp rattling. Deadline ping.",
-    armL: A.out, armR: mir(A.out), shake: true, eye: "wide", mouth: "o", brow: "up", prop: "alarm" },
+    armL: A.out, armR: mir(A.out), shake: true, eye: "wide", mouth: "o", brow: "up", prop: "alarm",
+    handL: "palm", handR: "palm" },
   { key: "encourage", label: "Encourage", cat: "Action", use: "Nudge · coaching",
     tip: "Both arms open and a warm face. You've got this — one more try.",
-    armL: A.out, armR: mir(A.out), eye: "open", mouth: "grin", brow: "up", prop: "encourage" },
+    armL: A.out, armR: mir(A.out), eye: "open", mouth: "grin", brow: "up", prop: "encourage",
+    handL: "palm", handR: "palm" },
   { key: "searching", label: "Searching", cat: "Action", use: "Search · find",
     tip: "Magnifier out while soft light sweeps for the right page.",
     armL: A.chin, armR: mir(A.out), eye: "open", mouth: "flat", brow: "oneUp",
-    look: [7, -3], prop: "search" },
+    look: [7, -3], prop: "search", handL: "fist", handR: "palm" },
   { key: "thumbs_up", label: "Thumbs up", cat: "Action", use: "Approve · yes",
-    tip: "Clear approval — that chapter is done.",
-    armL: A.rest, armR: mir(A.thumb), eye: "arch", mouth: "grin", prop: "thumbsUp" },
+    tip: "A real thumbs-up — fist with a short fat thumb, clear approval.",
+    armL: A.rest, armR: mir(A.thumb), eye: "arch", mouth: "grin",
+    handL: "mitt", handR: "thumb" },
   { key: "thumbs_down", label: "Thumbs down", cat: "Action", use: "Reject · no",
-    tip: "Gentle disapproval — try another approach.",
-    armL: A.rest, armR: mir(A.down), eye: "flat", mouth: "frown", brow: "sad", prop: "thumbsDown" },
+    tip: "Gentle disapproval — thumb down, try another approach.",
+    armL: A.rest, armR: mir(A.down), eye: "flat", mouth: "frown", brow: "sad",
+    handL: "mitt", handR: "thumbDown" },
   { key: "shrug", label: "Shrug", cat: "Action", use: "Unknown · maybe",
     tip: "Shoulders up, unsure which path to take.",
-    armL: A.shrug, armR: mir(A.shrug), eye: "open", mouth: "flat", brow: "oneUp", prop: "question" },
+    armL: A.shrug, armR: mir(A.shrug), eye: "open", mouth: "flat", brow: "oneUp", prop: "question",
+    handL: "palm", handR: "palm" },
   { key: "working", label: "Working", cat: "Action", use: "Processing · busy",
     tip: "Focused busy posture with soft dials turning beside the head.",
-    armL: A.write, armR: mir(A.write), eye: "open", mouth: "flat", look: [0, 3], prop: "gears" },
+    armL: A.write, armR: mir(A.write), eye: "open", mouth: "flat", look: [0, 3], prop: "gears",
+    handL: "fist", handR: "fist" },
   { key: "running", label: "Running", cat: "Action", use: "Hurry · progress",
-    tip: "Full sprint — leaned forward, arms pumping, dust kicking up from the base.",
+    tip: "Full sprint — leaned forward, fists pumping, dust kicking up from the base.",
     armL: A.runMid, armR: mir(A.runMid), lean: 18, look: [12, -3],
-    eye: "wide", mouth: "o", brow: "up", gait: "run", prop: "speed" },
+    eye: "wide", mouth: "o", brow: "up", gait: "run", prop: "speed",
+    handL: "fist", handR: "fist" },
   { key: "flying", label: "Flying", cat: "Action", use: "Delight · upgrade",
     tip: "Shooting straight up — chin tipped to the sky, fists leading, lift glow blooming below.",
     armL: A.flyUp, armR: mir(A.flyUp), lift: -56,
     eye: "wide", mouth: "o", brow: "up", look: [0, -18], skyward: true,
-    gazeY: -7, prop: "rocket", boost: true },
+    gazeY: -7, prop: "rocket", boost: true, handL: "fist", handR: "fist" },
   { key: "high_five", label: "High five", cat: "Action", use: "Team win · connect",
-    tip: "Arm raised and waiting for your palm.",
-    armL: A.rest, armR: mir(A.high), eye: "arch", mouth: "grin", prop: "highFive" },
+    tip: "Open palm raised and waiting for yours.",
+    armL: A.rest, armR: mir(A.high), eye: "arch", mouth: "grin", prop: "highFive",
+    handL: "mitt", handR: "palm" },
   { key: "clapping", label: "Clapping", cat: "Action", use: "Applause · praise",
     tip: "Hands meeting mid-clap for a well-finished session.",
     armL: A.clapL, armR: A.clapR, eye: "arch", mouth: "grin", brow: "up",
-    clap: true, prop: "clap" },
+    clap: true, prop: "clap", handL: "palm", handR: "palm" },
 
   /* Feedback */
   { key: "confused", label: "Confused", cat: "Feedback", use: "Error · not found",
     tip: "Uneven eyes, crooked mouth, question mark hovering.",
     armL: A.chin, armR: mir(A.shrug), bow: -3, eye: "uneven", mouth: "wry", brow: "oneUp",
-    prop: "question" },
+    prop: "question", handL: "fist", handR: "palm" },
   { key: "success", label: "Success", cat: "Feedback", use: "Done · completed",
     tip: "Clear win pose with a bright check stamped beside him.",
-    armL: A.up, armR: mir(A.up), eye: "arch", mouth: "grin", prop: "success" },
+    armL: A.up, armR: mir(A.up), eye: "arch", mouth: "grin", prop: "success",
+    handL: "fist", handR: "fist" },
   { key: "error", label: "Error", cat: "Feedback", use: "Failed request",
     tip: "Soft alert — concerned, not scary.",
-    armL: A.out, armR: mir(A.out), eye: "wide", mouth: "o", brow: "up", prop: "error" },
+    armL: A.out, armR: mir(A.out), eye: "wide", mouth: "o", brow: "up", prop: "error",
+    handL: "palm", handR: "palm" },
   { key: "empty", label: "Empty", cat: "Feedback", use: "Empty state",
     tip: "Gentle “nothing here yet” — ready when you are.",
     armL: A.droop, armR: mir(A.droop), eye: "open", mouth: "tiny", brow: "sad", prop: "empty" },
@@ -645,17 +665,134 @@ function Mouth({ kind, p }) {
 }
 
 /* ---------- limbs ---------- */
-function HandShape({ chassis, p }) {
+/* Real hands (not ball stubs). Distinct silhouette per chassis; kind drives pose. */
+function BrassCuff({ p }) {
   return (
     <g>
-      <circle cx="0" cy="0" r="16" fill={p.body} stroke={p.bodyDark} strokeWidth="3" />
-      <circle cx="-4" cy="-4" r="4.5" fill={p.bodyLight} opacity=".45" />
+      <rect x="-12" y="-18" width="24" height="11" rx="4" fill={p.accent} />
+      <rect x="-9" y="-15" width="18" height="4" rx="1.5" fill={p.led} opacity=".55" />
     </g>
   );
 }
 
-function Arm({ d, shoulder, p, anim, animKey, morph, chassis = "support" }) {
+function HandShape({ chassis, p, kind = "mitt", side = "L" }) {
+  /* Thumb poses stay unflipped so the digit always reads; mitts/palms mirror. */
+  const flip = side === "R" && kind !== "thumb" && kind !== "thumbDown"
+    ? "scale(-1,1)"
+    : undefined;
+  const fill = p.bodyLight;
+  const stroke = p.bodyDark;
+
+  let shape;
+  if (kind === "thumb") {
+    /* Fanous-grade: knuckle slab + short fat thumb — unmistakable */
+    shape = (
+      <g transform="rotate(-8)">
+        <BrassCuff p={p} />
+        <rect x="-20" y="-12" width="42" height="30" rx="13" fill={fill} stroke={stroke} strokeWidth="3.2" />
+        <path d="M-12,-2 H14 M-12,6 H12" stroke={stroke} strokeWidth="2.4" strokeLinecap="round" opacity=".35" />
+        <path d="M14,-6 Q24,-24 16,-38" fill="none" stroke={fill} strokeWidth="15" strokeLinecap="round" />
+        <path d="M14,-6 Q24,-24 16,-38" fill="none" stroke={stroke} strokeWidth="3.2" strokeLinecap="round" opacity=".4" />
+        <ellipse cx="16" cy="-36" rx="7" ry="6" fill={fill} stroke={stroke} strokeWidth="2.5" />
+        <ellipse cx="-2" cy="4" rx="8" ry="5.5" fill={p.accent} opacity=".4" />
+      </g>
+    );
+  } else if (kind === "thumbDown") {
+    shape = (
+      <g transform="rotate(172)">
+        <BrassCuff p={p} />
+        <rect x="-20" y="-12" width="42" height="30" rx="13" fill={fill} stroke={stroke} strokeWidth="3.2" />
+        <path d="M14,-6 Q24,-24 16,-38" fill="none" stroke={fill} strokeWidth="15" strokeLinecap="round" />
+        <path d="M14,-6 Q24,-24 16,-38" fill="none" stroke={stroke} strokeWidth="3.2" strokeLinecap="round" opacity=".4" />
+        <ellipse cx="16" cy="-36" rx="7" ry="6" fill={fill} stroke={stroke} strokeWidth="2.5" />
+      </g>
+    );
+  } else if (kind === "fist") {
+    shape = (
+      <g>
+        <BrassCuff p={p} />
+        <ellipse cx="0" cy="5" rx="17" ry="16" fill={fill} stroke={stroke} strokeWidth="3.2" />
+        <path d="M-11,-1 H11 M-11,6 H11 M-9,12 H9" stroke={stroke} strokeWidth="2.6" strokeLinecap="round" opacity=".45" />
+        <ellipse cx="-4" cy="3" rx="5" ry="3.5" fill={p.accent} opacity=".45" />
+      </g>
+    );
+  } else if (kind === "palm") {
+    shape = (
+      <g>
+        <BrassCuff p={p} />
+        <path d="M-17,-2 Q-20,18 0,22 Q20,18 17,-2 Q9,-18 0,-18 Q-9,-18 -17,-2 Z"
+          fill={fill} stroke={stroke} strokeWidth="3.2" />
+        <ellipse cx="-8" cy="-4" rx="4.5" ry="9" fill={fill} stroke={stroke} strokeWidth="2.2" />
+        <ellipse cx="0" cy="-6" rx="4.5" ry="10" fill={fill} stroke={stroke} strokeWidth="2.2" />
+        <ellipse cx="8" cy="-4" rx="4.5" ry="9" fill={fill} stroke={stroke} strokeWidth="2.2" />
+        <ellipse cx="0" cy="8" rx="8" ry="5.5" fill={p.accent} opacity=".4" />
+      </g>
+    );
+  } else if (chassis === "hex") {
+    /* faceted brass mitt — matches hexagonal lantern */
+    shape = (
+      <g>
+        <BrassCuff p={p} />
+        <path d="M-16,-4 L-5,-18 L7,-18 L18,-2 L15,16 L0,20 L-15,16 Z"
+          fill={fill} stroke={stroke} strokeWidth="3.2" strokeLinejoin="round" />
+        <ellipse cx="-7" cy="-8" rx="4" ry="6" fill={p.body} opacity=".25" />
+        <ellipse cx="2" cy="-10" rx="4" ry="7" fill={p.body} opacity=".25" />
+        <ellipse cx="10" cy="-7" rx="3.5" ry="5.5" fill={p.body} opacity=".25" />
+        <circle cx="-1" cy="5" r="4" fill={p.accent} opacity=".55" />
+      </g>
+    );
+  } else if (chassis === "mushroom") {
+    /* soft sleepy three-finger mitt */
+    shape = (
+      <g>
+        <BrassCuff p={p} />
+        <ellipse cx="0" cy="5" rx="18" ry="16" fill={fill} stroke={stroke} strokeWidth="3.2" />
+        <ellipse cx="-9" cy="-7" rx="7" ry="9" fill={fill} stroke={stroke} strokeWidth="2.6" />
+        <ellipse cx="0" cy="-9" rx="7" ry="10" fill={fill} stroke={stroke} strokeWidth="2.6" />
+        <ellipse cx="9" cy="-7" rx="7" ry="9" fill={fill} stroke={stroke} strokeWidth="2.6" />
+        <circle cx="-2" cy="4" r="4.5" fill={p.accent} opacity=".45" />
+      </g>
+    );
+  } else if (chassis === "bulb") {
+    /* smooth glass-glove with warm palm pad + finger lobes */
+    shape = (
+      <g>
+        <BrassCuff p={p} />
+        <path d="M-18,-3 Q-22,14 0,20 Q22,14 18,-3 Q11,-18 0,-18 Q-11,-18 -18,-3 Z"
+          fill={fill} stroke={stroke} strokeWidth="3.2" />
+        <ellipse cx="-8" cy="-6" rx="5" ry="8" fill={fill} stroke={stroke} strokeWidth="2" />
+        <ellipse cx="0" cy="-8" rx="5" ry="9" fill={fill} stroke={stroke} strokeWidth="2" />
+        <ellipse cx="8" cy="-6" rx="5" ry="8" fill={fill} stroke={stroke} strokeWidth="2" />
+        <ellipse cx="0" cy="6" rx="9" ry="6" fill={p.accent} opacity=".42" />
+      </g>
+    );
+  } else {
+    /* desk — angular task mitt with HUD fingers */
+    shape = (
+      <g>
+        <BrassCuff p={p} />
+        <path d="M-17,-10 L17,-10 L19,14 L-19,14 Z" fill={fill} stroke={stroke} strokeWidth="3.2" />
+        <rect x="-13" y="-24" width="8" height="16" rx="2.5" fill={fill} stroke={stroke} strokeWidth="2.4" />
+        <rect x="-3" y="-26" width="8" height="18" rx="2.5" fill={fill} stroke={stroke} strokeWidth="2.4" />
+        <rect x="7" y="-24" width="8" height="16" rx="2.5" fill={fill} stroke={stroke} strokeWidth="2.4" />
+        <rect x="-11" y="3" width="22" height="6" rx="2" fill={p.accent} opacity=".6" />
+      </g>
+    );
+  }
+
+  return <g transform={flip}>{shape}</g>;
+}
+
+/** Rotate hand so cuff points back to the shoulder (reads attached, not floating). */
+function handRotation(d) {
+  const [ex, ey] = endOf(d);
+  return (Math.atan2(-ex, ey) * 180) / Math.PI;
+}
+
+function Arm({ d, shoulder, p, anim, animKey, morph, chassis = "hex", hand = "mitt", side = "L" }) {
   const [hx_, hy] = endOf(d);
+  /* Thumbs keep a fixed screen-space orientation so the digit always reads. */
+  const rot = hand === "thumb" ? -12 : hand === "thumbDown" ? 168 : handRotation(d);
   const morphEnds = morph
     ? morph.values.split(";").map((frame) => endOf(frame.trim()))
     : null;
@@ -666,26 +803,42 @@ function Arm({ d, shoulder, p, anim, animKey, morph, chassis = "support" }) {
         <animateTransform key={animKey} attributeName="transform" type="rotate" additive="sum"
           values={anim.values} dur={anim.dur} repeatCount="indefinite" />
       )}
-      <path d={d} fill="none" stroke={p.limb} strokeWidth="26" strokeLinecap="round">
+      {/* tapered limb — thinner than robot pipes so hands read first */}
+      <path d={d} fill="none" stroke={p.limb} strokeWidth="20" strokeLinecap="round">
         {morph && (
           <animate key={`${animKey}-d`} attributeName="d" values={morph.values}
             dur={morph.dur} repeatCount="indefinite" />
         )}
       </path>
-      <path d={d} fill="none" stroke={p.bodyLight} strokeWidth="9" strokeLinecap="round" opacity=".28">
+      <path d={d} fill="none" stroke={p.bodyLight} strokeWidth="7" strokeLinecap="round" opacity=".3">
         {morph && (
           <animate key={`${animKey}-hi`} attributeName="d" values={morph.values}
             dur={morph.dur} repeatCount="indefinite" />
         )}
       </path>
-      <circle cx="0" cy="0" r="18" fill={p.body} stroke={p.bodyDark} strokeWidth="2.5" />
-      <circle cx="0" cy="0" r="7" fill={p.joint} opacity=".7" />
+      {/* small brass shoulder pin — not a giant ball joint */}
+      <circle cx="0" cy="0" r="11" fill={p.accent} />
+      <circle cx="0" cy="0" r="5.5" fill={p.body} />
+      <circle cx="-2" cy="-2" r="2" fill={p.led} opacity=".65" />
+      {/* wrist plug so the limb meets the mitt without a gap */}
+      <circle cx={hx_} cy={hy} r="9" fill={p.limb}>
+        {handTx && (
+          <animate attributeName="cx" values={morphEnds.map((pt) => pt[0]).join(";")}
+            dur={morph.dur} repeatCount="indefinite" />
+        )}
+        {handTx && (
+          <animate attributeName="cy" values={morphEnds.map((pt) => pt[1]).join(";")}
+            dur={morph.dur} repeatCount="indefinite" />
+        )}
+      </circle>
       <g transform={`translate(${hx_},${hy})`}>
         {handTx && (
           <animateTransform attributeName="transform" type="translate"
             values={handTx} dur={morph.dur} repeatCount="indefinite" />
         )}
-        <HandShape chassis={chassis} p={p} />
+        <g transform={`rotate(${rot}) scale(1.15)`}>
+          <HandShape chassis={chassis} p={p} kind={hand} side={side} />
+        </g>
       </g>
     </g>
   );
@@ -921,15 +1074,9 @@ function Props({ g, p }) {
         </g>
       );
     case "thumbsUp":
-      return (
-        <path d="M304,256 Q303,232 312,231 Q321,232 320,256 Z" fill={p.bodyLight}
-          stroke={p.bodyDark} strokeWidth="2.5" strokeLinejoin="round" />
-      );
     case "thumbsDown":
-      return (
-        <path d="M290,382 Q289,406 298,407 Q307,406 306,382 Z" fill={p.bodyLight}
-          stroke={p.bodyDark} strokeWidth="2.5" strokeLinejoin="round" />
-      );
+      /* Digits live on the arm HandShape now — no floating orphan thumb props. */
+      return null;
     case "question":
       return (
         <text x="308" y="150" fontSize="38" fill={p.led} fontWeight="700" fontFamily="monospace">?</text>
@@ -1150,13 +1297,16 @@ function Bands({ chassis, p }) {
 
 function FlameInner({ chassis, p, gid }) {
   if (chassis === "bulb") {
+    /* Edison coil near the screw neck — clearly below the face */
     return (
       <g data-ms-part="flame">
-        <path className="ln-twinkle" d="M188,220 Q210,188 232,220 Q210,252 188,220" fill="none"
-          stroke={p.accent} strokeWidth="3.5" strokeLinecap="round" />
-        <path d="M194,236 Q210,210 226,236" fill="none" stroke={p.led} strokeWidth="2.5"
-          strokeLinecap="round" opacity=".85" />
-        <circle cx="210" cy="228" r="5.5" fill={p.accent} opacity=".9" />
+        <path d="M210,300 L210,318" stroke={p.accent} strokeWidth="3" strokeLinecap="round" opacity=".5" />
+        <path className="ln-twinkle" d="M178,330 Q210,304 242,330" fill="none"
+          stroke={p.accent} strokeWidth="4" strokeLinecap="round" />
+        <path d="M188,340 Q210,318 232,340" fill="none" stroke={p.led} strokeWidth="3"
+          strokeLinecap="round" opacity=".9" />
+        <path d="M196,348 Q210,332 224,348" fill="none" stroke={p.accent} strokeWidth="2.5"
+          strokeLinecap="round" opacity=".75" />
       </g>
     );
   }
@@ -1298,33 +1448,36 @@ function GlassBody({ chassis, p, bodyGrad, glassGrad }) {
 
 function Accessory({ chassis, p }) {
   if (chassis === "hex") {
+    /* ribbon bookmark — reads as a bookmark, not a floating wedge-hand */
     return (
-      <g data-ms-part="accessory" transform="translate(320,292)">
-        <rect x="-9" y="-30" width="18" height="40" rx="2.5" fill={p.accent} />
-        <path d="M-9,10 L0,22 L9,10" fill={p.led} />
-        <rect x="-5" y="-22" width="10" height="3" rx="1" fill={p.led} opacity=".75" />
+      <g data-ms-part="accessory" transform="translate(298,178)">
+        <path d="M-8,-36 L8,-36 L8,22 L0,12 L-8,22 Z" fill={p.accent} stroke={p.bodyDark} strokeWidth="2" />
+        <rect x="-5" y="-30" width="10" height="4" rx="1" fill={p.led} opacity=".8" />
+        <path d="M-3,-18 H3 M-3,-10 H3 M-3,-2 H1" stroke={p.led} strokeWidth="1.8" strokeLinecap="round" opacity=".7" />
       </g>
     );
   }
   if (chassis === "mushroom") {
     return (
-      <g data-ms-part="accessory" transform="translate(320,160)">
-        <path d="M0,-12 A14 14 0 1 0 0,12 A9 9 0 1 1 0,-12 Z" fill={p.led} stroke={p.accent} strokeWidth="2.5" />
+      <g data-ms-part="accessory" transform="translate(308,148)">
+        <path d="M0,-14 A16 16 0 1 0 0,14 A10 10 0 1 1 0,-14 Z" fill={p.led} stroke={p.accent} strokeWidth="3" />
+        <circle cx="4" cy="-2" r="2.5" fill={p.accent} opacity=".55" />
       </g>
     );
   }
   if (chassis === "bulb") {
     return (
-      <g data-ms-part="accessory" transform="translate(322,148)">
-        <path className="ln-twinkle" d="M0,-10 L2.5,-2.5 L10,0 L2.5,2.5 L0,10 L-2.5,2.5 L-10,0 L-2.5,-2.5 Z" fill={p.accent} />
-        <circle cx="0" cy="0" r="3.5" fill={p.led} />
+      <g data-ms-part="accessory" transform="translate(318,132)">
+        <path className="ln-twinkle" d="M0,-12 L3,-3 L12,0 L3,3 L0,12 L-3,3 L-12,0 L-3,-3 Z" fill={p.accent} />
+        <circle cx="0" cy="0" r="4" fill={p.led} />
       </g>
     );
   }
   return (
-    <g data-ms-part="accessory" transform="translate(322,292)">
-      <rect x="-18" y="-16" width="36" height="30" rx="4" fill={p.led} stroke={p.accent} strokeWidth="2.5" />
-      <path d="M-9,-4 H9 M-9,4 H5" stroke={p.bodyDark} strokeWidth="2.5" strokeLinecap="round" />
+    <g data-ms-part="accessory" transform="translate(318,168)">
+      <rect x="-16" y="-14" width="32" height="28" rx="4" fill={p.led} stroke={p.accent} strokeWidth="2.5" />
+      <path d="M-8,-4 H8 M-8,4 H4" stroke={p.bodyDark} strokeWidth="2.5" strokeLinecap="round" />
+      <rect x="-16" y="-14" width="6" height="28" rx="2" fill={p.accent} opacity=".35" />
     </g>
   );
 }
@@ -1516,9 +1669,11 @@ function LanternSVG({ variant, p, glow, paused, waving, gesture, svgRef, eyeRef,
                 {parts.arms && (
                   <g data-ms-part="arms">
                     <Arm d={g.armL} shoulder={shouldersFor(chassis)[0]} p={p} anim={armLAnim}
-                      morph={armMorphL} animKey={`l-${g.key}-${isWaving}`} chassis={chassis} />
+                      morph={armMorphL} animKey={`l-${g.key}-${isWaving}`} chassis={chassis}
+                      hand={g.handL || "mitt"} side="L" />
                     <Arm d={g.armR} shoulder={shouldersFor(chassis)[1]} p={p} anim={armRAnim}
-                      morph={armMorphR} animKey={`r-${g.key}-${isWaving}`} chassis={chassis} />
+                      morph={armMorphR} animKey={`r-${g.key}-${isWaving}`} chassis={chassis}
+                      hand={g.handR || "mitt"} side="R" />
                   </g>
                 )}
               </g>
