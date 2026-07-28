@@ -164,8 +164,12 @@ function normalizeHex(input: unknown, fallback: string) {
 
 function themeVarsStyle(theme: ThemeSwatch, accent: string) {
   const features = normalizeHex(theme.features ?? "#2A1A0C", "#2A1A0C");
+  const blush = theme.blush
+    ? normalizeHex(theme.blush, "#E8A8A0")
+    : undefined;
+  const blushVar = blush ? `--ms-blush:${blush};` : "";
   return `
-.ms-root{--ms-top:${theme.top};--ms-mid:${theme.mid};--ms-base:${theme.base};--ms-core:${theme.core};--ms-stage:${theme.stage};--ms-features:${features};--ms-accent:${accent};--ms-signal:68;--ms-signal-color:${accent};--ms-glow:.45}
+.ms-root{--ms-top:${theme.top};--ms-mid:${theme.mid};--ms-base:${theme.base};--ms-core:${theme.core};--ms-stage:${theme.stage};--ms-features:${features};--ms-accent:${accent};${blushVar}--ms-signal:68;--ms-signal-color:${accent};--ms-glow:.45}
 .ms-eyes{transition:transform .12s ease-out}
 .ms-glow-halo,.ms-signal-glow{opacity:calc(.18 + var(--ms-glow) * .72)}
 .ms-signal-tint{fill:var(--ms-signal-color);stroke:var(--ms-signal-color)}
@@ -189,6 +193,7 @@ export function applyThemeContract(
     [accent, "var(--ms-accent)"],
   ];
   if (theme.features) pairs.push([theme.features, "var(--ms-features)"]);
+  if (theme.blush) pairs.push([theme.blush, "var(--ms-blush)"]);
 
   for (const [hex, cssVar] of pairs) {
     const h = normalizeHex(hex, "");
@@ -283,6 +288,9 @@ export function normalizeGeneratedMascot(
       features: t.features
         ? normalizeHex(t.features, "#2A1A0C")
         : "#2A1A0C",
+      ...(t.blush
+        ? { blush: normalizeHex(t.blush, "#E8A8A0") }
+        : {}),
     };
   }
 

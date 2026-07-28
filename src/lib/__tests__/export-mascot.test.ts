@@ -183,6 +183,26 @@ describe("applyThemeContract root class", () => {
     expect(root?.match(/\bms-root\b/g)).toHaveLength(1);
   });
 
+  it("remaps blush to --ms-blush when the theme declares it", () => {
+    const themed = applyThemeContract(
+      '<svg viewBox="0 0 10 10"><circle fill="#E8A8C8"/></svg>',
+      {
+        name: "Twilight",
+        top: "#F0E6FF",
+        mid: "#C4A8E8",
+        base: "#7A62B0",
+        core: "#FFF6DE",
+        stage: "#1A1628",
+        features: "#3A2A58",
+        blush: "#E8A8C8",
+      },
+      "#B8A0E0"
+    );
+
+    expect(themed).toContain("fill=\"var(--ms-blush)\"");
+    expect(themed).toContain("--ms-blush:#E8A8C8");
+  });
+
   it("preserves family classes when export classes are added", () => {
     expect(
       mergeSvgClassNames(

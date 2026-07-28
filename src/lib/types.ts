@@ -7,6 +7,8 @@ export type ThemeSwatch = {
   stage: string;
   /** Optional feature/line color (eyes, brows, beak outlines). */
   features?: string;
+  /** Optional cheek blush; remapped to --ms-blush when present. */
+  blush?: string;
 };
 
 export type StudioInstrument = {

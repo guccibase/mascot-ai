@@ -127,16 +127,40 @@ describe("example pose packs", () => {
 
           // Sol-pure: no limb paddles.
           expect(pose.svg).not.toContain('data-ms-part="limbs"');
+          // Halo uses animated ob-glow only (no static ms-glow-halo fight).
+          expect(pose.svg).not.toContain("ms-glow-halo");
 
           // Eyes must be its own toggle — no nested mouth/brows parts inside.
           expect(pose.svg).toMatch(
             /<g data-ms-part="eyes"[^>]*>(?:(?!data-ms-part=)[\s\S])*?<\/g>/
           );
+          // Cursor tracking wraps brows + eyes together; mouth stays outside.
           expect(pose.svg).toMatch(
-            /data-ms-part="brows"[\s\S]*?data-ms-part="eyes"[\s\S]*?data-ms-part="mouth"/
+            /class="[^"]*\bms-eyes\b[^"]*"[\s\S]*?data-ms-part="brows"[\s\S]*?data-ms-part="eyes"/
+          );
+          expect(pose.svg).toMatch(
+            /data-ms-part="eyes"[\s\S]*?data-ms-part="mouth"/
           );
 
           expect(pose.track).toBe(coreKeys.has(pose.key));
+
+          // Breath SMIL frames share a command skeleton (no morph glitches).
+          const breath = pose.svg.match(
+            /animate attributeName="d" values="([^"]+)"/
+          );
+          expect(breath, `${slug}/${pose.key} needs body breath`).not.toBeNull();
+          const frames = breath![1]!.split(";");
+          const skeleton = (d: string) =>
+            (d.match(/[MLCQZHVSTA]/gi) ?? []).join("");
+          const skel = skeleton(frames[0]!);
+          expect(frames.every((frame) => skeleton(frame) === skel)).toBe(true);
+        }
+
+        const themes = pack.meta?.themes ?? {};
+        for (const swatch of Object.values(themes)) {
+          expect(swatch.blush, `${slug} themes need blush for live remaps`).toMatch(
+            /^#[0-9A-Fa-f]{6}$/
+          );
         }
 
         const sleepy = pack.poses.find((pose) => pose.key === "sleepy")!;
@@ -153,7 +177,16 @@ describe("example pose packs", () => {
 
         const wave = pack.poses.find((pose) => pose.key === "wave")!;
         expect(wave.svg).toContain("ob-rise");
-        expect(wave.svg).not.toContain("animateTransform");
+        // Wave is photonic sparks — not a limb rotate performance.
+        expect(wave.svg).not.toMatch(
+          /animateTransform[^>]*type="rotate"/
+        );
+
+        if (slug === "zephyr") {
+          // Crown-level wind ticks, not belly-side curves that read as arms.
+          expect(wave.svg).toContain("M96,198");
+          expect(wave.svg).not.toContain('rx="14"');
+        }
 
         const imported = finalizeMarketplacePack(
           parseMarketplacePackFile(JSON.stringify(pack))
@@ -261,6 +294,34 @@ describe("example pose packs", () => {
       expect(idleSvg.watt).not.toContain(eyeMarkerBySlug.lumen);
       expect(idleSvg.shade).not.toContain(eyeMarkerBySlug.arc);
       expect(idleSvg.arc).not.toContain(eyeMarkerBySlug.watt);
+    });
+
+    it("keeps Fanous-grade thumbs, clap morph, and unique paint ids", () => {
+      for (const slug of lanternSlugs) {
+        const pack = buildPosePack(slug);
+        const thumbsUp = pack.poses.find((pose) => pose.key === "thumbs_up")!;
+        const thumbsDown = pack.poses.find((pose) => pose.key === "thumbs_down")!;
+        const clapping = pack.poses.find((pose) => pose.key === "clapping")!;
+        const flying = pack.poses.find((pose) => pose.key === "flying")!;
+        const idle = pack.poses.find((pose) => pose.key === "idle")!;
+
+        // Knuckle slab + short fat digit (not a floating prop)
+        expect(thumbsUp.svg).toContain('width="41" height="28"');
+        expect(thumbsUp.svg).toContain("Q21,-23 15,-34");
+        expect(thumbsDown.svg).toContain("Q21,-23 15,-34");
+        expect(thumbsUp.svg).not.toMatch(/data-ms-part="props"[\s\S]*thumbsUp/);
+
+        // Clap open ↔ shut morph frames
+        expect(clapping.svg).toContain("Q-28,8 18,2");
+        expect(clapping.svg).toContain("Q-6,20 56,16");
+
+        // Instance-scoped ids (multi-SVG pages must not collide)
+        expect(flying.svg).toContain(`id="${slug}-flying-lift-bloom"`);
+        expect(flying.svg).toContain(`id="ln-hit-${slug}-flying"`);
+        expect(idle.svg).toContain(`id="ln-hit-${slug}-idle"`);
+        expect(flying.svg).not.toContain('id="ln-lift-bloom"');
+        expect(idle.svg).not.toContain('id="ln-hit"');
+      }
     });
   });
 

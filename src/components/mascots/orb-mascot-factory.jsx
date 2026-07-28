@@ -68,7 +68,7 @@ const CLOSED_KEYS = new Set(["happy", "dancing", "clapping"]);
 const WIDE_KEYS = new Set(["surprised", "alarm", "error"]);
 const SAD_KEYS = new Set(["sad", "crying"]);
 const ANGRY_KEYS = new Set(["grumpy", "thumbs_down"]);
-const HALF_KEYS = new Set(["waiting", "grumpy"]);
+const HALF_KEYS = new Set(["waiting"]);
 
 const STAR4 = "M0,-9 L2.4,-2.4 L9,0 L2.4,2.4 L0,9 L-2.4,2.4 L-9,0 L-2.4,-2.4 Z";
 const HEART = "M0,12 C-14,1 -16,-9 -8.5,-13.5 C-3.5,-16.5 0,-12 0,-8 C0,-12 3.5,-16.5 8.5,-13.5 C16,-9 14,1 0,12 Z";
@@ -90,11 +90,11 @@ const ORB_VARIANTS = {
       features: "#3A2A58", blush: "#E8A8C8",
     },
     themes: {
-      twilight: { name: "Twilight Breath", top: "#F0E6FF", mid: "#C4A8E8", base: "#7A62B0", core: "#FFF6DE", stage: "#1A1628", features: "#3A2A58" },
-      mist: { name: "Morning Mist", top: "#E8F4F0", mid: "#A8D4C8", base: "#5A9088", core: "#FFF8E8", stage: "#14201C", features: "#2A4038" },
-      dusk: { name: "Soft Dusk", top: "#FFE8F0", mid: "#E0A0B8", base: "#A06888", core: "#FFF0E0", stage: "#241820", features: "#4A2838" },
-      aurora: { name: "Aurora Quiet", top: "#E0F0FF", mid: "#90B8E8", base: "#5878B0", core: "#FFF8E8", stage: "#141C28", features: "#283850" },
-      ember: { name: "Warm Ember", top: "#FFF0E0", mid: "#E8B888", base: "#B07858", core: "#FFF8E8", stage: "#241810", features: "#4A3020" },
+      twilight: { name: "Twilight Breath", top: "#F0E6FF", mid: "#C4A8E8", base: "#7A62B0", core: "#FFF6DE", stage: "#1A1628", features: "#3A2A58", blush: "#E8A8C8" },
+      mist: { name: "Morning Mist", top: "#E8F4F0", mid: "#A8D4C8", base: "#5A9088", core: "#FFF8E8", stage: "#14201C", features: "#2A4038", blush: "#D8A8A0" },
+      dusk: { name: "Soft Dusk", top: "#FFE8F0", mid: "#E0A0B8", base: "#A06888", core: "#FFF0E0", stage: "#241820", features: "#4A2838", blush: "#F0A0B0" },
+      aurora: { name: "Aurora Quiet", top: "#E0F0FF", mid: "#90B8E8", base: "#5878B0", core: "#FFF8E8", stage: "#141C28", features: "#283850", blush: "#E0A8C0" },
+      ember: { name: "Warm Ember", top: "#FFF0E0", mid: "#E8B888", base: "#B07858", core: "#FFF8E8", stage: "#241810", features: "#4A3020", blush: "#E8A090" },
     },
   },
   glint: {
@@ -113,11 +113,11 @@ const ORB_VARIANTS = {
       features: "#3A1830", blush: "#F0A0B8",
     },
     themes: {
-      blush: { name: "Blush Filter", top: "#FFE0EC", mid: "#E07898", base: "#A04068", core: "#FFF0D0", stage: "#241018", features: "#3A1830" },
-      citrus: { name: "Citrus Pop", top: "#FFF4C8", mid: "#F0A848", base: "#C06830", core: "#FFF8E0", stage: "#241810", features: "#4A2810" },
-      noir: { name: "Noir Gloss", top: "#E8E0F0", mid: "#786888", base: "#3A3048", core: "#F0E8FF", stage: "#18141E", features: "#1A1420" },
-      teal: { name: "Teal Grade", top: "#D8F4F0", mid: "#48B0A8", base: "#287870", core: "#FFF0D8", stage: "#101C1A", features: "#183838" },
-      violet: { name: "Violet Fade", top: "#F0E0FF", mid: "#9870D0", base: "#583888", core: "#FFE8F0", stage: "#1A1428", features: "#2A1840" },
+      blush: { name: "Blush Filter", top: "#FFE0EC", mid: "#E07898", base: "#A04068", core: "#FFF0D0", stage: "#241018", features: "#3A1830", blush: "#F0A0B8" },
+      citrus: { name: "Citrus Pop", top: "#FFF4C8", mid: "#F0A848", base: "#C06830", core: "#FFF8E0", stage: "#241810", features: "#4A2810", blush: "#F0A888" },
+      noir: { name: "Noir Gloss", top: "#E8E0F0", mid: "#786888", base: "#3A3048", core: "#F0E8FF", stage: "#18141E", features: "#1A1420", blush: "#C898A8" },
+      teal: { name: "Teal Grade", top: "#D8F4F0", mid: "#48B0A8", base: "#287870", core: "#FFF0D8", stage: "#101C1A", features: "#183838", blush: "#E0A0A0" },
+      violet: { name: "Violet Fade", top: "#F0E0FF", mid: "#9870D0", base: "#583888", core: "#FFE8F0", stage: "#1A1428", features: "#2A1840", blush: "#E8A0C0" },
     },
   },
   trove: {
@@ -136,11 +136,11 @@ const ORB_VARIANTS = {
       features: "#3A3020", blush: "#E8B090",
     },
     themes: {
-      goldleaf: { name: "Gold Leaf", top: "#FFF2C8", mid: "#E0C060", base: "#8A7840", core: "#FFF8E0", stage: "#1C1A14", features: "#3A3020" },
-      sage: { name: "Sage Nest Egg", top: "#E8F4D8", mid: "#98B870", base: "#587848", core: "#FFF8E0", stage: "#141C14", features: "#283820" },
-      mint: { name: "Mint Vault", top: "#E0F8F0", mid: "#68C0A0", base: "#387860", core: "#FFF8E8", stage: "#101C18", features: "#183830" },
-      copper: { name: "Copper Cache", top: "#FFE8D0", mid: "#D08858", base: "#885030", core: "#FFF4E0", stage: "#1E1410", features: "#3A2418" },
-      slate: { name: "Slate Reserve", top: "#E8ECF0", mid: "#8898A8", base: "#485868", core: "#FFF4E0", stage: "#14181C", features: "#243040" },
+      goldleaf: { name: "Gold Leaf", top: "#FFF2C8", mid: "#E0C060", base: "#8A7840", core: "#FFF8E0", stage: "#1C1A14", features: "#3A3020", blush: "#E8B090" },
+      sage: { name: "Sage Nest Egg", top: "#E8F4D8", mid: "#98B870", base: "#587848", core: "#FFF8E0", stage: "#141C14", features: "#283820", blush: "#D8A898" },
+      mint: { name: "Mint Vault", top: "#E0F8F0", mid: "#68C0A0", base: "#387860", core: "#FFF8E8", stage: "#101C18", features: "#183830", blush: "#E0A898" },
+      copper: { name: "Copper Cache", top: "#FFE8D0", mid: "#D08858", base: "#885030", core: "#FFF4E0", stage: "#1E1410", features: "#3A2418", blush: "#F0A080" },
+      slate: { name: "Slate Reserve", top: "#E8ECF0", mid: "#8898A8", base: "#485868", core: "#FFF4E0", stage: "#14181C", features: "#243040", blush: "#D0A0A0" },
     },
   },
   zephyr: {
@@ -159,11 +159,11 @@ const ORB_VARIANTS = {
       features: "#1A3048", blush: "#F0A8A0",
     },
     themes: {
-      clear: { name: "Clear Sky", top: "#F4FAFF", mid: "#9AD0F4", base: "#4A88C0", core: "#FFE8A0", stage: "#121C28", features: "#1A3048" },
-      sunset: { name: "Soft Sunset", top: "#FFE8D8", mid: "#F0A070", base: "#C06048", core: "#FFF0C0", stage: "#241410", features: "#402018" },
-      storm: { name: "Storm Soft", top: "#E0E8F0", mid: "#6888A8", base: "#385068", core: "#E8F0FF", stage: "#141820", features: "#1A2838" },
-      spring: { name: "Spring Breeze", top: "#E8FFF4", mid: "#68C898", base: "#388860", core: "#FFF4C8", stage: "#101C16", features: "#183828" },
-      night: { name: "Night Air", top: "#D8E0F8", mid: "#5870B0", base: "#304070", core: "#F0D080", stage: "#10141E", features: "#1A2438" },
+      clear: { name: "Clear Sky", top: "#F4FAFF", mid: "#9AD0F4", base: "#4A88C0", core: "#FFE8A0", stage: "#121C28", features: "#1A3048", blush: "#F0A8A0" },
+      sunset: { name: "Soft Sunset", top: "#FFE8D8", mid: "#F0A070", base: "#C06048", core: "#FFF0C0", stage: "#241410", features: "#402018", blush: "#F09888" },
+      storm: { name: "Storm Soft", top: "#E0E8F0", mid: "#6888A8", base: "#385068", core: "#E8F0FF", stage: "#141820", features: "#1A2838", blush: "#D09898" },
+      spring: { name: "Spring Breeze", top: "#E8FFF4", mid: "#68C898", base: "#388860", core: "#FFF4C8", stage: "#101C16", features: "#183828", blush: "#E8A898" },
+      night: { name: "Night Air", top: "#D8E0F8", mid: "#5870B0", base: "#304070", core: "#F0D080", stage: "#10141E", features: "#1A2438", blush: "#C890A0" },
     },
   },
 };
@@ -333,15 +333,14 @@ function SpeciesRays({ species, p }) {
       </g>
     );
   }
-  // Soft wind wisps — never fake hands
+  // High wind ticks near the crown — sparkle language, not side "arms"
   return (
-    <g data-ms-part="rays" fill="none" stroke={p.top} strokeLinecap="round">
-      <path className="ob-ray" d="M52,268 Q34,258 28,272" strokeWidth="5" />
-      <path className="ob-ray" d="M48,300 Q28,298 22,312" strokeWidth="4" style={{ animationDelay: ".25s" }} />
-      <path className="ob-ray" d="M372,262 Q392,252 400,268" strokeWidth="5" style={{ animationDelay: ".15s" }} />
-      <path className="ob-ray" d="M376,296 Q398,292 404,308" strokeWidth="4" style={{ animationDelay: ".4s" }} />
-      <circle cx="40" cy="330" r="3.5" fill={p.core} className="ob-twinkle" />
-      <circle cx="386" cy="336" r="3" fill={p.core} className="ob-twinkle" style={{ animationDelay: ".45s" }} />
+    <g data-ms-part="rays" fill="none" stroke={p.top} strokeLinecap="round" opacity=".85">
+      <path className="ob-ray" d="M96,198 Q78,188 72,198" strokeWidth="3.5" />
+      <path className="ob-ray" d="M328,192 Q348,182 356,194" strokeWidth="3.5" style={{ animationDelay: ".2s" }} />
+      <circle cx="88" cy="216" r="2.8" fill={p.core} className="ob-twinkle" />
+      <circle cx="338" cy="210" r="2.6" fill={p.core} className="ob-twinkle" style={{ animationDelay: ".4s" }} />
+      <circle cx="210" cy="148" r="3" fill={p.core} className="ob-twinkle" style={{ animationDelay: ".15s" }} />
     </g>
   );
 }
@@ -849,7 +848,8 @@ function renderOrb(config, key) {
         <ellipse cx="0" cy="0" rx="42" ry="5" fill={p.core} opacity=".32" />
       </g>
 
-      <ellipse data-ms-part="halo" className="ob-glow ms-glow-halo" cx="210" cy="300" rx="168" ry="160" fill={`url(#${gid}-halo)`} />
+      {/* ob-glow only — avoid ms-glow-halo static opacity fighting the pulse */}
+      <ellipse data-ms-part="halo" className="ob-glow" cx="210" cy="300" rx="168" ry="160" fill={`url(#${gid}-halo)`} />
 
       <g className={bodyClass}>
         <g transform="translate(210,466)">
@@ -879,15 +879,16 @@ function renderOrb(config, key) {
               <circle cx={210 + body.blushX} cy={body.blushY} r="11" />
             </g>
 
-            <g transform={`translate(${look[0]},${look[1]})`}>
+            {/* Track brows + eyes together (Sol); mouth stays put */}
+            <g className="ms-eyes" transform={`translate(${look[0]},${look[1]})`}>
               <Brows kind={face.brow} xL={eyeL} xR={eyeR} y={body.faceY - 28} p={p} />
-              <g data-ms-part="eyes" className="ms-eyes ob-pop">
+              <g data-ms-part="eyes" className="ob-pop">
                 <Eye style={config.eyeStyle} kind={face.eye} x={eyeL} y={body.faceY} p={p} />
                 <Eye style={config.eyeStyle} kind={face.eye} x={eyeR} y={body.faceY} p={p} />
               </g>
-              <g data-ms-part="mouth">
-                <Mouth kind={face.mouth} y={mouthY} p={p} />
-              </g>
+            </g>
+            <g data-ms-part="mouth">
+              <Mouth kind={face.mouth} y={mouthY} p={p} />
             </g>
 
             <g data-ms-part="badge">

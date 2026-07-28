@@ -469,7 +469,7 @@ const HEART_D = "M0,8 C-10,0 -11,-7 -4.5,-9 C-1.5,-10 0,-6.5 0,-4.5 C0,-6.5 1.5,
 /* ---------- face ---------- */
 /* eyeStyle: diamond (hex) · oval (mushroom) · round (bulb) · hud (desk)
    gazeY: negative shifts pupils up (flight / skyward look). */
-function Eye({ kind, x, p, track, eyeRef, style = "round", gazeY = 0 }) {
+function Eye({ kind, x, p, track, eyeRef, style = "round", gazeY = 0, hitId = "ln-hit" }) {
   // lantern aliases: oval→soft rounds, round→bean ovals; diamond & hud stay native
   const styleMap = { oval: "soft", round: "bean", soft: "soft", visor: "visor", bean: "bean", hud: "hud", diamond: "diamond" };
   style = styleMap[style] || style;
@@ -560,7 +560,7 @@ function Eye({ kind, x, p, track, eyeRef, style = "round", gazeY = 0 }) {
             values="1 1;1 1;1 0.08;1 1;1 1" keyTimes="0;0.9;0.925;0.95;1"
             dur="5.4s" repeatCount="indefinite" />
           <animateTransform attributeName="transform" type="scale" additive="sum"
-            begin="ln-hit.click" dur="0.5s" fill="remove"
+            begin={`${hitId}.click`} dur="0.5s" fill="remove"
             values="1 1;1 0.1;1 1;1 0.1;1 1" keyTimes="0;0.2;0.45;0.7;1" />
         </>
       )}
@@ -767,8 +767,12 @@ function Arm({
   const isThumb = hand === "thumb" || hand === "thumbDown";
   const [, tipY] = endOf(d);
   const [handX, handY] = isThumb && fingerAt ? fingerAt : tipBeyond(d, hand === "palm" ? 10 : 8);
-  /* Fingers grow away from the shoulder: down when hanging, up when raised. */
-  const hangFlip = !isThumb && tipY > 12 ? "rotate(180)" : undefined;
+  /* Average morph tip Y so clap open/shut doesn't freeze the wrong finger direction. */
+  const tipSamples = morph
+    ? morph.values.split(";").map((frame) => endOf(frame.trim())[1])
+    : [tipY];
+  const tipYForFlip = tipSamples.reduce((a, b) => a + b, 0) / tipSamples.length;
+  const hangFlip = !isThumb && tipYForFlip > 12 ? "rotate(180)" : undefined;
   const morphEnds = morph
     ? morph.values.split(";").map((frame) => tipBeyond(frame.trim(), 8))
     : null;
@@ -808,25 +812,27 @@ function Arm({
 }
 
 /** Warm lift glow / updraft under the base for flying — light, not rocket nozzles. */
-function Thrusters({ p }) {
+function Thrusters({ p, uid = "ln" }) {
+  const bloomId = `${uid}-lift-bloom`;
+  const puffId = `${uid}-lift-puff`;
   return (
     <g>
       <defs>
-        <radialGradient id="ln-lift-bloom" cx="50%" cy="20%" r="70%">
+        <radialGradient id={bloomId} cx="50%" cy="20%" r="70%">
           <stop offset="0" stopColor={p.led} stopOpacity=".7" />
           <stop offset=".45" stopColor={p.accent} stopOpacity=".45" />
           <stop offset="1" stopColor={FLAME.outer} stopOpacity="0" />
         </radialGradient>
-        <radialGradient id="ln-lift-puff" cx="50%" cy="30%" r="70%">
+        <radialGradient id={puffId} cx="50%" cy="30%" r="70%">
           <stop offset="0" stopColor={p.led} stopOpacity=".55" />
           <stop offset="1" stopColor={p.led} stopOpacity="0" />
         </radialGradient>
       </defs>
-      <ellipse cx="210" cy="468" rx="128" ry="68" fill="url(#ln-lift-bloom)" opacity=".9" />
-      <ellipse cx="210" cy="500" rx="110" ry="24" fill="url(#ln-lift-puff)" />
+      <ellipse cx="210" cy="468" rx="128" ry="68" fill={`url(#${bloomId})`} opacity=".9" />
+      <ellipse cx="210" cy="500" rx="110" ry="24" fill={`url(#${puffId})`} />
       {[[150, 448, 26, "0s"], [270, 452, 28, "0.16s"], [210, 470, 30, "0.32s"],
         [168, 488, 20, "0.5s"], [252, 490, 22, "0.68s"], [210, 504, 18, "0.86s"]].map(([x, y, r, delay], i) => (
-        <circle key={i} className="ln-smoke" cx={x} cy={y} r={r} fill="url(#ln-lift-puff)"
+        <circle key={i} className="ln-smoke" cx={x} cy={y} r={r} fill={`url(#${puffId})`}
           style={{ animationDelay: delay }} />
       ))}
       {[[172, 430, "0s"], [248, 430, "0.1s"]].map(([x, y, begin], i) => (
@@ -1549,6 +1555,13 @@ function LanternSVG({ variant, p, glow, paused, waving, gesture, svgRef, eyeRef,
   const mouthY = skyward ? -12 : 0;
   /* Pupils park at the top of each eye when launching skyward. */
   const gazeY = g.gazeY ?? (skyward ? -6 : 0);
+  const uid = `${variant?.slug || chassis}-${g.key}`;
+  const hitId = `ln-hit-${uid}`;
+  /* Local blush Y inside the faceLift group (rides with eyes/mouth). */
+  const blushCy = chassis === "mushroom" ? 250
+    : chassis === "desk" ? 246
+      : chassis === "bulb" ? 260
+        : 278;
 
   return (
     <svg
@@ -1557,24 +1570,24 @@ function LanternSVG({ variant, p, glow, paused, waving, gesture, svgRef, eyeRef,
       viewBox="0 0 420 520"
       width="100%"
       role="img"
-      aria-labelledby={`ln-title-${g.key} ln-description-${g.key}`}
+      aria-labelledby={`ln-title-${uid} ln-description-${uid}`}
       className={`ln-svg ln-g-${gesture} ${isWaving ? "ln-wave-on" : ""}`}
       style={{ "--g": glow, cursor: "pointer" }}
       {...(paused ? { "data-paused": "1" } : {})}
     >
-      <title id={`ln-title-${g.key}`}>{`${variant?.name || "Lantern"} — ${g.label}`}</title>
-      <desc id={`ln-description-${g.key}`}>{g.tip}</desc>
+      <title id={`ln-title-${uid}`}>{`${variant?.name || "Lantern"} — ${g.label}`}</title>
+      <desc id={`ln-description-${uid}`}>{g.tip}</desc>
       <style>{SVG_CSS}</style>
       <defs>
-        <radialGradient id={`ln-glow-${g.key}`} cx="50%" cy="46%" r="58%">
+        <radialGradient id={`ln-glow-${uid}`} cx="50%" cy="46%" r="58%">
           <stop offset="0" stopColor={p.glowC} stopOpacity=".95" />
           <stop offset="1" stopColor={p.glowC} stopOpacity="0" />
         </radialGradient>
-        <linearGradient id={`ln-body-${g.key}`} x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`ln-body-${uid}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor={p.bodyLight} />
           <stop offset="1" stopColor={p.body} />
         </linearGradient>
-        <linearGradient id={`ln-screen-${g.key}`} x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`ln-screen-${uid}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor={p.screenLight} />
           <stop offset="1" stopColor={p.screen} />
         </linearGradient>
@@ -1596,68 +1609,60 @@ function LanternSVG({ variant, p, glow, paused, waving, gesture, svgRef, eyeRef,
               values="-3;3;-3" dur="1.1s" repeatCount="indefinite" />
           )}
           <animateTransform attributeName="transform" type="translate" additive="sum"
-            begin="ln-hit.click" dur="0.6s" fill="remove"
+            begin={`${hitId}.click`} dur="0.6s" fill="remove"
             values="0 0;0 7;0 -12;0 3;0 0" keyTimes="0;0.24;0.54;0.8;1" />
           <animateTransform attributeName="transform" type="scale" additive="sum"
-            begin="ln-hit.click" dur="0.6s" fill="remove"
+            begin={`${hitId}.click`} dur="0.6s" fill="remove"
             values="1 1;1.05 .93;.97 1.05;1.02 .98;1 1" keyTimes="0;0.24;0.54;0.8;1" />
           <g transform={`rotate(${g.bow || g.lean || 0})`}>
             <g transform="translate(-210,-470)">
-              <g id="ln-hit">
+              <g id={hitId}>
                 {parts.halo && (
                   <ellipse data-ms-part="halo" className="ln-glow ms-glow-halo" cx="210" cy="280" rx="140" ry="124"
-                    fill={`url(#ln-glow-${g.key})`} />
+                    fill={`url(#ln-glow-${uid})`} />
                 )}
 
                 {/* lift glow sits behind the base while flying */}
                 {flying && parts.thrusters && (
-                  <g data-ms-part="thrusters"><Thrusters p={p} /></g>
+                  <g data-ms-part="thrusters"><Thrusters p={p} uid={uid} /></g>
                 )}
 
                 {parts.base && <Base chassis={chassis} p={p} />}
                 {parts.glass && (
-                  <GlassBody chassis={chassis} p={p} bodyGrad={`ln-body-${g.key}`} glassGrad={`ln-screen-${g.key}`} />
+                  <GlassBody chassis={chassis} p={p} bodyGrad={`ln-body-${uid}`} glassGrad={`ln-screen-${uid}`} />
                 )}
-                {parts.flame && <FlameInner chassis={chassis} p={p} gid={`ln-glow-${g.key}`} />}
+                {parts.flame && <FlameInner chassis={chassis} p={p} gid={`ln-glow-${uid}`} />}
                 {parts.bands && <Bands chassis={chassis} p={p} />}
                 {parts.hang && <Hang chassis={chassis} p={p} />}
                 {parts.accessory && <Accessory chassis={chassis} p={p} />}
 
-                {parts.blush && (
-                  <g data-ms-part="blush" fill={p.blush} opacity=".45"
-                    transform={`translate(0,${skyward ? -14 : 0})`}>
-                    <ellipse
-                      cx="156"
-                      cy={chassis === "mushroom" ? 232 : chassis === "desk" ? 210 : chassis === "bulb" ? 268 : 306}
-                      rx="10"
-                      ry="7"
-                    />
-                    <ellipse
-                      cx="264"
-                      cy={chassis === "mushroom" ? 232 : chassis === "desk" ? 210 : chassis === "bulb" ? 268 : 306}
-                      rx="10"
-                      ry="7"
-                    />
-                  </g>
-                )}
-
-                {parts.eyes ? (
-                  <g key={g.key} className="ln-pop ms-eyes" data-ms-part="eyes"
-                    transform={`translate(${look[0]},${look[1] + faceLift})`}>
-                    {parts.brows ? <Brows kind={g.brow} p={p} /> : <g data-ms-part="brows" />}
-                    <g transform={`translate(0,${skyward ? -10 : 0})`}>
+                {/* Face stack shares gaze/lift; eyes/brows/mouth/blush toggle independently */}
+                <g key={g.key} className="ln-pop"
+                  transform={`translate(${look[0]},${look[1] + faceLift})`}>
+                  {parts.blush ? (
+                    <g data-ms-part="blush" fill={p.blush} opacity=".45">
+                      <ellipse cx="156" cy={blushCy} rx="10" ry="7" />
+                      <ellipse cx="264" cy={blushCy} rx="10" ry="7" />
+                    </g>
+                  ) : (
+                    <g data-ms-part="blush" />
+                  )}
+                  {parts.brows ? <Brows kind={g.brow} p={p} /> : <g data-ms-part="brows" />}
+                  {parts.eyes ? (
+                    <g className="ms-eyes" data-ms-part="eyes"
+                      transform={`translate(0,${skyward ? -10 : 0})`}>
                       <Eye kind={g.eye} x={EYE_L_X} p={p} track={g.track} eyeRef={eyeRef?.l}
-                        style={eyeStyle} gazeY={gazeY} />
+                        style={eyeStyle} gazeY={gazeY} hitId={hitId} />
                       <Eye kind={g.eye} x={EYE_R_X} p={p} track={g.track} eyeRef={eyeRef?.r}
-                        style={eyeStyle} gazeY={gazeY} />
+                        style={eyeStyle} gazeY={gazeY} hitId={hitId} />
                     </g>
-                    <g transform={`translate(0,${mouthY})`}>
-                      <Mouth kind={g.mouth} p={p} />
-                    </g>
+                  ) : (
+                    <g data-ms-part="eyes" />
+                  )}
+                  <g transform={`translate(0,${mouthY})`}>
+                    <Mouth kind={g.mouth} p={p} />
                   </g>
-                ) : (
-                  <g data-ms-part="eyes" />
-                )}
+                </g>
 
                 {parts.props && (
                   <g data-ms-part="props" key={`p-${g.key}`} className="ln-pop">
@@ -2051,4 +2056,4 @@ export function LanternStudio({ slug }) {
   );
 }
 
-export const ROBOT_SLUGS = Object.keys(LANTERN_VARIANTS);
+export const LANTERN_SLUGS = Object.keys(LANTERN_VARIANTS);
