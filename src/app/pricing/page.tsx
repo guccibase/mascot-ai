@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { toast } from "sonner";
-import { Check, Coins, Loader2, Sparkles } from "lucide-react";
+import { Check, Coins, ExternalLink, Loader2, Sparkles } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { PriceSkeleton } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
 import { useRevenueCat } from "@/components/providers/revenuecat-provider";
 import { trackEvent } from "@/lib/analytics";
@@ -55,6 +56,7 @@ function mascotRange(tokens: number) {
 function PlanCard({
   plan,
   price,
+  priceLoading,
   saving,
   featured,
   current,
@@ -64,6 +66,7 @@ function PlanCard({
 }: {
   plan: Plan;
   price: string | null;
+  priceLoading?: boolean;
   saving: number;
   featured: boolean;
   current: boolean;
@@ -104,16 +107,20 @@ function PlanCard({
         )}
       </div>
 
-      <p className="mt-5 flex items-baseline gap-1.5">
+      <div className="mt-5 flex items-baseline gap-1.5">
         <span className="font-[family-name:var(--font-display)] text-4xl tabular-nums sm:text-5xl">
-          {price ?? "…"}
+          {priceLoading ? (
+            <PriceSkeleton className="h-10 w-28 sm:h-12" />
+          ) : (
+            (price ?? "…")
+          )}
         </span>
-        {price && (
+        {price && !priceLoading && (
           <span className="text-sm text-[var(--brand-muted)]">
             {TERM_LABEL[plan.term]}
           </span>
         )}
-      </p>
+      </div>
 
       <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 px-4 py-3.5">
         <p className="flex items-baseline gap-1.5">
@@ -160,12 +167,14 @@ function PlanCard({
 function TopupCard({
   topup,
   price,
+  priceLoading,
   busy,
   disabled,
   onSelect,
 }: {
   topup: Topup;
   price: string | null;
+  priceLoading?: boolean;
   busy: boolean;
   disabled: boolean;
   onSelect: () => void;
@@ -177,7 +186,11 @@ function TopupCard({
       <div className="flex items-baseline justify-between gap-3">
         <h3 className="font-medium">{topup.name}</h3>
         <span className="font-[family-name:var(--font-display)] text-xl tabular-nums">
-          {price ?? "…"}
+          {priceLoading ? (
+            <PriceSkeleton className="h-6 w-16" />
+          ) : (
+            (price ?? "…")
+          )}
         </span>
       </div>
       <p className="mt-2 text-sm text-[var(--brand-muted)]">
@@ -206,6 +219,7 @@ export default function PricingPage() {
   // Tokens are granted by the RevenueCat webhook, so checkout finishing is not
   // the same as the plan being live. Watch the reactive balance for the change.
   const [awaiting, setAwaiting] = useState<"plan" | "topup" | null>(null);
+  const [managing, setManaging] = useState(false);
   const baseline = useRef({
     hasAccess: false,
     total: 0,
@@ -274,7 +288,30 @@ export default function PricingPage() {
   };
 
   const currentPlan = balance?.planId ? planById(balance.planId) : null;
+  const hasSubscription = Boolean(balance?.planId);
   const busy = purchasing != null || awaiting != null;
+
+  const openBillingPortal = async () => {
+    if (!isSignedIn) {
+      router.push("/sign-in");
+      return;
+    }
+    setManaging(true);
+    try {
+      const res = await fetch("/api/billing/manage");
+      const payload = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok || !payload.url) {
+        toast.error(payload.error ?? "Could not open billing portal.");
+        return;
+      }
+      trackEvent("billing_portal_opened", { plan: balance?.planId ?? "none" });
+      window.open(payload.url, "_blank", "noopener,noreferrer");
+    } catch {
+      toast.error("Could not open billing portal. Try again shortly.");
+    } finally {
+      setManaging(false);
+    }
+  };
   const catalogLoading = status === "loading";
   const loading =
     isSignedIn === true && (catalogLoading || balance === undefined);
@@ -299,19 +336,42 @@ export default function PricingPage() {
           </header>
 
           {balance?.hasAccess && (
-            <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 text-sm backdrop-blur">
-              <span className="flex items-center gap-2">
-                <Sparkles className="size-4 text-[var(--brand-accent)]" />
-                <span className="font-medium">
-                  {currentPlan?.name ?? "Top-up"} active
+            <div className="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 text-sm backdrop-blur">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                <span className="flex items-center gap-2">
+                  <Sparkles className="size-4 text-[var(--brand-accent)]" />
+                  <span className="font-medium">
+                    {currentPlan?.name ?? "Top-up"} active
+                  </span>
                 </span>
-              </span>
-              <span className="text-[var(--brand-muted)]">
-                {formatTokens(balance.total)} tokens left
-                {balance.cycleEnd
-                  ? ` · refills ${new Date(balance.cycleEnd).toLocaleDateString()}`
-                  : ""}
-              </span>
+                <span className="text-[var(--brand-muted)]">
+                  {formatTokens(balance.total)} tokens left
+                  {hasSubscription && balance.willRenew && balance.cycleEnd
+                    ? ` · refills ${new Date(balance.cycleEnd).toLocaleDateString()}`
+                    : ""}
+                  {hasSubscription &&
+                  !balance.willRenew &&
+                  balance.expiresAt
+                    ? ` · access until ${new Date(balance.expiresAt).toLocaleDateString()}`
+                    : ""}
+                </span>
+              </div>
+              {hasSubscription && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={managing || busy}
+                  onClick={() => void openBillingPortal()}
+                  className="shrink-0 border-white/15 bg-transparent text-white hover:bg-white/10"
+                >
+                  {managing ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <ExternalLink className="size-4" />
+                  )}
+                  Manage subscription
+                </Button>
+              )}
             </div>
           )}
 
@@ -333,6 +393,7 @@ export default function PricingPage() {
                   key={plan.id}
                   plan={plan}
                   price={price?.formattedPrice ?? null}
+                  priceLoading={catalogLoading}
                   saving={saving}
                   featured={plan.id === "monthly"}
                   current={currentPlan?.id === plan.id}
@@ -361,6 +422,7 @@ export default function PricingPage() {
                     key={topup.id}
                     topup={topup}
                     price={price?.formattedPrice ?? null}
+                    priceLoading={catalogLoading}
                     busy={purchasing === topup.productId}
                     disabled={busy || loading || !price}
                     onSelect={() => void checkout(topup.productId, "topup")}

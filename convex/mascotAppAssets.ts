@@ -20,6 +20,7 @@ import {
   registerUploadForUser,
   storageReferencedByPacks,
 } from "./lib/appAssetStorage";
+import { assertServerCaller } from "./lib/serverAuth";
 
 const assetKind = v.union(
   v.literal("app_icon"),
@@ -86,7 +87,7 @@ const packDetail = v.object({
       label: v.string(),
       url: v.string(),
       bytes: v.number(),
-      mediaType: v.string(),
+      mediaType: mediaType,
     })
   ),
   missingSampleCount: v.number(),
@@ -111,6 +112,12 @@ function collectOldStorageIds(row: {
 }
 
 function validateSamples(samples: Array<{ id: string; storageId: string }>) {
+  if (samples.length !== 3) {
+    throw new ConvexError({
+      code: "INVALID_ASSETS",
+      message: "Expected exactly 3 sample icons",
+    });
+  }
   const ids = new Set<string>();
   const storageIds = new Set<string>();
   for (const sample of samples) {
@@ -272,7 +279,7 @@ export const getPack = query({
       label: string;
       url: string;
       bytes: number;
-      mediaType: string;
+      mediaType: "image/png" | "image/svg+xml" | "application/json" | "text/plain";
     }> = [];
     for (const f of row.files) {
       const url = await ctx.storage.getUrl(f.storageId);
@@ -322,19 +329,15 @@ export const saveSamples = mutation({
     imageModel: v.string(),
     samples: v.array(sampleOption),
     packId: v.optional(v.id("mascotAppAssetPacks")),
+    serverSecret: v.optional(v.string()),
   },
   returns: v.id("mascotAppAssetPacks"),
   handler: async (ctx, args) => {
+    assertServerCaller(args.serverSecret);
     const user = await getCurrentUser(ctx);
     const { mascot } = await requireOwnedMascot(ctx, args.mascotId);
 
     validateKinds(args.kinds);
-    if (args.samples.length < 1 || args.samples.length > 3) {
-      throw new ConvexError({
-        code: "INVALID_ASSETS",
-        message: "Expected 1–3 sample icons",
-      });
-    }
     validateSamples(args.samples);
 
     if (args.styleDescription && args.styleDescription.length > MAX_STYLE_CHARS) {
@@ -398,7 +401,7 @@ export const saveSamples = mutation({
       });
     }
 
-    return await ctx.db.insert("mascotAppAssetPacks", {
+    const packId = await ctx.db.insert("mascotAppAssetPacks", {
       userId: mascot.userId,
       mascotId: args.mascotId,
       status: "samples",
@@ -412,6 +415,26 @@ export const saveSamples = mutation({
       createdAt: now,
       updatedAt: now,
     });
+
+    const packCount = (
+      await ctx.db
+        .query("mascotAppAssetPacks")
+        .withIndex("by_mascot_updated", (q) => q.eq("mascotId", args.mascotId))
+        .collect()
+    ).length;
+    if (packCount > MAX_PACKS_PER_MASCOT) {
+      const inserted = await ctx.db.get("mascotAppAssetPacks", packId);
+      if (inserted) {
+        await deletePackStorage(ctx, user._id, inserted);
+        await ctx.db.delete(packId);
+      }
+      throw new ConvexError({
+        code: "INVALID_ASSETS",
+        message: `Maximum ${MAX_PACKS_PER_MASCOT} asset packs per mascot`,
+      });
+    }
+
+    return packId;
   },
 });
 
@@ -421,13 +444,21 @@ export const savePack = mutation({
     selectedSampleId: v.string(),
     masterStorageId: v.id("_storage"),
     files: v.array(assetFile),
+    serverSecret: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
+    assertServerCaller(args.serverSecret);
     const user = await getCurrentUser(ctx);
     const row = await ctx.db.get("mascotAppAssetPacks", args.packId);
     if (!row || row.userId !== user._id) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Asset pack not found" });
+    }
+    if (row.status !== "samples") {
+      throw new ConvexError({
+        code: "INVALID_ASSETS",
+        message: "Asset pack is already built",
+      });
     }
 
     const sample = row.sampleOptions.find((s) => s.id === args.selectedSampleId);

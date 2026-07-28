@@ -1,10 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Loader2, Send } from "lucide-react";
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import { Loader2, Send, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { ReferenceImageUpload } from "@/components/reference-image-upload";
+import { DEFAULT_MASCOT_MODEL } from "@/lib/mascot-model-options";
 import { isReferenceId } from "@/lib/reference-image-client";
+import {
+  MAX_REFINE_HISTORY_MESSAGES,
+  MAX_REFINE_MESSAGE_CHARS,
+} from "@/lib/refine-limits";
+import {
+  maxRefinePayloadChars,
+  splitRefineGestures,
+} from "@/lib/refine-pack";
+import { estimateTokens, formatTokens } from "@/lib/token-pricing";
+import { useAffordability } from "@/lib/use-affordability";
 import type {
   GeneratedMascot,
   MascotModelId,
@@ -19,115 +31,55 @@ type Props = {
   look?: string;
   model?: MascotModelId;
   enabledParts: Set<string>;
-  onTogglePart: (key: string) => void;
   onMascotChange?: (mascot: GeneratedMascot) => void;
   referenceId?: string;
   onReferenceIdChange?: (referenceId: string | undefined) => void;
+  mutationBusy?: boolean;
+  onMutationStart?: () => boolean;
+  onMutationEnd?: () => void;
+  isMutationCurrent?: () => boolean;
   accent: string;
 };
 
-export function MascotEditPanel({
-  mascot,
-  look,
-  model,
+type PartsPanelProps = {
+  parts: MascotPart[];
+  enabledParts: Set<string>;
+  onTogglePart: (key: string) => void;
+  accent: string;
+};
+
+/** Instant, reversible SVG layer controls; independent from metered AI edits. */
+export function MascotPartsPanel({
+  parts,
   enabledParts,
   onTogglePart,
-  onMascotChange,
-  referenceId,
-  onReferenceIdChange,
   accent,
-}: Props) {
-  const [draft, setDraft] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [history, setHistory] = useState<RefineMessage[]>([]);
-
+}: PartsPanelProps) {
   const partsByCategory = useMemo(() => {
     const map = new Map<string, MascotPart[]>();
-    for (const p of mascot.parts ?? []) {
-      const list = map.get(p.category) ?? [];
-      list.push(p);
-      map.set(p.category, list);
+    for (const part of parts) {
+      const list = map.get(part.category) ?? [];
+      list.push(part);
+      map.set(part.category, list);
     }
     return [...map.entries()];
-  }, [mascot.parts]);
-
-  useEffect(() => {
-    setHistory([]);
-    setDraft("");
-  }, [mascot.name, mascot.tagline]);
-
-  const send = async () => {
-    const message = draft.trim();
-    if (!message || busy || !onMascotChange) return;
-    setBusy(true);
-    const nextHistory: RefineMessage[] = [
-      ...history,
-      { role: "user", content: message },
-    ];
-    setHistory(nextHistory);
-    setDraft("");
-    trackEvent("generate_started", { action: "refine", model: model ?? "auto" });
-    let errorCode: string | undefined;
-    try {
-      const res = await fetch("/api/generate/refine", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mascot,
-          look,
-          model,
-          enabledParts: [...enabledParts],
-          message,
-          history,
-          referenceId: isReferenceId(referenceId) ? referenceId : undefined,
-        }),
-      });
-      const data = (await res.json()) as {
-        error?: string;
-        code?: string;
-        assistantMessage?: string;
-        mascot?: GeneratedMascot;
-      };
-      if (!res.ok || !data.mascot) {
-        errorCode = data.code;
-        throw new Error(data.error || "Couldn't apply that edit");
-      }
-      onMascotChange(data.mascot);
-      setHistory((h) => [
-        ...h,
-        {
-          role: "assistant",
-          content: data.assistantMessage || "Updated.",
-        },
-      ]);
-      trackEvent("generate_completed", {
-        action: "refine",
-        model: model ?? "auto",
-      });
-      toast.success("Mascot updated");
-    } catch (err) {
-      trackGenerationFailure("refine", errorCode);
-      toast.error(err instanceof Error ? err.message : "Refine failed");
-      setHistory((h) => h.slice(0, -1));
-      setDraft(message);
-    } finally {
-      setBusy(false);
-    }
-  };
+  }, [parts]);
 
   return (
-    <section className="gs-card mt-6 flex flex-col gap-5 p-5 sm:p-6">
+    <div
+      className="mt-2 flex flex-col gap-5 border-t pt-5"
+      style={{ borderColor: `${accent}29` }}
+    >
       <div>
-        <div className="gs-eyebrow mb-2">Elements</div>
+        <h3 className="gs-eyebrow mb-2">Elements</h3>
         <p style={{ fontSize: 12.5, color: "#B5AC9A", lineHeight: 1.5 }}>
           Toggle parts on/off instantly. Hidden parts stay available to add back.
-          Ask the AI below for structural changes.
         </p>
       </div>
 
       <div className="flex max-h-[280px] flex-col gap-3 overflow-y-auto pr-1">
-        {partsByCategory.map(([cat, parts]) => (
-          <div key={cat}>
+        {partsByCategory.map(([category, categoryParts]) => (
+          <div key={category}>
             <div
               style={{
                 fontSize: 10,
@@ -137,46 +89,184 @@ export function MascotEditPanel({
                 marginBottom: 6,
               }}
             >
-              {cat}
+              {category}
             </div>
             <div className="flex flex-wrap gap-2">
-              {parts.map((p) => {
-                const on = enabledParts.has(p.key);
+              {categoryParts.map((part) => {
+                const enabled = enabledParts.has(part.key);
                 return (
                   <button
-                    key={p.key}
+                    key={part.key}
                     type="button"
-                    title={p.description || p.label}
-                    onClick={() => onTogglePart(p.key)}
-                    className={cn("gs-pill", on && "on")}
+                    title={part.description || part.label}
+                    onClick={() => onTogglePart(part.key)}
+                    aria-pressed={enabled}
+                    className={cn("gs-pill", enabled && "on")}
                     style={
-                      !on
-                        ? {
+                      enabled
+                        ? undefined
+                        : {
                             opacity: 0.55,
                             textDecoration: "line-through",
                           }
-                        : undefined
                     }
                   >
-                    {p.label}
+                    {part.label}
                   </button>
                 );
               })}
             </div>
           </div>
         ))}
-        {(mascot.parts?.length ?? 0) === 0 && (
+        {parts.length === 0 && (
           <p style={{ fontSize: 12.5, color: "#8D8472" }}>
-            No tagged parts yet. Ask the AI to label elements, or regenerate.
+            No tagged parts are available for this mascot.
           </p>
         )}
       </div>
+    </div>
+  );
+}
 
+export function MascotEditPanel({
+  mascot,
+  look,
+  model,
+  enabledParts,
+  onMascotChange,
+  referenceId,
+  onReferenceIdChange,
+  mutationBusy = false,
+  onMutationStart,
+  onMutationEnd,
+  isMutationCurrent,
+  accent,
+}: Props) {
+  const [draft, setDraft] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [history, setHistory] = useState<RefineMessage[]>([]);
+  const identity = `${mascot.name}\0${mascot.tagline}`;
+  const [previousIdentity, setPreviousIdentity] = useState(identity);
+
+  if (previousIdentity !== identity) {
+    setPreviousIdentity(identity);
+    setHistory([]);
+    setDraft("");
+  }
+
+  /**
+   * What `/api/generate/refine` will hold before it runs: the route reserves the
+   * worst case of the same quote. Checking it here means a customer without
+   * tokens sees the paywall instead of typing an edit that can only 402.
+  */
+  const reservation = useMemo(() => {
+    const batches = splitRefineGestures(mascot.gestures).length;
+    return estimateTokens(
+      {
+        kind: "refine",
+        batches,
+        payloadChars: maxRefinePayloadChars(mascot),
+        referenceImages: isReferenceId(referenceId) ? batches : 0,
+      },
+      model ?? DEFAULT_MASCOT_MODEL
+    ).max;
+  }, [mascot, model, referenceId]);
+
+  const {
+    blocked: unaffordable,
+    needsPlan,
+    loading: balanceLoading,
+  } = useAffordability(reservation);
+
+  const send = async () => {
+    const message = draft.trim();
+    if (!message || busy || mutationBusy || !onMascotChange) return;
+    if (unaffordable) {
+      toast.error("AI edits need tokens. Top up to continue.");
+      return;
+    }
+    if (onMutationStart && !onMutationStart()) return;
+
+    setBusy(true);
+    const nextHistory: RefineMessage[] = [
+      ...history,
+      { role: "user", content: message },
+    ];
+    setHistory(nextHistory.slice(-MAX_REFINE_HISTORY_MESSAGES));
+    setDraft("");
+    let errorCode: string | undefined;
+    try {
+      trackEvent("generate_started", {
+        action: "refine",
+        model: model ?? "auto",
+      });
+      const res = await fetch("/api/generate/refine", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mascot,
+          look,
+          model,
+          enabledParts: [...enabledParts],
+          message,
+          history: history.slice(-MAX_REFINE_HISTORY_MESSAGES),
+          referenceId: isReferenceId(referenceId) ? referenceId : undefined,
+        }),
+      });
+      const data = (await res.json().catch(() => null)) as {
+        error?: string;
+        code?: string;
+        assistantMessage?: string;
+        mascot?: GeneratedMascot;
+      } | null;
+      if (isMutationCurrent && !isMutationCurrent()) return;
+
+      if (!res.ok || !data?.mascot) {
+        errorCode = data?.code;
+        const fallbackError =
+          res.status === 504
+            ? "This edit took too long. Try a smaller, more focused change."
+            : "Couldn't apply that edit";
+        throw new Error(data?.error || fallbackError);
+      }
+      onMascotChange(data.mascot);
+      setHistory((h) =>
+        [
+          ...h,
+          {
+            role: "assistant" as const,
+            content: data.assistantMessage || "Updated.",
+          },
+        ].slice(-MAX_REFINE_HISTORY_MESSAGES)
+      );
+      trackEvent("generate_completed", {
+        action: "refine",
+        model: model ?? "auto",
+      });
+      toast.success("Mascot updated");
+    } catch (err) {
+      if (isMutationCurrent && !isMutationCurrent()) return;
+
+      trackGenerationFailure("refine", errorCode);
+      toast.error(err instanceof Error ? err.message : "Refine failed");
+      setHistory(history);
+      setDraft(message);
+    } finally {
+      setBusy(false);
+      if (onMutationStart) onMutationEnd?.();
+    }
+  };
+
+  return (
+    <div
+      className="mt-2 flex flex-col gap-5 border-t pt-5"
+      style={{ borderColor: `${accent}29` }}
+    >
       {onMascotChange && (
         <div>
-          <div className="gs-eyebrow mb-2">Ask AI</div>
+          <h3 className="gs-eyebrow mb-2">Ask AI</h3>
 
-          {onReferenceIdChange && (
+          {onReferenceIdChange && !unaffordable && (
             <ReferenceImageUpload
               className="mb-4"
               title="Visual reference"
@@ -189,6 +279,10 @@ export function MascotEditPanel({
           <div
             className="mb-3 max-h-[180px] space-y-2 overflow-y-auto rounded-xl border p-3"
             style={{ borderColor: `${accent}33`, background: "rgba(0,0,0,.18)" }}
+            role="log"
+            aria-label="AI edit history"
+            aria-live="polite"
+            aria-busy={busy}
           >
             {history.length === 0 && (
               <p style={{ fontSize: 12.5, color: "#8D8472" }}>
@@ -220,19 +314,38 @@ export function MascotEditPanel({
               </div>
             ))}
           </div>
-          <div className="flex gap-2">
+          {balanceLoading ? (
+            <p className="px-1 text-xs text-white/50">Checking token balance…</p>
+          ) : unaffordable ? (
+            <Link
+              href="/pricing"
+              className="flex items-start gap-2.5 rounded-xl border border-red-400/30 bg-red-500/10 px-3.5 py-3 text-sm text-red-100 transition hover:border-red-400/50"
+            >
+              <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+              <span>
+                {needsPlan
+                  ? "AI edits run on plan tokens. Choose a plan to keep editing — your mascot stays saved."
+                  : `Not enough tokens for an edit (needs about ${formatTokens(
+                      reservation
+                    )}). Top up to continue.`}
+              </span>
+            </Link>
+          ) : (
+          <form
+            className="flex gap-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void send();
+            }}
+          >
             <input
               value={draft}
-              disabled={busy}
+              disabled={busy || mutationBusy}
               onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  void send();
-                }
-              }}
+              maxLength={MAX_REFINE_MESSAGE_CHARS}
               placeholder="Change, add, or remove something…"
-              className="gs-range min-w-0 flex-1 rounded-xl border px-3 py-2.5 text-sm"
+              aria-label="Describe the mascot change"
+              className="gs-range min-w-0 flex-1 rounded-xl border px-3 py-2.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-2"
               style={{
                 height: "auto",
                 background: "rgba(255,255,255,.04)",
@@ -241,10 +354,10 @@ export function MascotEditPanel({
               }}
             />
             <button
-              type="button"
-              className="gs-btn"
-              disabled={busy || !draft.trim()}
-              onClick={() => void send()}
+              type="submit"
+              className="gs-btn focus-visible:outline-2 focus-visible:outline-offset-2"
+              disabled={busy || mutationBusy || !draft.trim()}
+              aria-label={busy ? "Updating mascot" : "Ask AI to update mascot"}
             >
               {busy ? (
                 <Loader2 className="size-4 animate-spin" />
@@ -252,9 +365,10 @@ export function MascotEditPanel({
                 <Send className="size-4" />
               )}
             </button>
-          </div>
+          </form>
+          )}
         </div>
       )}
-    </section>
+    </div>
   );
 }

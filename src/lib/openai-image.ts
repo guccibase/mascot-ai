@@ -35,6 +35,7 @@ export async function generateAppIconImage(args: {
       prompt: args.prompt,
       size,
       n: 1,
+      quality: "high",
     });
     const b64 = edit.data?.[0]?.b64_json;
     if (!b64) throw new Error("Image model returned no data");
@@ -61,6 +62,10 @@ export async function generateAppIconImage(args: {
   };
 }
 
+/**
+ * Surgical edit prompt if image-model path is used again.
+ * Prefer composeAppIconPreview for guaranteed character fidelity.
+ */
 export function buildIconPrompt(args: {
   mascotName: string;
   tagline?: string;
@@ -69,22 +74,23 @@ export function buildIconPrompt(args: {
   variantIndex?: number;
 }): string {
   const style = args.styleDescription?.trim()
-    ? args.styleDescription.trim()
-    : "Modern, polished app icon. Square composition, centered character, soft gradient background, crisp edges, readable at 48px.";
+    ? `Background only: ${args.styleDescription.trim()}`
+    : "Background only: soft polished gradient, crisp, readable at 48px.";
 
   const variantHint =
     args.variantIndex != null
-      ? `Variation ${args.variantIndex + 1} of 3 — offer a distinct background or lighting treatment while keeping the same character.`
+      ? `Variation ${args.variantIndex + 1} of 3 — change ONLY the background treatment.`
       : null;
 
   return [
-    `Design a production-ready APP ICON for the mascot "${args.mascotName}".`,
-    args.tagline ? `Brand vibe: ${args.tagline}.` : null,
+    `Edit this image into a production APP ICON for "${args.mascotName}".`,
+    "CRITICAL: Keep the mascot character 100% identical to the reference — same shape, colors, face, eyes, proportions, and details. Do NOT redesign, restyle, or replace the character.",
+    "Change ONLY the background behind the character. Leave every character pixel unchanged.",
+    args.tagline ? `Brand vibe for the background: ${args.tagline}.` : null,
     `Asset types requested: ${args.kinds.join(", ")}.`,
     style,
     variantHint,
-    "Requirements: square 1:1, no rounded corners (platforms mask automatically), no text unless essential, high contrast silhouette, professional mobile app store quality, single character centered with breathing room.",
-    "Match the reference mascot's colors, face, and silhouette when a reference image is provided.",
+    "Requirements: square 1:1, no rounded corners, no text, character centered with breathing room.",
   ]
     .filter(Boolean)
     .join(" ");

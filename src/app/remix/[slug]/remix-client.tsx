@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Check, Loader2, Sparkles } from "lucide-react";
+import { ModelChipsSkeleton } from "@/components/skeletons";
+import { sanitizeSvg } from "@/lib/sanitize-svg";
 import { SiteHeader } from "@/components/site-header";
 import { GeneratedStudio } from "@/components/generated-studio";
 import { TokenEstimate } from "@/components/create/token-estimate";
@@ -24,7 +26,6 @@ import {
 import { trackEvent } from "@/lib/analytics";
 import type { CreateBriefPreset } from "@/lib/create-field-placeholders";
 import { CREATE_FIELD_PLACEHOLDERS } from "@/lib/create-field-placeholders";
-import type { MascotSlug } from "@/lib/mascots";
 import type {
   GeneratedMascot,
   GestureRequest,
@@ -70,15 +71,19 @@ type PayloadHint = {
   gesturePayloadChars: number;
 };
 
+export type RemixSource =
+  | { kind: "mascot"; mascotId: string }
+  | { kind: "listing"; listingId: string; remixOrderId: string };
+
 export function RemixClient({
-  slug,
-  exampleName,
+  source,
+  sourceName,
   poses,
   brief,
   payloadHint,
 }: {
-  slug: MascotSlug;
-  exampleName: string;
+  source: RemixSource;
+  sourceName: string;
   poses: PoseThumb[];
   brief: CreateBriefPreset | null;
   payloadHint: PayloadHint;
@@ -174,8 +179,13 @@ export function RemixClient({
       productContext: productContext.trim() || undefined,
       personality: personality.trim() || undefined,
       model: model ?? undefined,
+      source: "remixed",
+      sourceListingId:
+        source.kind === "listing"
+          ? (source.listingId as import("../../../../convex/_generated/dataModel").Id<"marketplaceListings">)
+          : undefined,
     });
-  }, [look, productContext, personality, model, setMeta]);
+  }, [look, productContext, personality, model, setMeta, source]);
 
   useEffect(() => {
     let cancelled = false;
@@ -237,7 +247,7 @@ export function RemixClient({
     }
 
     setRemixLoading(true);
-    setProgress("Remixing example poses…");
+    setProgress("Remixing poses…");
     trackEvent("generate_started", { action: "remix", model });
 
     try {
@@ -245,7 +255,12 @@ export function RemixClient({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          slug,
+          ...(source.kind === "mascot"
+            ? { mascotId: source.mascotId }
+            : {
+                listingId: source.listingId,
+                remixOrderId: source.remixOrderId,
+              }),
           name: name.trim(),
           description: description.trim(),
           look: look.trim(),
@@ -323,10 +338,14 @@ export function RemixClient({
         <SiteHeader />
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-5 py-3 sm:px-8">
           <Link
-            href={`/studio/${slug}`}
+            href={
+              source.kind === "mascot"
+                ? `/library/${source.mascotId}`
+                : "/marketplace"
+            }
             className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10"
           >
-            ← {exampleName} example
+            ← {sourceName}
           </Link>
           {mascotId && (
             <Link
@@ -373,13 +392,13 @@ export function RemixClient({
       <SiteHeader />
       <main className="mx-auto max-w-6xl px-5 pb-24 pt-8 sm:px-8">
         <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--brand-accent)]">
-          Remix {exampleName}
+          Remix {sourceName}
         </p>
         <h1 className="mt-3 font-[family-name:var(--font-display)] text-3xl tracking-tight sm:text-4xl">
-          Reshape the example into yours
+          Reshape this mascot into yours
         </h1>
         <p className="mt-3 max-w-2xl text-[var(--brand-muted)]">
-          We keep every animation and coordinate from {exampleName}&apos;s real
+          We keep every animation and coordinate from {sourceName}&apos;s real
           SVG. The AI only swaps shapes and colours. Pick which poses to carry
           over, then describe your new character.
         </p>
@@ -390,9 +409,7 @@ export function RemixClient({
             <section className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-6">
               <h2 className="font-medium">Model</h2>
               {modelsLoading ? (
-                <div className="mt-4 flex items-center gap-2 text-sm text-[var(--brand-muted)]">
-                  <Loader2 className="size-4 animate-spin" /> Loading models…
-                </div>
+                <ModelChipsSkeleton />
               ) : (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {MODEL_PROVIDERS.map((provider) => (
@@ -441,7 +458,7 @@ export function RemixClient({
             {/* Brief */}
             <section className="space-y-4 rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-6">
               <h2 className="font-medium">Your mascot</h2>
-              <div>
+              <div className="group/field">
                 <Label htmlFor="name">Name</Label>
                 <Input
                   id="name"
@@ -452,7 +469,7 @@ export function RemixClient({
                   className="mt-1.5"
                 />
               </div>
-              <div>
+              <div className="group/field">
                 <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
@@ -463,7 +480,7 @@ export function RemixClient({
                   className="mt-1.5 min-h-[88px]"
                 />
               </div>
-              <div>
+              <div className="group/field">
                 <Label htmlFor="look">Look</Label>
                 <Textarea
                   id="look"
@@ -481,7 +498,7 @@ export function RemixClient({
               />
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <div>
+                <div className="group/field">
                   <Label htmlFor="product">Product</Label>
                   <Input
                     id="product"
@@ -492,7 +509,7 @@ export function RemixClient({
                     className="mt-1.5"
                   />
                 </div>
-                <div>
+                <div className="group/field">
                   <Label htmlFor="personality">Personality</Label>
                   <Input
                     id="personality"
@@ -539,7 +556,9 @@ export function RemixClient({
                           >
                             <div
                               className="size-16 shrink-0 overflow-hidden rounded-lg bg-[#0a0e18]"
-                              dangerouslySetInnerHTML={{ __html: pose.thumb }}
+                              dangerouslySetInnerHTML={{
+                                __html: sanitizeSvg(pose.thumb),
+                              }}
                             />
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
@@ -565,8 +584,8 @@ export function RemixClient({
               <section className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-6">
                 <h2 className="font-medium">Extra gestures</h2>
                 <p className="mt-1 text-sm text-[var(--brand-muted)]">
-                  Not in the {exampleName} example. Generated after remix using
-                  your idle pose as anchor.
+                  Not in {sourceName}. Generated after remix using your idle
+                  pose as anchor.
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   {GESTURE_CATEGORIES.map((cat) =>

@@ -121,7 +121,7 @@ export default function HomePage() {
                 "border-white/15 bg-transparent text-white hover:bg-white/10"
               )}
             >
-              See four we built
+              See {MASCOTS.length} we built
             </Link>
           </div>
 
@@ -136,7 +136,7 @@ export default function HomePage() {
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 className="font-[family-name:var(--font-display)] text-3xl tracking-tight sm:text-4xl">
-                Four we already built
+                {MASCOTS.length} we already built
               </h2>
               <p className="mt-3 max-w-xl text-[var(--brand-muted)]">
                 Each of these was made for an actual product. Open one and click

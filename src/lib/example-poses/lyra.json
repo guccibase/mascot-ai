@@ -222,5 +222,58 @@
       "signal": 6,
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 420 520\" width=\"100%\" role=\"img\" aria-label=\"Lyra the lyrebird: Rest, delivery 6\" class=\"lv-svg lv-g-rest\" style=\"--g:0.4;cursor:pointer\"><title>Lyra, the lyrebird coach for Orator AI</title><style></style><defs><filter id=\"lv-grain\" x=\"-25%\" y=\"-15%\" width=\"150%\" height=\"130%\"><feTurbulence type=\"fractalNoise\" baseFrequency=\"0.9\" numOctaves=\"2\" seed=\"7\" result=\"n\"></feTurbulence><feColorMatrix in=\"n\" type=\"matrix\" values=\"0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.1 0\" result=\"a\"></feColorMatrix><feComposite in=\"a\" in2=\"SourceGraphic\" operator=\"in\" result=\"gg\"></feComposite><feMerge><feMergeNode in=\"SourceGraphic\"></feMergeNode><feMergeNode in=\"gg\"></feMergeNode></feMerge></filter><radialGradient id=\"lv-glowG\" cx=\"50%\" cy=\"46%\" r=\"60%\"><stop offset=\"0\" stop-color=\"#4f2570\" stop-opacity=\".8\"></stop><stop offset=\"1\" stop-color=\"#4f2570\" stop-opacity=\"0\"></stop></radialGradient></defs><g transform=\"translate(210,496)\"><ellipse class=\"lv-shadowO\" cx=\"0\" cy=\"0\" rx=\"86\" ry=\"8\" fill=\"#000000\"></ellipse></g><g class=\"lv-float\"><g transform=\"translate(210,492)\"><animateTransform attributeName=\"transform\" type=\"translate\" additive=\"sum\" begin=\"lv-hit.click\" dur=\"0.6s\" fill=\"remove\" values=\"0 0;0 7;0 -12;0 3;0 0\" keyTimes=\"0;0.26;0.56;0.8;1\"></animateTransform><animateTransform attributeName=\"transform\" type=\"scale\" additive=\"sum\" begin=\"lv-hit.click\" dur=\"0.6s\" fill=\"remove\" values=\"1 1;1.05 0.92;0.96 1.06;1.02 0.98;1 1\" keyTimes=\"0;0.26;0.56;0.8;1\"></animateTransform><g transform=\"rotate(0)\"><g transform=\"translate(-210,-492)\"><g id=\"lv-hit\" filter=\"url(#lv-grain)\"><ellipse class=\"lv-glow\" cx=\"210\" cy=\"300\" rx=\"150\" ry=\"140\" fill=\"url(#lv-glowG)\"></ellipse><g><g transform=\"translate(210,362) rotate(-133.868032)\"><animateTransform attributeName=\"transform\" type=\"rotate\" additive=\"sum\" values=\"-1.6;1.6;-1.6\" dur=\"3.4s\" begin=\"0s\" repeatCount=\"indefinite\"></animateTransform><path d=\"M0,0 C-15,-23.7204299904 -19,-56.5641022848 -9,-78.4598838144 C-3,-91.23242304 7,-93.0570715008 12,-82.109180736\" fill=\"none\" stroke=\"#41236b\" stroke-width=\"7.5\" stroke-linecap=\"round\"></path><path d=\"M0,0 C-15,-23.7204299904 -19,-56.5641022848 -9,-78.4598838144 C-3,-91.23242304 7,-93.0570715008 12,-82.109180736\" fill=\"none\" stroke=\"#9783a5\" stroke-width=\"7.5\" stroke-linecap=\"round\" stroke-dasharray=\"5 11\" opacity=\".85\"></path></g><g transform=\"translate(210,362) rotate(-137.777304)\"><animateTransform attributeName=\"transform\" type=\"rotate\" additive=\"sum\" values=\"-1.6;1.6;-1.6\" dur=\"3.4s\" begin=\"-0.37s\" repeatCount=\"indefinite\"></animateTransform><path d=\"M0,0 C-5,-25.16969390345869 -6.2,-60.40726536830085 -1.8,-83.89897967819563 C-0.6,-86.89897967819563 0.6,-86.89897967819563 1.8,-83.89897967819563 C6.2,-60.40726536830085 5,-25.16969390345869 0,0 Z\" fill=\"#41236b\"></path><path d=\"M0,-6 L0,-75.50908171037607\" stroke=\"#331c52\" stroke-width=\"2\" stroke-linecap=\"round\"></path></g><g transform=\"translate(210,362) rotate(-141.68657599999997)\"><animateTransform attributeName=\"transform\" type=\"rotate\" additive=\"sum\" values=\"-1.6;1.6;-1.6\" dur=\"3.4s\" begin=\"-0.74s\" repeatCount=\"indefinite\"></animateTransform><path d=\"M0,0 C-5,-26.573350195819355 -6.2,-63.77604046996645 -1.8,-88.57783398606452 C-0.6,-91.57783398606452 0.6,-91.57783398606452 1.8,-88.57783398606452 C6.2,-63.77604046996645 5,-26.573350195819355 0,0 Z\" fill=\"#42236b\"></path><path d=\"M0,-6 L0,-79.72005058745808\" stroke=\"#331c52\" stroke-width=\"2\" stroke-linecap=\"round\"></path></g><g transform=\"translate(210,362) rotate(-145.595848)\"><animateTransform attributeName=\"transform\" type=\"rotate\" additive=\"sum\" values=\"-1.6;1.6;-1.6\" dur=\"3.4s\" begin=\"-1.1099999999999999s\" repeatCount=\"indefinite\"></animateTransform><path d=\"M0,0 C-5,-27.151533935111008 -6.2,-65.16368144426642 -1.8,-90.5051131170367 C-0.6,-93.5051131170367 0.6,-93.5051131170367 1.8,-90.5051131170367 C6.2,-65.16368144426642 5,-27.151533935111008 0,0 Z\" fill=\"#48246e\"></path><path d=\"M0,-6 L0,-81.45460180533303\" stroke=\"#381d54\" stroke-width=\"2\" stroke-linecap=\"round\"></path></g><g transform=\"translate(210,362) rotate(149.50511999999998)\"><animateTransform attributeName=\"transform\" type=\"rotate\" additive=\"sum\" values=\"-1.6;1.6;-1.6\" dur=\"3.4s\" begin=\"-1.48s\" repeatCount=\"indefinite\"></animateTransform><path d=\"M0,0 C-5,-26.764509817718466 -6.2,-64.23482356252431 -1.8,-89.21503272572822 C-0.6,-92.21503272572822 0.6,-92.21503272572822 1.8,-89.21503272572822 C6.2,-64.23482356252431 5,-26.764509817718466 0,0 Z\" fill=\"#4f2570\"></path><path d=\"M0,-6 L0,-80.2935294531554\" stroke=\"#3d1d56\" stroke-width=\"2\" stroke-linecap=\"round\"></path></g><g transform=\"translate(210,362) rotate(145.595848)\"><animateTransform attributeName=\"transform\" type=\"rotate\" additive=\"sum\" values=\"-1.6;1.6;-1.6\" dur=\"3.4s\" begin=\"-1.85s\" repeatCount=\"indefinite\"></animateTransform><path d=\"M0,0 C-5,-27.151533935111008 -6.2,-65.16368144426642 -1.8,-90.5051131170367 C-0.6,-93.5051131170367 0.6,-93.5051131170367 1.8,-90.5051131170367 C6.2,-65.16368144426642 5,-27.151533935111008 0,0 Z\" fill=\"#552772\"></path><path d=\"M0,-6 L0,-81.45460180533303\" stroke=\"#411f57\" stroke-width=\"2\" stroke-linecap=\"round\"></path></g><g transform=\"translate(210,362) rotate(141.68657599999997)\"><animateTransform attributeName=\"transform\" type=\"rotate\" additive=\"sum\" values=\"-1.6;1.6;-1.6\" dur=\"3.4s\" begin=\"-2.2199999999999998s\" repeatCount=\"indefinite\"></animateTransform><path d=\"M0,0 C-5,-26.573350195819355 -6.2,-63.77604046996645 -1.8,-88.57783398606452 C-0.6,-91.57783398606452 0.6,-91.57783398606452 1.8,-88.57783398606452 C6.2,-63.77604046996645 5,-26.573350195819355 0,0 Z\" fill=\"#5b2875\"></path><path d=\"M0,-6 L0,-79.72005058745808\" stroke=\"#452059\" stroke-width=\"2\" stroke-linecap=\"round\"></path></g><g transform=\"translate(210,362) rotate(137.777304)\"><animateTransform attributeName=\"transform\" type=\"rotate\" additive=\"sum\" values=\"-1.6;1.6;-1.6\" dur=\"3.4s\" begin=\"-2.59s\" repeatCount=\"indefinite\"></animateTransform><path d=\"M0,0 C-5,-25.16969390345869 -6.2,-60.40726536830085 -1.8,-83.89897967819563 C-0.6,-86.89897967819563 0.6,-86.89897967819563 1.8,-83.89897967819563 C6.2,-60.40726536830085 5,-25.16969390345869 0,0 Z\" fill=\"#612977\"></path><path d=\"M0,-6 L0,-75.50908171037607\" stroke=\"#4a205b\" stroke-width=\"2\" stroke-linecap=\"round\"></path></g><g transform=\"translate(210,362) rotate(133.868032)\"><animateTransform attributeName=\"transform\" type=\"rotate\" additive=\"sum\" values=\"-1.6;1.6;-1.6\" dur=\"3.4s\" begin=\"-2.96s\" repeatCount=\"indefinite\"></animateTransform><path d=\"M0,0 C15,-23.7204299904 19,-56.5641022848 9,-78.4598838144 C3,-91.23242304 -7,-93.0570715008 -12,-82.109180736\" fill=\"none\" stroke=\"#682a79\" stroke-width=\"7.5\" stroke-linecap=\"round\"></path><path d=\"M0,0 C15,-23.7204299904 19,-56.5641022848 9,-78.4598838144 C3,-91.23242304 -7,-93.0570715008 -12,-82.109180736\" fill=\"none\" stroke=\"#ac87ad\" stroke-width=\"7.5\" stroke-linecap=\"round\" stroke-dasharray=\"5 11\" opacity=\".85\"></path></g></g><path d=\"M202,466 L218,466 L222,486 L198,486 Z\" fill=\"#38302d\"></path><ellipse cx=\"210\" cy=\"488\" rx=\"34\" ry=\"7\" fill=\"#4A4038\"></ellipse><circle cx=\"210\" cy=\"432\" r=\"33\" fill=\"#4A4038\"></circle><g stroke=\"#38302d\" stroke-width=\"2.4\" opacity=\".8\"><path d=\"M182,420 L238,420 M179,432 L241,432 M182,444 L238,444\"></path><path d=\"M198,402 L198,462 M210,399 L210,465 M222,402 L222,462\"></path></g><path d=\"M186,412 A32,32 0 0 1 208,400\" fill=\"none\" stroke=\"#776e65\" stroke-width=\"4\" stroke-linecap=\"round\" opacity=\".8\"></path><path d=\"M200,382 L202,402 M198,404 L206,404\" stroke=\"#2d3542\" stroke-width=\"4.5\" stroke-linecap=\"round\" fill=\"none\"></path><path d=\"M220,382 L218,402 M214,404 L222,404\" stroke=\"#2d3542\" stroke-width=\"4.5\" stroke-linecap=\"round\" fill=\"none\"></path><g transform=\"translate(176,330)\"><path d=\"M0,0 Q-14,10 -14,30\" fill=\"none\" stroke=\"#333d4c\" stroke-width=\"16\" stroke-linecap=\"round\"></path></g><g transform=\"translate(244,330)\"><animateTransform attributeName=\"transform\" type=\"rotate\" additive=\"sum\" values=\"1.6;-1.6;1.6\" dur=\"3.8s\" repeatCount=\"indefinite\"></animateTransform><path d=\"M0,0 Q14,10 14,30\" fill=\"none\" stroke=\"#333d4c\" stroke-width=\"16\" stroke-linecap=\"round\"></path></g><path d=\"M210,232 C238,232 252,254 252,278 C252,296 244,308 240,322 C236,346 258,352 258,362 C258,384 236,394 210,394 C184,394 162,384 162,362 C162,352 184,346 180,322 C176,308 168,296 168,278 C168,254 182,232 210,232 Z\" fill=\"#3A4757\"></path><ellipse cx=\"210\" cy=\"352\" rx=\"30\" ry=\"32\" fill=\"#F2E7D6\"></ellipse><path d=\"M198,236 Q194,224 200,216 M210,234 Q210,220 217,214\" fill=\"none\" stroke=\"#364150\" stroke-width=\"4\" stroke-linecap=\"round\"></path><circle cx=\"184\" cy=\"276\" r=\"6.5\" fill=\"#E8927C\" opacity=\".55\"></circle><circle cx=\"236\" cy=\"276\" r=\"6.5\" fill=\"#E8927C\" opacity=\".55\"></circle><g class=\"lv-eyes\"><g class=\"lv-pop\" transform=\"translate(0,0)\"><path d=\"M-9.5,-2.5 Q0,8.5 9.4,-2.5\" transform=\"translate(196,262)\" fill=\"none\" stroke=\"#221A16\" stroke-width=\"6.5\" stroke-linecap=\"round\"></path><path d=\"M-9.5,-2.5 Q0,8.5 9.4,-2.5\" transform=\"translate(224,262)\" fill=\"none\" stroke=\"#221A16\" stroke-width=\"6.5\" stroke-linecap=\"round\"></path></g></g><g><g class=\"lv-pop\"><path d=\"M201,278 Q210,268 219,278 Q210,290 201,278 Z\" fill=\"#E8A84B\"></path><path d=\"M203,279 Q210,275 217,279\" fill=\"none\" stroke=\"#b2813d\" stroke-width=\"3\" stroke-linecap=\"round\"></path></g></g><g class=\"lv-pop\"><g fill=\"none\" stroke=\"#F2E7D6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" opacity=\".9\"><path class=\"lv-zzz\" d=\"M258,208 L274,208 L258,224 L274,224\" stroke-width=\"4.5\"></path><path class=\"lv-zzz\" d=\"M286,180 L298,180 L286,192 L298,192\" stroke-width=\"4\" style=\"animation-delay:.7s\"></path></g></g></g></g></g></g></g></svg>"
     }
-  ]
+  ],
+  "meta": {
+    "accent": "#F0A93C",
+    "stage": "#20283A",
+    "glowLabel": "Spotlight",
+    "themes": {
+      "slate": {
+        "name": "Slate Stage",
+        "top": "#F2E7D6",
+        "mid": "#3A4757",
+        "base": "#2d3542",
+        "core": "#f6ecdd",
+        "stage": "#20283A",
+        "features": "#221A16"
+      },
+      "night": {
+        "name": "Night Hall",
+        "top": "#EFE3D0",
+        "mid": "#333A52",
+        "base": "#282c3f",
+        "core": "#f4e9d8",
+        "stage": "#181D30",
+        "features": "#221A16"
+      },
+      "forest": {
+        "name": "Forest Green",
+        "top": "#F0E8D2",
+        "mid": "#3E4B40",
+        "base": "#303832",
+        "core": "#f5edda",
+        "stage": "#1F2A22",
+        "features": "#221A16"
+      },
+      "plum": {
+        "name": "Plum Velvet",
+        "top": "#F2E4DA",
+        "mid": "#4A3A52",
+        "base": "#382c3f",
+        "core": "#f6eadf",
+        "stage": "#2A2032",
+        "features": "#221A16"
+      },
+      "dune": {
+        "name": "Dune Warm",
+        "top": "#F6ECD8",
+        "mid": "#5A5245",
+        "base": "#433c36",
+        "core": "#f9f0de",
+        "stage": "#2E2A22",
+        "features": "#221A16"
+      }
+    },
+    "instrument": null
+  }
 }

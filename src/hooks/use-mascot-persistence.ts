@@ -12,6 +12,8 @@ export type MascotSaveMeta = {
   productContext?: string;
   personality?: string;
   model?: string;
+  source?: "created" | "purchased" | "remixed";
+  sourceListingId?: Id<"marketplaceListings">;
 };
 
 /**
@@ -61,6 +63,10 @@ export function useMascotPersistence(initialId?: Id<"mascots"> | null) {
           productContext: meta.productContext,
           personality: meta.personality,
           model: meta.model,
+          source: mascotIdRef.current ? undefined : meta.source,
+          sourceListingId: mascotIdRef.current
+            ? undefined
+            : meta.sourceListingId,
           pack: toSave,
         });
         mascotIdRef.current = id;

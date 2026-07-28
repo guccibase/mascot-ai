@@ -5,12 +5,29 @@ import { remixConfigFor } from "./examples.config";
  * Additive ms- contract annotations so remixed examples render in
  * GeneratedStudio without renaming the example's own CSS classes.
  */
-export function annotateStudioContract(svg: string, slug: MascotSlug): string {
-  const cfg = remixConfigFor(slug);
+export function annotateStudioContract(
+  svg: string,
+  slug?: MascotSlug | "owned"
+): string {
   let out = svg;
 
   // Glow CSS variable. Examples use --g, the studio writes --ms-glow.
   out = out.replace(/var\(\s*--g\s*,/gi, "var(--ms-glow,");
+
+  // Owned / marketplace packs already use the ms- contract.
+  if (!slug || slug === "owned" || /\bms-root\b/.test(out)) {
+    if (!/\bms-root\b/.test(out)) {
+      out = out.replace(/<svg\b([^>]*)>/i, (full, attrs: string) => {
+        if (/\bclass=/.test(attrs)) {
+          return full.replace(/class=(["'])([^"']*)\1/, 'class="$2 ms-root"');
+        }
+        return `<svg class="ms-root"${attrs}>`;
+      });
+    }
+    return out;
+  }
+
+  const cfg = remixConfigFor(slug);
 
   // Root class for theme variable injection.
   if (!/\bms-root\b/.test(out)) {

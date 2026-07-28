@@ -52,6 +52,43 @@ describe("mascot-parts", () => {
     expect(parts.some((p) => p.key === "eyes")).toBe(true);
   });
 
+  it("upgrades inferred markers with structural part metadata", () => {
+    const mascot = {
+      gestures: [
+        {
+          key: "idle",
+          label: "Idle",
+          cat: "Core",
+          tip: "",
+          use: "",
+          svg: `<svg>
+            <g class="ms-eyes" data-ms-part="eyes"><circle/></g>
+            <g class="ms-signal-fan" data-ms-part="instrument"><path/></g>
+            <ellipse class="ms-glow-halo" data-ms-part="halo"/>
+          </svg>`,
+        },
+      ],
+      parts: [],
+      instrument: baseInstrument,
+    } satisfies Pick<GeneratedMascot, "gestures" | "parts" | "instrument">;
+
+    const parts = extractPartsFromMascot(mascot);
+
+    expect(parts.find((part) => part.key === "eyes")).toMatchObject({
+      label: "Eyes",
+      category: "Face",
+      essential: true,
+    });
+    expect(parts.find((part) => part.key === "instrument")).toMatchObject({
+      label: "Signal",
+      category: "Instrument",
+    });
+    expect(parts.find((part) => part.key === "halo")).toMatchObject({
+      label: "Glow halo",
+      category: "Light",
+    });
+  });
+
   it("lists only parts present in SVG markup", () => {
     const svg = `<svg><g data-ms-part="body"/><g data-ms-part="prop"/></svg>`;
     expect(listPartKeysInSvg(svg).sort()).toEqual(["body", "prop"]);

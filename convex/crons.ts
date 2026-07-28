@@ -41,4 +41,18 @@ crons.daily(
   {}
 );
 
+crons.interval(
+  "release expired marketplace reservations",
+  { minutes: 5 },
+  internal.marketplace.sweepExpiredReservations,
+  {}
+);
+
+crons.daily(
+  "prune processed stripe events",
+  { hourUTC: 4, minuteUTC: 30 },
+  internal.marketplace.pruneStripeEvents,
+  {}
+);
+
 export default crons;

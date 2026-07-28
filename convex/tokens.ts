@@ -26,6 +26,8 @@ const balanceShape = v.object({
   tokensPerCycle: v.union(v.number(), v.null()),
   status: v.union(v.string(), v.null()),
   willRenew: v.boolean(),
+  /** When the current plan entitlement ends (ms). */
+  expiresAt: v.union(v.number(), v.null()),
   hasAccess: v.boolean(),
 });
 
@@ -60,6 +62,7 @@ export const balance = query({
       tokensPerCycle: plan?.tokensPerCycle ?? null,
       status: user.entitlement?.status ?? null,
       willRenew: user.entitlement?.willRenew ?? false,
+      expiresAt: user.entitlement?.expiresAt ?? null,
       hasAccess: plan !== null || projected.topupTokens > 0,
     };
   },

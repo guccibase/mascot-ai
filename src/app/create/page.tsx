@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, Loader2, Plus, Shuffle, Sparkles, X } from "lucide-react";
+import {
+  ModelPickerSkeleton,
+  SampleConceptsSkeleton,
+} from "@/components/skeletons";
 import { SiteHeader } from "@/components/site-header";
 import { GeneratedStudio } from "@/components/generated-studio";
 import { Button } from "@/components/ui/button";
@@ -39,9 +43,9 @@ import { useMascotPersistence } from "@/hooks/use-mascot-persistence";
 import {
   CREATE_BRIEF_PRESETS,
   CREATE_FIELD_PLACEHOLDERS,
-  pickRandomBrief,
-  pickRandomBriefField,
+  type CreateBriefPreset,
 } from "@/lib/create-field-placeholders";
+import type { BriefSurpriseField } from "@/lib/brief-surprise";
 
 const DEFAULT_KEYS = ["idle", "wave", "happy"];
 
@@ -82,6 +86,9 @@ export default function CreatePage() {
   const [pickedId, setPickedId] = useState<string | null>(null);
   const [result, setResult] = useState<GeneratedMascot | null>(null);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [surpriseLoading, setSurpriseLoading] =
+    useState<BriefSurpriseField | null>(null);
+  const surpriseAbortRef = useRef<AbortController | null>(null);
   const { mascotId, saving, setMeta, persist, persistSafe, discard, bindId } =
     useMascotPersistence();
 
@@ -95,7 +102,7 @@ export default function CreatePage() {
     return () => window.clearInterval(timer);
   }, []);
 
-  const applyBrief = (brief: (typeof CREATE_BRIEF_PRESETS)[number]) => {
+  const applyBriefFields = (brief: Omit<CreateBriefPreset, "slug">) => {
     setName(brief.name);
     setDescription(brief.description);
     setLook(brief.look);
@@ -103,8 +110,62 @@ export default function CreatePage() {
     setPersonality(brief.personality);
   };
 
-  const surpriseAll = () => {
-    applyBrief(pickRandomBrief());
+  const briefBusy = samplesLoading || surpriseLoading !== null;
+
+  const requestBriefSurprise = async (field: BriefSurpriseField) => {
+    surpriseAbortRef.current?.abort();
+    const controller = new AbortController();
+    surpriseAbortRef.current = controller;
+    setSurpriseLoading(field);
+
+    try {
+      const res = await fetch("/api/generate/brief-surprise", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          field,
+          brief: { name, description, look, productContext, personality },
+        }),
+        signal: controller.signal,
+      });
+      const data = (await res.json()) as {
+        field?: BriefSurpriseField;
+        value?: string;
+        brief?: Omit<CreateBriefPreset, "slug">;
+        error?: string;
+      };
+
+      if (!res.ok) {
+        throw new Error(data.error ?? "Surprise me failed");
+      }
+
+      if (data.field === "all" && data.brief) {
+        applyBriefFields(data.brief);
+        return;
+      }
+
+      if (data.field === "name" && data.value) setName(data.value);
+      else if (data.field === "description" && data.value)
+        setDescription(data.value);
+      else if (data.field === "look" && data.value) setLook(data.value);
+      else if (data.field === "productContext" && data.value)
+        setProductContext(data.value);
+      else if (data.field === "personality" && data.value)
+        setPersonality(data.value);
+      else {
+        throw new Error("Surprise me returned an incomplete suggestion");
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      toast.error(
+        err instanceof Error ? err.message : "Surprise me failed — try again"
+      );
+    } finally {
+      if (surpriseAbortRef.current === controller) {
+        setSurpriseLoading(null);
+        surpriseAbortRef.current = null;
+      }
+    }
   };
 
   useEffect(() => {
@@ -451,6 +512,9 @@ export default function CreatePage() {
 
           {step === "samples" && (
             <section className="mt-10 space-y-6">
+              {samplesLoading ? (
+                <SampleConceptsSkeleton />
+              ) : (
               <div className="grid gap-5 md:grid-cols-3">
                 {samples.map((sample) => {
                   const on = pickedId === sample.id;
@@ -494,6 +558,7 @@ export default function CreatePage() {
                   );
                 })}
               </div>
+              )}
 
               <div className="flex flex-wrap items-center gap-3">
                 <Button
@@ -506,12 +571,12 @@ export default function CreatePage() {
                   {studioLoading ? (
                     <>
                       <Loader2 className="size-4 animate-spin" />
-                      Building studio with Fanous &amp; Lyra craft…
+                      Building Mascot Studio
                     </>
                   ) : (
                     <>
                       <Sparkles className="size-4" />
-                      Build animated studio
+                      Build Mascot Studio
                     </>
                   )}
                 </Button>
@@ -553,9 +618,7 @@ export default function CreatePage() {
                 <div className="space-y-2">
                   <Label>Model</Label>
                   {modelsLoading ? (
-                    <p className="text-xs text-[var(--brand-muted)]">
-                      Checking configured providers…
-                    </p>
+                    <ModelPickerSkeleton />
                   ) : availableModels.every((m) => !m.available) ? (
                     <p className="rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
                       No model provider configured. Add{" "}
@@ -641,23 +704,27 @@ export default function CreatePage() {
                     variant="outline"
                     size="sm"
                     className="border-white/15 bg-transparent"
-                    onClick={surpriseAll}
-                    disabled={samplesLoading}
+                    onClick={() => void requestBriefSurprise("all")}
+                    disabled={briefBusy}
                   >
-                    <Shuffle className="size-3.5" />
+                    {surpriseLoading === "all" ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Shuffle className="size-3.5" />
+                    )}
                     Surprise me
                   </Button>
                 </div>
-                <div className="space-y-2">
+                <div className="group/field space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <Label htmlFor="name">Mascot name</Label>
                     <button
                       type="button"
-                      className="text-xs font-medium text-[var(--brand-accent)] transition hover:text-[var(--brand-accent)]/80"
-                      onClick={() => setName(pickRandomBriefField("name"))}
-                      disabled={samplesLoading}
+                      className="text-xs font-medium text-[var(--brand-accent)] transition hover:text-[var(--brand-accent)]/80 disabled:opacity-50"
+                      onClick={() => void requestBriefSurprise("name")}
+                      disabled={briefBusy}
                     >
-                      Surprise me
+                      {surpriseLoading === "name" ? "Surprising…" : "Surprise me"}
                     </button>
                   </div>
                   <Input
@@ -673,18 +740,18 @@ export default function CreatePage() {
                     className="border-white/15 bg-black/20"
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="group/field space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <Label htmlFor="description">What are they?</Label>
                     <button
                       type="button"
-                      className="text-xs font-medium text-[var(--brand-accent)] transition hover:text-[var(--brand-accent)]/80"
-                      onClick={() =>
-                        setDescription(pickRandomBriefField("description"))
-                      }
-                      disabled={samplesLoading}
+                      className="text-xs font-medium text-[var(--brand-accent)] transition hover:text-[var(--brand-accent)]/80 disabled:opacity-50"
+                      onClick={() => void requestBriefSurprise("description")}
+                      disabled={briefBusy}
                     >
-                      Surprise me
+                      {surpriseLoading === "description"
+                        ? "Surprising…"
+                        : "Surprise me"}
                     </button>
                   </div>
                   <Textarea
@@ -701,16 +768,16 @@ export default function CreatePage() {
                     className="border-white/15 bg-black/20"
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="group/field space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <Label htmlFor="look">How should they look?</Label>
                     <button
                       type="button"
-                      className="text-xs font-medium text-[var(--brand-accent)] transition hover:text-[var(--brand-accent)]/80"
-                      onClick={() => setLook(pickRandomBriefField("look"))}
-                      disabled={samplesLoading}
+                      className="text-xs font-medium text-[var(--brand-accent)] transition hover:text-[var(--brand-accent)]/80 disabled:opacity-50"
+                      onClick={() => void requestBriefSurprise("look")}
+                      disabled={briefBusy}
                     >
-                      Surprise me
+                      {surpriseLoading === "look" ? "Surprising…" : "Surprise me"}
                     </button>
                   </div>
                   <Textarea
@@ -733,18 +800,18 @@ export default function CreatePage() {
                   onClear={() => setReferenceId(undefined)}
                 />
 
-                <div className="space-y-2">
+                <div className="group/field space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <Label htmlFor="product">App / product context</Label>
                     <button
                       type="button"
-                      className="text-xs font-medium text-[var(--brand-accent)] transition hover:text-[var(--brand-accent)]/80"
-                      onClick={() =>
-                        setProductContext(pickRandomBriefField("productContext"))
-                      }
-                      disabled={samplesLoading}
+                      className="text-xs font-medium text-[var(--brand-accent)] transition hover:text-[var(--brand-accent)]/80 disabled:opacity-50"
+                      onClick={() => void requestBriefSurprise("productContext")}
+                      disabled={briefBusy}
                     >
-                      Surprise me
+                      {surpriseLoading === "productContext"
+                        ? "Surprising…"
+                        : "Surprise me"}
                     </button>
                   </div>
                   <Input
@@ -760,18 +827,18 @@ export default function CreatePage() {
                     className="border-white/15 bg-black/20"
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="group/field space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <Label htmlFor="personality">Personality</Label>
                     <button
                       type="button"
-                      className="text-xs font-medium text-[var(--brand-accent)] transition hover:text-[var(--brand-accent)]/80"
-                      onClick={() =>
-                        setPersonality(pickRandomBriefField("personality"))
-                      }
-                      disabled={samplesLoading}
+                      className="text-xs font-medium text-[var(--brand-accent)] transition hover:text-[var(--brand-accent)]/80 disabled:opacity-50"
+                      onClick={() => void requestBriefSurprise("personality")}
+                      disabled={briefBusy}
                     >
-                      Surprise me
+                      {surpriseLoading === "personality"
+                        ? "Surprising…"
+                        : "Surprise me"}
                     </button>
                   </div>
                   <Input

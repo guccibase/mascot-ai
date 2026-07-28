@@ -110,6 +110,8 @@ export function publicSitemapEntries(): Array<{
   return [
     { path: "/", changeFrequency: "weekly", priority: 1 },
     { path: "/pricing", changeFrequency: "monthly", priority: 0.8 },
+    { path: "/privacy", changeFrequency: "monthly", priority: 0.3 },
+    { path: "/terms", changeFrequency: "monthly", priority: 0.3 },
     ...MASCOTS.map((mascot) => ({
       path: studioPath(mascot.slug),
       changeFrequency: "monthly" as const,

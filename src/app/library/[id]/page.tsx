@@ -5,6 +5,7 @@ import { use, useEffect, useRef, useState } from "react";
 import { useQuery } from "convex/react";
 import { Loader2 } from "lucide-react";
 import { GeneratedStudio } from "@/components/generated-studio";
+import { StudioPageSkeleton } from "@/components/skeletons";
 import { useMascotPersistence } from "@/hooks/use-mascot-persistence";
 import { toGeneratedMascot } from "@/lib/mascot-pack";
 import { api } from "../../../../convex/_generated/api";
@@ -21,11 +22,18 @@ export default function LibraryMascotPage({ params }: Props) {
   const saved = useQuery(api.mascots.getMine, { mascotId });
   const { saving, setMeta, persistSafe, bindId } = useMascotPersistence(mascotId);
   const [pack, setPack] = useState<GeneratedMascot | null>(null);
+  const [hydrateFailed, setHydrateFailed] = useState(false);
   const hydratedFor = useRef<string | null>(null);
 
   useEffect(() => {
     bindId(mascotId);
   }, [mascotId, bindId]);
+
+  useEffect(() => {
+    hydratedFor.current = null;
+    setPack(null);
+    setHydrateFailed(false);
+  }, [mascotId]);
 
   useEffect(() => {
     if (!saved) return;
@@ -40,26 +48,28 @@ export default function LibraryMascotPage({ params }: Props) {
   // Hydrate local pack once per mascot id. Never clobber in-flight edits
   // when the reactive query refreshes after our own save.
   useEffect(() => {
-    if (!saved?.pack) return;
+    if (saved === undefined || saved === null) return;
+    if (!saved.pack) {
+      setHydrateFailed(true);
+      return;
+    }
     if (hydratedFor.current === mascotId) return;
     try {
       setPack(toGeneratedMascot(saved.pack));
       hydratedFor.current = mascotId;
+      setHydrateFailed(false);
     } catch (err) {
       console.error(err);
       setPack(null);
+      setHydrateFailed(true);
     }
   }, [saved, mascotId]);
 
-  if (saved === undefined) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0a0e18] text-white/70">
-        <Loader2 className="size-5 animate-spin" />
-      </div>
-    );
+  if (saved === undefined || (saved !== null && !pack && !hydrateFailed)) {
+    return <StudioPageSkeleton />;
   }
 
-  if (saved === null || !pack) {
+  if (saved === null || !pack || hydrateFailed) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#0a0e18] text-white">
         <p>Mascot not found</p>
@@ -78,6 +88,12 @@ export default function LibraryMascotPage({ params }: Props) {
           className="rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-xs font-semibold text-white/85 backdrop-blur hover:bg-black/55"
         >
           ← Library
+        </Link>
+        <Link
+          href={`/library/${mascotId}/remix`}
+          className="rounded-full border border-[var(--brand-accent)]/40 bg-[var(--brand-accent)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--brand-accent)] backdrop-blur hover:bg-[var(--brand-accent)]/20"
+        >
+          Remix
         </Link>
         {saving && (
           <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-xs text-white/70 backdrop-blur">

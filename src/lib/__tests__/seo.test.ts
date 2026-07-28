@@ -19,11 +19,38 @@ describe("seo helpers", () => {
     expect(paths).toEqual([
       "/",
       "/pricing",
+      "/privacy",
+      "/terms",
       "/studio/lyra",
       "/studio/sol",
       "/studio/bud",
       "/studio/fanous",
+      "/studio/granary",
+      "/studio/byte",
+      "/studio/numi",
+      "/studio/lexa",
+      "/studio/coda",
+      "/studio/kelp",
+      "/studio/nori",
+      "/studio/hay",
+      "/studio/nox",
+      "/studio/zest",
+      "/studio/quill",
+      "/studio/pip",
+      "/studio/bolt",
+      "/studio/relay",
+      "/studio/orbit",
+      "/studio/brew",
+      "/studio/lumen",
+      "/studio/shade",
+      "/studio/watt",
+      "/studio/arc",
+      "/studio/aura",
+      "/studio/glint",
+      "/studio/trove",
+      "/studio/zephyr",
     ]);
+
   });
 
   it("uses relative canonicals so metadataBase can resolve them", () => {

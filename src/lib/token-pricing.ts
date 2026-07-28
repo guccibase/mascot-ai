@@ -4,28 +4,97 @@ import {
   optionByApiModel,
   type MascotModelOption,
 } from "@/lib/mascot-model-options";
+import { MAX_REFINE_GESTURES } from "@/lib/refine-pack";
 import type { MascotModelId } from "@/lib/types";
 import { USD_PER_TOKEN } from "../../convex/lib/plans";
 
 export { USD_PER_TOKEN };
 
-/** Conservative USD per 1024×1024 high-quality image (gpt-image-2). */
-export const IMAGE_GEN_USD_PER_IMAGE = 0.07;
+/**
+ * Gross-margin multiplier on provider/infra COGS for app-asset actions.
+ * `(S - C) / S = 0.5` when S = 2C.
+ */
+export const APP_ASSET_MARGIN_MULTIPLIER = 2;
 
-export function estimateImageGenTokens(count: number): {
+/**
+ * Conservative USD COGS per gpt-image-2 reference **edit** at 1024×1024 high
+ * quality (text + image input + image output). Sourced from OpenAI image
+ * pricing examples (~$0.211 high square output) plus edit reference headroom.
+ * Updated 2026-07-26.
+ */
+export const IMAGE_EDIT_USD_PER_IMAGE = 0.22;
+/** Reservation ceiling per edit when usage is unknown. */
+export const IMAGE_EDIT_USD_PER_IMAGE_MAX = 0.28;
+
+/** @deprecated Use IMAGE_EDIT_USD_PER_IMAGE — kept for older imports/tests. */
+export const IMAGE_GEN_USD_PER_IMAGE = IMAGE_EDIT_USD_PER_IMAGE;
+
+export function estimateImageEditTokens(count: number): {
   typical: number;
   max: number;
 } {
-  const base = count * IMAGE_GEN_USD_PER_IMAGE;
+  const n = Math.max(1, Math.min(3, Math.floor(count)));
   return {
-    typical: Math.ceil((base / USD_PER_TOKEN) * 1.35),
-    max: Math.ceil((base / USD_PER_TOKEN) * 1.55),
+    typical: Math.ceil(
+      ((n * IMAGE_EDIT_USD_PER_IMAGE) / USD_PER_TOKEN) * APP_ASSET_MARGIN_MULTIPLIER
+    ),
+    max: Math.ceil(
+      ((n * IMAGE_EDIT_USD_PER_IMAGE_MAX) / USD_PER_TOKEN) *
+        APP_ASSET_MARGIN_MULTIPLIER
+    ),
   };
 }
 
-/** Flat fee for deterministic resize + manifest assembly (no LLM COGS). */
-export const APP_ASSET_PACK_TOKENS_TYPICAL = 450;
-export const APP_ASSET_PACK_TOKENS_MAX = 650;
+/** @deprecated Use estimateImageEditTokens. */
+export const estimateImageGenTokens = estimateImageEditTokens;
+
+/**
+ * Infra COGS per composited icon preview (exact mascot pixels + background).
+ * No image-model spend — character fidelity is guaranteed by compositing.
+ */
+export const APP_ASSET_SAMPLE_USD_PER_IMAGE = 0.0008;
+export const APP_ASSET_SAMPLE_USD_PER_IMAGE_MAX = 0.0012;
+
+export function estimateAppAssetSampleTokens(count: number): {
+  typical: number;
+  max: number;
+} {
+  const n = Math.max(1, Math.min(3, Math.floor(count)));
+  return {
+    typical: Math.ceil(
+      ((n * APP_ASSET_SAMPLE_USD_PER_IMAGE) / USD_PER_TOKEN) *
+        APP_ASSET_MARGIN_MULTIPLIER
+    ),
+    max: Math.ceil(
+      ((n * APP_ASSET_SAMPLE_USD_PER_IMAGE_MAX) / USD_PER_TOKEN) *
+        APP_ASSET_MARGIN_MULTIPLIER
+    ),
+  };
+}
+
+/** Infra COGS for pack assembly (resize + storage uploads); no LLM. */
+export const APP_ASSET_PACK_BASE_USD = 0.002;
+export const APP_ASSET_PACK_PER_FILE_USD = 0.00015;
+
+export function estimateAppAssetPackTokens(fileCount: number): {
+  typical: number;
+  max: number;
+} {
+  const n = Math.max(1, Math.floor(fileCount));
+  const cogs =
+    APP_ASSET_PACK_BASE_USD + APP_ASSET_PACK_PER_FILE_USD * n;
+  const typical = Math.ceil(
+    (cogs / USD_PER_TOKEN) * APP_ASSET_MARGIN_MULTIPLIER
+  );
+  return {
+    typical,
+    max: Math.ceil(typical * 1.25),
+  };
+}
+
+/** @deprecated Prefer estimateAppAssetPackTokens(fileCount). */
+export const APP_ASSET_PACK_TOKENS_TYPICAL = estimateAppAssetPackTokens(12).typical;
+export const APP_ASSET_PACK_TOKENS_MAX = estimateAppAssetPackTokens(12).max;
 
 /**
  * Billing tokens are denominated in provider spend, so a raw model token costs
@@ -126,7 +195,7 @@ const PHASES = {
     outputMax: 6_000,
     carriesPayload: true,
   },
-  /** Three 1024px icon previews via OpenAI Image API. */
+  /** Three 1024px icon previews (exact mascot composite, no image model). */
   appAssetSamples: {
     input: 0,
     outputTypical: 0,
@@ -136,8 +205,8 @@ const PHASES = {
   /** Deterministic resize + manifest assembly from chosen master icon. */
   appAssetPack: {
     input: 0,
-    outputTypical: 2_500,
-    outputMax: 3_500,
+    outputTypical: 0,
+    outputMax: 0,
     carriesPayload: false,
   },
 } satisfies Record<string, PhaseEstimate>;
@@ -156,10 +225,10 @@ type ActionKind =
   | { kind: "samples" }
   | { kind: "studio"; gestures: number }
   | { kind: "gesture" }
-  | { kind: "refine" }
+  | { kind: "refine"; batches?: number }
   | { kind: "remix"; poses: number }
   | { kind: "appAssetSamples"; images?: number }
-  | { kind: "appAssetPack" };
+  | { kind: "appAssetPack"; fileCount?: number };
 
 export type MeteredAction = ActionKind & {
   /**
@@ -191,8 +260,16 @@ function phasesFor(action: MeteredAction): PhaseEstimate[] {
       return [PHASES.samples];
     case "gesture":
       return [PHASES.addGesture];
-    case "refine":
-      return [PHASES.refine];
+    case "refine": {
+      const batches = Math.max(
+        1,
+        Math.min(
+          MAX_REFINE_GESTURES,
+          Math.floor(action.batches ?? 1)
+        )
+      );
+      return Array.from({ length: batches }, () => PHASES.refine);
+    }
     case "studio": {
       const gestures = Math.max(1, Math.min(6, Math.floor(action.gestures)));
       return [
@@ -246,14 +323,15 @@ export function estimateTokens(
   max += visionCalls * VISION_IMAGE_TOKENS_MAX;
 
   if (action.kind === "appAssetSamples") {
-    const img = estimateImageGenTokens(Math.max(1, Math.min(3, action.images ?? 3)));
+    const img = estimateAppAssetSampleTokens(action.images ?? 3);
     typical += img.typical;
     max += img.max;
   }
 
   if (action.kind === "appAssetPack") {
-    typical += APP_ASSET_PACK_TOKENS_TYPICAL;
-    max += APP_ASSET_PACK_TOKENS_MAX;
+    const pack = estimateAppAssetPackTokens(action.fileCount ?? 12);
+    typical += pack.typical;
+    max += pack.max;
   }
 
   return {

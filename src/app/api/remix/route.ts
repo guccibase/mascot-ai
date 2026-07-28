@@ -1,32 +1,33 @@
 import { NextResponse } from "next/server";
+import { api } from "../../../../convex/_generated/api";
+import type { Id } from "../../../../convex/_generated/dataModel";
 import { boundedText, rateLimit, readJsonBody } from "@/lib/api-guard";
+import { authedConvexClient } from "@/lib/convex-server";
 import { resolveMascotModel, runMascotModel } from "@/lib/mascot-model";
+import { toGeneratedMascot } from "@/lib/mascot-pack";
 import { openMeter } from "@/lib/metering";
 import { parseJsonObject } from "@/lib/parse-json";
 import {
   buildRemixGestures,
-  loadRemixSource,
   measureRemixPayload,
-  prepareRemixIndex,
 } from "@/lib/remix/build-gestures";
 import {
   coerceRemixIdentity,
   coerceRemixPose,
-  toGeneratedMascot,
+  toGeneratedMascot as toRemixedMascot,
 } from "@/lib/remix/coerce";
+import { preparePackRemixIndex } from "@/lib/remix/from-pack";
 import { buildIdentityPrompt, buildPosePrompt } from "@/lib/remix/prompts";
 import { sanitizePalette } from "@/lib/remix/palette";
 import { normalizeGeneratedMascot } from "@/lib/studio-utils";
 import { isReferenceId } from "@/lib/reference-image-client";
 import { loadReferenceImage } from "@/lib/reference-image";
-import type { RemixRequest } from "@/lib/types";
-import { getMascot, type MascotSlug } from "@/lib/mascots";
+import type { GeneratedMascot, RemixRequest } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
 
 const MAX_BODY_BYTES = 250_000;
-const SLUGS = new Set<MascotSlug>(["lyra", "sol", "bud", "fanous"]);
 
 export async function POST(req: Request) {
   const limited = await rateLimit(req, {
@@ -40,10 +41,24 @@ export async function POST(req: Request) {
   if (!parsedBody.ok) return parsedBody.response;
   const body = parsedBody.data;
 
-  if (!SLUGS.has(body.slug)) {
-    return NextResponse.json({ error: "Unknown example mascot" }, { status: 400 });
+  if (body.slug && !body.mascotId && !body.listingId) {
+    return NextResponse.json(
+      {
+        error:
+          "Example remix is no longer available. Remix a mascot from your library or the marketplace.",
+      },
+      { status: 410 }
+    );
   }
 
+  if (!body.mascotId && !(body.listingId && body.remixOrderId)) {
+    return NextResponse.json(
+      { error: "mascotId or listingId + remixOrderId is required" },
+      { status: 400 }
+    );
+  }
+
+  // Validate request fields before consuming a paid unlock.
   const resolved = resolveMascotModel(body.model, {
     requiresVision: isReferenceId(body.referenceId),
   });
@@ -70,24 +85,87 @@ export async function POST(req: Request) {
     );
   }
 
-  const source = await loadRemixSource(body.slug);
-  if (!source) {
-    return NextResponse.json({ error: "Example not found" }, { status: 404 });
+  const convex = await authedConvexClient();
+  if (!convex) {
+    return NextResponse.json({ error: "Sign in to remix" }, { status: 401 });
+  }
+
+  let sourceName: string;
+  let sourceId: string;
+  let sourceKind: "mascot" | "listing";
+  let pack: GeneratedMascot;
+  let claimedListing = false;
+
+  const serverSecret = process.env.GENERATION_SERVER_SECRET;
+
+  const restoreUnlockIfNeeded = async () => {
+    if (!claimedListing || !body.listingId || !body.remixOrderId) {
+      return;
+    }
+    try {
+      await convex.mutation(api.marketplace.restoreRemixUnlock, {
+        orderId: body.remixOrderId as Id<"marketplaceOrders">,
+        listingId: body.listingId as Id<"marketplaceListings">,
+        serverSecret,
+      });
+    } catch (err) {
+      console.error("restore remix unlock failed:", err);
+    }
+  };
+
+  try {
+    if (body.mascotId) {
+      const owned = await convex.query(api.marketplace.getOwnedRemixPack, {
+        mascotId: body.mascotId as Id<"mascots">,
+      });
+      if (!owned) {
+        return NextResponse.json(
+          { error: "Mascot not found or not owned" },
+          { status: 403 }
+        );
+      }
+      sourceName = owned.name;
+      sourceId = owned.sourceId;
+      sourceKind = "mascot";
+      pack = toGeneratedMascot(owned.pack);
+    } else {
+      // Claim unlock before generation — fail closed, single use.
+      const claimed = await convex.mutation(api.marketplace.claimRemixUnlock, {
+        orderId: body.remixOrderId as Id<"marketplaceOrders">,
+        listingId: body.listingId as Id<"marketplaceListings">,
+        serverSecret,
+      });
+      claimedListing = true;
+      sourceName = claimed.name;
+      sourceId = claimed.sourceId;
+      sourceKind = "listing";
+      pack = toGeneratedMascot(claimed.pack);
+    }
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Remix source unavailable";
+    return NextResponse.json({ error: message }, { status: 403 });
   }
 
   const selectedKeys = gestures.map((g) => g.key);
   const unknown = selectedKeys.filter(
-    (k) => !source.pack.poses.some((p) => p.key === k)
+    (k) => !pack.gestures.some((p) => p.key === k)
   );
   if (unknown.length) {
+    await restoreUnlockIfNeeded();
     return NextResponse.json(
-      { error: `Unknown poses for ${body.slug}: ${unknown.join(", ")}` },
+      { error: `Unknown poses: ${unknown.join(", ")}` },
       { status: 400 }
     );
   }
 
-  const { indexed, sharedManifest, variantManifests, paletteEntries } =
-    prepareRemixIndex(source.pack, selectedKeys);
+  const {
+    indexed,
+    sharedManifest,
+    variantManifests,
+    paletteEntries,
+    source: remixSource,
+  } = preparePackRemixIndex(pack, selectedKeys);
 
   const briefChars =
     name.length +
@@ -106,6 +184,7 @@ export async function POST(req: Request) {
   if (isReferenceId(body.referenceId)) {
     referenceImage = await loadReferenceImage(body.referenceId);
     if (!referenceImage) {
+      await restoreUnlockIfNeeded();
       return NextResponse.json(
         { error: "Reference image not found or expired. Upload again." },
         { status: 410 }
@@ -122,19 +201,22 @@ export async function POST(req: Request) {
     },
     model
   );
-  if (!metered.ok) return metered.response;
+  if (!metered.ok) {
+    await restoreUnlockIfNeeded();
+    return metered.response;
+  }
   const { meter } = metered;
 
   const started = Date.now();
   const warnings: string[] = [];
+  let succeeded = false;
 
   try {
-    const meta = getMascot(body.slug)!;
     const identityRun = await runMascotModel({
       model,
       instructions: buildIdentityPrompt({
-        slug: body.slug,
-        exampleName: meta.name,
+        slug: sourceKind,
+        exampleName: sourceName,
         name,
         description,
         look,
@@ -210,13 +292,13 @@ export async function POST(req: Request) {
     }
 
     const built = buildRemixGestures({
-      slug: body.slug,
+      slug: "owned",
       indexed,
       gestureRequests: gestures,
       sharedEdits: identityParsed.edits,
       palette,
       poseResults,
-      originalPoses: source.pack.poses.map((p) => ({
+      originalPoses: remixSource.poses.map((p) => ({
         key: p.key,
         track: p.track,
         signal: p.signal,
@@ -236,7 +318,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const raw = toGeneratedMascot({
+    const raw = toRemixedMascot({
       identity: identityParsed,
       gestures: built.gestures,
     });
@@ -249,6 +331,7 @@ export async function POST(req: Request) {
 
     const mascot = normalizeGeneratedMascot(raw, gestures);
     const tokens = await meter.settle();
+    succeeded = true;
 
     return NextResponse.json({
       mascot,
@@ -257,7 +340,8 @@ export async function POST(req: Request) {
         elapsedMs: Date.now() - started,
         warnings,
         skippedGestures: built.skippedGestures,
-        source: body.slug,
+        source: sourceId,
+        sourceKind,
         tokens,
       },
     });
@@ -266,6 +350,9 @@ export async function POST(req: Request) {
     console.error("remix failed:", err);
     return NextResponse.json({ error: message }, { status: 502 });
   } finally {
+    if (!succeeded) {
+      await restoreUnlockIfNeeded();
+    }
     await meter.settle();
   }
 }

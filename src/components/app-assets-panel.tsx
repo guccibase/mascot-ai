@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { zipSync } from "fflate";
 import {
   APP_ASSET_KINDS,
+  packOutputFileCount,
   type AppAssetKind,
 } from "@/lib/app-assets/catalog";
 import { trackEvent } from "@/lib/analytics";
@@ -66,14 +67,15 @@ export function AppAssetsPanel({ mascotId, mascotName, model }: Props) {
   );
 
   const kindList = useMemo(() => [...kinds], [kinds]);
+  const fileCount = useMemo(() => packOutputFileCount(kindList), [kindList]);
 
   const samplesQuote = useMemo(
     () => estimateTokens({ kind: "appAssetSamples", images: 3 }, billingModel),
     [billingModel]
   );
   const packQuote = useMemo(
-    () => estimateTokens({ kind: "appAssetPack" }, billingModel),
-    [billingModel]
+    () => estimateTokens({ kind: "appAssetPack", fileCount }, billingModel),
+    [billingModel, fileCount]
   );
   const totalQuote = samplesQuote.typical + packQuote.typical;
   const affordable =
@@ -158,19 +160,34 @@ export function AppAssetsPanel({ mascotId, mascotName, model }: Props) {
           model: billingModel,
         }),
       });
-      const data = (await res.json()) as {
+
+      let data: {
         error?: string;
         code?: string;
         packId?: string;
         samples?: SampleOption[];
-      };
+      } = {};
+      try {
+        data = (await res.json()) as typeof data;
+      } catch {
+        trackEvent("generate_failed", {
+          action: "appAssetSamples",
+          reason: res.status === 504 ? "timeout" : "bad_response",
+        });
+        toast.error(
+          res.status === 504
+            ? "Icon preview generation timed out — try again"
+            : "Could not generate icon previews"
+        );
+        return;
+      }
 
       if (!res.ok) {
         trackEvent("generate_failed", {
           action: "appAssetSamples",
           reason: data.code ?? "error",
         });
-        toast.error(data.error ?? "Could not generate icon options");
+        toast.error(data.error ?? "Could not generate icon previews");
         return;
       }
 
@@ -182,10 +199,10 @@ export function AppAssetsPanel({ mascotId, mascotName, model }: Props) {
         action: "appAssetSamples",
         model: billingModel,
       });
-      toast.success("3 icon options ready — pick your favorite");
+      toast.success("3 icon previews ready — pick your favorite");
     } catch {
       trackEvent("generate_failed", { action: "appAssetSamples", reason: "error" });
-      toast.error("Network error while generating icons");
+      toast.error("Network error while generating icon previews");
     } finally {
       setGeneratingSamples(false);
     }
@@ -211,11 +228,26 @@ export function AppAssetsPanel({ mascotId, mascotName, model }: Props) {
           model: billingModel,
         }),
       });
-      const data = (await res.json()) as {
+
+      let data: {
         error?: string;
         code?: string;
         files?: AssetFile[];
-      };
+      } = {};
+      try {
+        data = (await res.json()) as typeof data;
+      } catch {
+        trackEvent("generate_failed", {
+          action: "appAssetPack",
+          reason: res.status === 504 ? "timeout" : "bad_response",
+        });
+        toast.error(
+          res.status === 504
+            ? "Pack build timed out — try again"
+            : "Could not build asset pack"
+        );
+        return;
+      }
 
       if (!res.ok) {
         trackEvent("generate_failed", {
@@ -283,19 +315,26 @@ export function AppAssetsPanel({ mascotId, mascotName, model }: Props) {
       <div>
         <p className="gs-eyebrow mb-1">App assets</p>
         <p className="text-sm leading-relaxed text-[#8D8472]">
-          Generate store-ready icons from your mascot. Pick 3 AI previews, then we
-          resize to every size you need.
+          Generate store-ready icons from your exact mascot artwork. We place your
+          character on 3 polished backgrounds; after you pick one, we resize into
+          every size in your pack.
         </p>
       </div>
 
       <div className="space-y-2">
         <span className="gs-eyebrow">Include in pack</span>
+        {samples.length > 0 ? (
+          <p className="text-xs text-[#8D8472]">
+            Locked for this preview set — generate a new preview set to change.
+          </p>
+        ) : null}
         <div className="grid gap-2 sm:grid-cols-2">
           {APP_ASSET_KINDS.map((kind) => (
             <label
               key={kind.id}
               className={cn(
-                "flex cursor-pointer gap-3 rounded-xl border px-3 py-2.5 transition",
+                "flex gap-3 rounded-xl border px-3 py-2.5 transition",
+                samples.length > 0 ? "cursor-default opacity-90" : "cursor-pointer",
                 kinds.has(kind.id)
                   ? "border-[var(--brand-accent)]/50 bg-[var(--brand-accent)]/10"
                   : "border-white/10 bg-white/[0.03] hover:border-white/20"
@@ -305,6 +344,7 @@ export function AppAssetsPanel({ mascotId, mascotName, model }: Props) {
                 type="checkbox"
                 className="mt-1 accent-[var(--brand-accent)]"
                 checked={kinds.has(kind.id)}
+                disabled={samples.length > 0}
                 onChange={() => toggleKind(kind.id)}
               />
               <span>
@@ -325,7 +365,7 @@ export function AppAssetsPanel({ mascotId, mascotName, model }: Props) {
           rows={2}
           value={styleDescription}
           onChange={(e) => setStyleDescription(e.target.value)}
-          placeholder="e.g. soft purple gradient background, glossy finish, minimal shadows"
+          placeholder="Optional notes for your records (previews use your mascot artwork and brand colors)"
           className="w-full resize-none rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-white/35 focus:border-[var(--brand-accent)]/50 focus:outline-none"
         />
       </div>
@@ -336,7 +376,9 @@ export function AppAssetsPanel({ mascotId, mascotName, model }: Props) {
           <span className="tabular-nums text-white">{formatTokens(samplesQuote.typical)}</span>
         </div>
         <div className="mt-1 flex justify-between gap-3">
-          <span className="text-[#8D8472]">Full asset pack</span>
+          <span className="text-[#8D8472]">
+            Pack export · {fileCount} file{fileCount === 1 ? "" : "s"}
+          </span>
           <span className="tabular-nums text-white">{formatTokens(packQuote.typical)}</span>
         </div>
         <div className="mt-2 flex justify-between gap-3 border-t border-white/10 pt-2 font-medium">
@@ -359,7 +401,7 @@ export function AppAssetsPanel({ mascotId, mascotName, model }: Props) {
           ) : (
             <ImageIcon className="size-4" />
           )}
-          {samples.length > 0 ? "New icon set" : "Generate 3 icons"}
+          {samples.length > 0 ? "New preview set" : "Generate 3 icon previews"}
         </button>
         {samples.length > 0 && (
           <button
@@ -416,7 +458,7 @@ export function AppAssetsPanel({ mascotId, mascotName, model }: Props) {
             ) : (
               <>
                 <Package className="mr-2 inline size-4" />
-                Generate full asset pack
+                Build pack · {fileCount} file{fileCount === 1 ? "" : "s"}
               </>
             )}
           </button>

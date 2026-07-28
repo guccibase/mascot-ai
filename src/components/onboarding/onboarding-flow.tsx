@@ -21,8 +21,26 @@ import { PROOF_POINTS, PROOF_QUOTE } from "@/lib/proof";
 import { cn } from "@/lib/utils";
 import { api } from "../../../convex/_generated/api";
 
-const STEPS = ["pitch", "building", "context", "proof", "examples"] as const;
+const STEPS = ["pitch", "old-way", "building", "context", "proof", "examples"] as const;
 type Step = (typeof STEPS)[number];
+
+const OLD_WAY_POINTS = [
+  {
+    label: "Hundreds — sometimes thousands",
+    detail:
+      "Hiring a designer or studio usually runs hundreds of dollars, sometimes into the thousands, for a character and a handful of poses.",
+  },
+  {
+    label: "Weeks to months",
+    detail:
+      "Turnaround is commonly weeks to months — and every revision loop starts the clock again.",
+  },
+  {
+    label: "Still unfinished for product",
+    detail:
+      "You get static art, maybe a few expressions, then still have to figure out animation, exports, and how it lives in the app.",
+  },
+] as const;
 
 const DRAFT_KEY = "mascot-ai:onboarding-draft";
 
@@ -304,6 +322,39 @@ export function OnboardingFlow() {
             </div>
           )}
 
+          {step === "old-way" && (
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--brand-accent)]">
+                The usual path
+              </p>
+              <h2 className="mt-3 font-[family-name:var(--font-display)] text-3xl tracking-tight sm:text-4xl">
+                A custom mascot used to be a project, not a feature
+              </h2>
+              <p className="mt-2 text-[var(--brand-muted)]">
+                Most teams still buy one the hard way.
+              </p>
+
+              <div className="mt-8 space-y-3">
+                {OLD_WAY_POINTS.map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-[1.25rem] border border-white/10 bg-white/[0.03] p-5"
+                  >
+                    <p className="font-medium text-white/95">{item.label}</p>
+                    <p className="mt-1.5 text-sm leading-relaxed text-[var(--brand-muted)]">
+                      {item.detail}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <p className="mt-6 text-[15px] leading-relaxed text-white/90">
+                We built the studio so you can skip that gauntlet — a gestural
+                mascot you can iterate on and ship the same day.
+              </p>
+            </div>
+          )}
+
           {step === "building" && (
             <div>
               <h2 className="font-[family-name:var(--font-display)] text-3xl tracking-tight sm:text-4xl">
@@ -464,7 +515,7 @@ export function OnboardingFlow() {
                 Here&apos;s the bar
               </h2>
               <p className="mt-2 text-[var(--brand-muted)]">
-                Four studios we built for real products. Pick the one closest to
+                {MASCOTS.length} studios we built for real products. Pick the one closest to
                 what you want, or skip and start clean.
               </p>
 

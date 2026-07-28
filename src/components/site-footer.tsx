@@ -10,6 +10,11 @@ const FOOTER_LINKS = [
   { href: "/sign-in", label: "Sign in" },
 ] as const;
 
+const LEGAL_LINKS = [
+  { href: "/privacy", label: "Privacy" },
+  { href: "/terms", label: "Terms" },
+] as const;
+
 export function SiteFooter() {
   return (
     <footer className="relative border-t border-white/10 bg-black/20">
@@ -64,9 +69,25 @@ export function SiteFooter() {
           </nav>
         </div>
 
-        <p className="text-xs text-white/35">
-          © {new Date().getFullYear()} {SITE_NAME}. All rights reserved.
-        </p>
+        <div className="flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-white/35 sm:flex-row sm:items-center sm:justify-between">
+          <p>
+            © {new Date().getFullYear()} {SITE_NAME}. All rights reserved.
+          </p>
+          <nav aria-label="Legal">
+            <ul className="flex gap-5">
+              {LEGAL_LINKS.map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="transition hover:text-white/75"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </div>
       </div>
     </footer>
   );

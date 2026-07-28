@@ -1108,6 +1108,27 @@ const SPARK_PATHS = {
    ============================================================ */
 export const POSE_SOURCE = {
   slug: "fanous",
+  /** Snapshot palette + no signal slider: the lantern is driven by glow alone. */
+  meta: {
+    accent: GOLD,
+    stage: THEMES.teal.stage,
+    glowLabel: "Lantern glow",
+    themes: Object.fromEntries(
+      Object.entries(THEMES).map(([key, t]) => [
+        key,
+        {
+          name: t.name,
+          top: light(t.face, 0.18),
+          mid: t.accent,
+          base: t.body,
+          core: t.face,
+          stage: t.stage,
+          features: dark(t.body, 0.3),
+        },
+      ])
+    ),
+    instrument: null,
+  },
   poses: GESTURES.map((g) => ({
     key: g.key,
     label: g.label,

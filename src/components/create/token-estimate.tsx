@@ -13,6 +13,7 @@ import {
   runsRemaining,
 } from "@/lib/token-pricing";
 import type { MascotModelId } from "@/lib/types";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useTokenBalance } from "@/lib/use-token-balance";
 import { cn } from "@/lib/utils";
 
@@ -288,7 +289,7 @@ export function TokenEstimate({
       </div>
 
       {balance === undefined ? (
-        <div className="h-14 animate-pulse rounded-2xl bg-white/[0.04]" />
+        <Skeleton className="h-14 rounded-2xl" />
       ) : available != null ? (
         <div className="space-y-2 border-t border-white/10 pt-3">
           <div className="flex items-baseline justify-between gap-3 text-sm">

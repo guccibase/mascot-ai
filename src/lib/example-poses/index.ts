@@ -14,7 +14,32 @@ const LOADERS: Record<MascotSlug, () => Promise<{ default: unknown }>> = {
   sol: () => import("./sol.json"),
   bud: () => import("./bud.json"),
   fanous: () => import("./fanous.json"),
+  granary: () => import("./granary.json"),
+  byte: () => import("./byte.json"),
+  numi: () => import("./numi.json"),
+  lexa: () => import("./lexa.json"),
+  coda: () => import("./coda.json"),
+  kelp: () => import("./kelp.json"),
+  nori: () => import("./nori.json"),
+  hay: () => import("./hay.json"),
+  nox: () => import("./nox.json"),
+  zest: () => import("./zest.json"),
+  quill: () => import("./quill.json"),
+  pip: () => import("./pip.json"),
+  bolt: () => import("./bolt.json"),
+  relay: () => import("./relay.json"),
+  orbit: () => import("./orbit.json"),
+  brew: () => import("./brew.json"),
+  lumen: () => import("./lumen.json"),
+  shade: () => import("./shade.json"),
+  watt: () => import("./watt.json"),
+  arc: () => import("./arc.json"),
+  aura: () => import("./aura.json"),
+  glint: () => import("./glint.json"),
+  trove: () => import("./trove.json"),
+  zephyr: () => import("./zephyr.json"),
 };
+
 
 export async function loadPosePack(slug: MascotSlug): Promise<PosePack> {
   const mod = await LOADERS[slug]();

@@ -19,6 +19,12 @@ export type StudioInstrument = {
   defaultValue: number;
   /** 5-stop colour ramp used for the signal, 0→100. */
   ramp: [string, string, string, string, string];
+  /**
+   * Studios that ship no signal control (glow-only, like Bud or Sol) set this.
+   * The ramp still colours sparks and accents; no slider is offered, so a
+   * marketplace preview and the copy a buyer receives expose the same controls.
+   */
+  hidden?: boolean;
 };
 
 export type MascotPart = {
@@ -143,7 +149,42 @@ export type AddGestureRequest = {
 };
 
 export type RemixRequest = {
-  slug: "lyra" | "sol" | "bud" | "fanous";
+  /** @deprecated Example remix removed from product; prefer mascotId/listingId. */
+  slug?:
+    | "lyra"
+    | "sol"
+    | "bud"
+    | "fanous"
+    | "granary"
+    | "byte"
+    | "numi"
+    | "lexa"
+    | "coda"
+    | "kelp"
+    | "nori"
+    | "hay"
+    | "nox"
+    | "zest"
+    | "quill"
+    | "pip"
+    | "bolt"
+    | "relay"
+    | "orbit"
+    | "brew"
+    | "lumen"
+    | "shade"
+    | "watt"
+    | "arc"
+    | "aura"
+    | "glint"
+    | "trove"
+    | "zephyr";
+
+  /** Remix an owned library mascot (created or purchased). */
+  mascotId?: string;
+  /** Remix a marketplace listing after paying the remix SKU. */
+  listingId?: string;
+  remixOrderId?: string;
   name: string;
   description: string;
   look: string;
