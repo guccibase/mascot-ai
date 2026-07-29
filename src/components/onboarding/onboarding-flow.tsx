@@ -20,13 +20,14 @@ import {
   type OnboardingDraft,
   type OnboardingStep,
   parseOnboardingDraft,
+  sanitizeOnboardingFavorite,
   serializeOnboardingDraft,
 } from "@/lib/onboarding-flow";
 import { BrandLogo } from "@/components/brand-logo";
 import { OnboardingExamplePicker } from "@/components/onboarding/onboarding-example-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { isPublicExampleSlug, PUBLIC_EXAMPLES } from "@/lib/mascots";
+import { PUBLIC_EXAMPLES } from "@/lib/mascots";
 import { PROOF_POINTS, PROOF_QUOTE } from "@/lib/proof";
 import { cn } from "@/lib/utils";
 import { api } from "../../../convex/_generated/api";
@@ -109,8 +110,8 @@ const PAID_BEFORE = [
 
 /** Shared across pitch CTA, Continue, and finish so every step matches. */
 const PRIMARY_BTN =
-  "bg-[var(--brand-accent)] px-8 text-[#12141c] hover:bg-[var(--brand-accent)]/90";
-const BACK_BTN = "text-[var(--brand-muted)] hover:text-white";
+  "w-full bg-[var(--brand-accent)] px-8 text-[#12141c] hover:bg-[var(--brand-accent)]/90 sm:w-auto";
+const BACK_BTN = "w-full text-[var(--brand-muted)] hover:text-white sm:w-auto";
 
 function firstName(name: string | null | undefined) {
   if (!name?.trim()) return "there";
@@ -175,10 +176,8 @@ export function OnboardingFlow() {
   const [paidBefore, setPaidBefore] = useState<string | null>(
     () => draft?.paidBefore ?? null
   );
-  const [favorite, setFavorite] = useState<string | null>(() =>
-    draft?.favorite && isPublicExampleSlug(draft.favorite)
-      ? draft.favorite
-      : null
+  const [favorite, setFavorite] = useState<string | null>(
+    () => draft?.favorite ?? null
   );
   const [busy, setBusy] = useState(false);
 
@@ -218,8 +217,7 @@ export function OnboardingFlow() {
         stack: stack || undefined,
         referral: referral ?? undefined,
         paidBefore: paidBefore ?? undefined,
-        favoriteExample:
-          favorite && isPublicExampleSlug(favorite) ? favorite : undefined,
+        favoriteExample: sanitizeOnboardingFavorite(favorite) ?? undefined,
       });
       trackEvent("onboarding_completed", {
         useCase,
@@ -291,15 +289,6 @@ export function OnboardingFlow() {
                   ready to drop into whatever you&apos;re shipping.
                 </p>
               </div>
-              <Button
-                type="button"
-                size="lg"
-                className={cn("mt-10", PRIMARY_BTN)}
-                onClick={() => go(1)}
-              >
-                Show me
-                <ArrowRight className="size-4" />
-              </Button>
             </div>
           )}
 
@@ -509,18 +498,27 @@ export function OnboardingFlow() {
         </div>
       </main>
 
-      {step !== "pitch" && (
-        <footer className="relative z-10 flex items-center justify-between gap-3 px-5 pb-8 sm:px-8">
-          <Button
-            type="button"
-            variant="ghost"
-            size="lg"
-            disabled={busy}
-            className={BACK_BTN}
-            onClick={() => go(-1)}
-          >
-            Back
-          </Button>
+      <footer className="relative z-10 px-5 pb-8 sm:px-8">
+        <div
+          className={cn(
+            "mx-auto flex w-full max-w-2xl gap-3",
+            step === "pitch"
+              ? "flex-col sm:flex-row sm:justify-end"
+              : "flex-col-reverse sm:flex-row sm:items-center sm:justify-between"
+          )}
+        >
+          {step !== "pitch" && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="lg"
+              disabled={busy}
+              className={BACK_BTN}
+              onClick={() => go(-1)}
+            >
+              Back
+            </Button>
+          )}
           {step === "examples" ? (
             <Button
               type="button"
@@ -546,12 +544,12 @@ export function OnboardingFlow() {
               disabled={step === "building" && !useCase}
               onClick={() => go(1)}
             >
-              Continue
+              {step === "pitch" ? "Show me" : "Continue"}
               <ArrowRight className="size-4" />
             </Button>
           )}
-        </footer>
-      )}
+        </div>
+      </footer>
     </div>
   );
 }

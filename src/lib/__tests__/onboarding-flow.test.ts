@@ -5,6 +5,7 @@ import {
   isOnboardingStep,
   parseOnboardingDraft,
   resolveDraftStep,
+  sanitizeOnboardingFavorite,
   serializeOnboardingDraft,
 } from "../onboarding-flow";
 
@@ -50,6 +51,16 @@ describe("resolveDraftStep", () => {
   });
 });
 
+describe("sanitizeOnboardingFavorite", () => {
+  it("keeps public example slugs and clears invalid values", () => {
+    expect(sanitizeOnboardingFavorite("lyra")).toBe("lyra");
+    expect(sanitizeOnboardingFavorite("zephyr")).toBeNull();
+    expect(sanitizeOnboardingFavorite("unknown")).toBeNull();
+    expect(sanitizeOnboardingFavorite(null)).toBeNull();
+    expect(sanitizeOnboardingFavorite(undefined)).toBeNull();
+  });
+});
+
 describe("parseOnboardingDraft", () => {
   it("returns null for invalid JSON or unknown steps", () => {
     expect(parseOnboardingDraft("{")).toBeNull();
@@ -79,5 +90,17 @@ describe("parseOnboardingDraft", () => {
     expect(JSON.parse(serializeOnboardingDraft(parsed!)).version).toBe(
       ONBOARDING_FLOW_VERSION
     );
+  });
+
+  it("drops non-public favorite slugs from stored drafts", () => {
+    const parsed = parseOnboardingDraft(
+      JSON.stringify({
+        step: "examples",
+        favorite: "zephyr",
+        version: ONBOARDING_FLOW_VERSION,
+      })
+    );
+
+    expect(parsed?.favorite).toBeNull();
   });
 });
