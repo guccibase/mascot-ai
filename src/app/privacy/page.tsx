@@ -52,7 +52,7 @@ const sections: LegalSection[] = [
           <li>
             <strong>Account information.</strong> Your name, email address,
             profile image, authentication identifiers, and account status. Our
-            authentication provider, Clerk, handles sign-in credentials and
+            authentication service providers handle sign-in credentials and
             authentication methods on our behalf.
           </li>
           <li>
@@ -93,9 +93,8 @@ const sections: LegalSection[] = [
         </ul>
         <p>
           We collect information from you, automatically from your device and
-          use of the Service, and from service providers such as Clerk,
-          RevenueCat, and Stripe when they confirm account or transaction
-          events.
+          use of the Service, and from service providers when they confirm
+          account or transaction events.
         </p>
       </>
     ),
@@ -182,27 +181,16 @@ const sections: LegalSection[] = [
         <p>We disclose information only as needed for these purposes:</p>
         <ul>
           <li>
-            <strong>Infrastructure and storage:</strong> Convex and hosting
-            providers that run the application, database, file storage, and
-            server logs.
-          </li>
-          <li>
-            <strong>Authentication:</strong> Clerk, which manages sign-up,
-            sign-in, sessions, and account controls.
+            <strong>Service operations:</strong> Companies that help us host
+            the Service, store data, secure accounts, provide authentication,
+            monitor reliability, understand product usage, support customers,
+            and process billing and payments. They receive only the information
+            reasonably needed to perform those services.
           </li>
           <li>
             <strong>AI generation:</strong> OpenAI or Anthropic, based on the
             model you select, and OpenAI for an image feature when that feature
             is enabled.
-          </li>
-          <li>
-            <strong>Analytics:</strong> Vercel Analytics and related hosting
-            telemetry used to understand aggregate product use and reliability.
-          </li>
-          <li>
-            <strong>Billing and payments:</strong> RevenueCat for subscription
-            catalog, entitlements, and checkout orchestration, and Stripe for
-            marketplace checkout and payment processing.
           </li>
           <li>
             <strong>Legal and safety:</strong> Authorities, advisors, or other
@@ -258,9 +246,9 @@ const sections: LegalSection[] = [
             maintain financial records, prevent abuse, and comply with law.
           </li>
           <li>
-            <strong>Processed webhook and reservation records</strong> are
-            retained temporarily for reliability and replay prevention, then
-            pruned when no longer operationally useful.
+            <strong>Temporary operational records</strong> are retained only
+            as long as needed for reliability, security, and preventing
+            duplicate charges.
           </li>
         </ul>
         <p>
@@ -279,13 +267,12 @@ const sections: LegalSection[] = [
     content: (
       <p>
         We use administrative, technical, and organizational measures designed
-        to protect information, including authenticated access controls,
-        ownership checks on saved assets, signed webhooks, payment-provider
-        checkout, rate limits, short-lived upload references, and sanitization
-        of generated SVG. No system is completely secure, and we cannot
-        guarantee that unauthorized access, loss, or misuse will never occur.
-        You are responsible for protecting your sign-in methods and for
-        notifying us if you believe your account has been compromised.
+        to protect information, including access controls, account security,
+        monitoring, safeguards for payments and stored assets, and limited
+        retention for temporary uploads. No system is completely secure, and
+        we cannot guarantee that unauthorized access, loss, or misuse will
+        never occur. You are responsible for protecting your sign-in methods
+        and for notifying us if you believe your account has been compromised.
       </p>
     ),
   },

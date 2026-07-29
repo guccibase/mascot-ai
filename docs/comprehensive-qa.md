@@ -29,7 +29,7 @@ Confirm `.env.local` has: `NEXT_PUBLIC_CLERK_*`, `NEXT_PUBLIC_CONVEX_URL`, `GENE
 | Subscribed | RevenueCat sandbox `mascotai_weekly` / `monthly` / `yearly` | Create, refine, remix, app assets |
 | Top-up only | Grant top-up via sandbox, no plan | Access via `topupTokens > 0` |
 | Depleted | Zero balance | 402 on metered APIs, pricing CTAs |
-| Admin | Clerk `publicMetadata.role = "admin"` | Gated example studios, admin marketplace |
+| Admin | Clerk `publicMetadata.role = "admin"` (+ Convex JWT `role` claim) | Gated example studios, admin marketplace, `/admin` users & grants |
 
 ### Balance verification (Convex)
 
@@ -47,7 +47,7 @@ curl -sS "$CONVEX_URL/api/query" \
 
 **Reconciliation rule:** After any metered action, `balance_after ≈ balance_before − response._meta.tokens` (when `_meta` includes `tokens` and `balance`). If `_meta` omits them, settle did not commit — treat as billing bug.
 
-**Hold vs charge:** During an in-flight generation, balance may drop by the **hold** amount. After failure + `forgive()`, balance must return to pre-request level (within refill timing).
+**Hold vs charge (auth/capture):** `reserve` earmarks capacity (`available = total − held` via denormalized `openHoldTotal`) without debiting the wallet. `settle(actual>0)` debits only after success (capped by leftover capacity after peer holds); failure + `forgive()` → `settle(0)` charges **0**. Wallet `total` must not drop mid-flight; only `available` shrinks while a hold is open. Expired deferred holds stay capturable for a settle grace window; after hard-delete, a late `settle(actual>0)` still orphan-captures once (`token_settle:{id}` receipt).
 
 ---
 
@@ -323,6 +323,42 @@ Kinds (`src/lib/app-assets/catalog.ts`): `app_icon`, `favicon`, `pwa`, `logo`
 
 ---
 
+### 12. Admin users & token grants (`/admin`)
+
+APIs: `api.adminUsers.listUsers`, `getUserDetail`, `userLedger`, `grantTokens`  
+Auth: Clerk JWT `role=admin` (same as marketplace admin). Non-admins must see no user data.
+
+**Automated (always):**
+
+```bash
+npm test -- --run convex/lib/__tests__/adminGrant.test.ts
+```
+
+| Check | Pass criteria |
+|-------|----------------|
+| Amount validation | Rejects ≤0 / non-finite / > `MAX_ADMIN_GRANT` (5M) |
+| Idempotency key | Rejects unsafe / short / long keys |
+| Subscription math | Full grant fits; at-cap → `SUBSCRIPTION_AT_CAP`; over-headroom → `SUBSCRIPTION_PARTIAL` |
+| Ledger reason | `admin_grant:{adminId}` (+ optional note ≤120 chars) |
+
+**Live (admin persona):**
+
+- [ ] Header shows **Admin** only when `marketplace.isAdmin` is true (incl. mobile icon)
+- [ ] Non-admin visiting `/admin` sees “Admin access required”; list/detail stay empty/null (no PII leak)
+- [ ] User directory paginates; list shows wallet **balance** (detail shows held/available)
+- [ ] Exact email search finds the user; unknown email → empty state
+- [ ] User detail: plan, subscription/top-up split, held/available, onboarding, mascot count, recent ledger
+- [ ] **Top-up grant** (e.g. +240K): balance increases by grant; ledger row `kind=grant`, `bucket=topup`, reason `admin_grant:…`
+- [ ] Target user’s own `tokens.balance` / header chip matches after grant (refresh / minute clock)
+- [ ] Confirm dialog appears for grants ≥ 600K (quick + custom)
+- [ ] Double-submit / retry with same `idempotencyKey` → `duplicate: true`, **no second credit**
+- [ ] Subscription bucket disabled when user has no active plan
+- [ ] Subscription grant that exceeds plan headroom fails with clear toast (`SUBSCRIPTION_PARTIAL` / at-cap)
+- [ ] Subscription grant within headroom credits `subscriptionTokens` only (capped at plan cycle)
+- [ ] Analytics: successful grant emits `admin_grant` with `{ bucket, size }` only (no email / user id)
+
+---
+
 ## Edge cases & failure modes
 
 | Case | Expected | How to test |
@@ -337,6 +373,9 @@ Kinds (`src/lib/app-assets/catalog.ts`): `app_icon`, `favicon`, `pwa`, `logo`
 | Model fallback | Charge matches actual model used | If provider falls back |
 | Concurrent creates | Reserves prevent overspend | Two tabs same user |
 | Sandbox billing off | Purchases don't grant tokens | Convex env flag |
+| Admin grant double-click / retry | Same idempotency key → no second credit; new key → second credit | `/admin` grant twice fast; network retry |
+| Admin subscription grant over cap | Error toast; balance unchanged | Free user or near-cap plan user |
+| Admin email duplicates | Search returns deduped rows (no throw) | Rare Clerk race rows |
 
 ---
 
@@ -354,12 +393,13 @@ Run **full sections** relevant to your diff when you change:
 | Mascot factories | `src/components/mascots/**` | `npm run poses:build` + example studio smoke |
 | Marketplace | `convex/marketplace*.ts`, checkout pages | Browse, pay, remix unlock, buy-to-own |
 | Pricing / RC | `convex/billing.ts`, `/pricing` | Sandbox subscribe + top-up grants |
+| Admin users / grants | `convex/adminUsers.ts`, `convex/lib/adminGrant.ts`, `/admin` | Section 12 + balance/ledger reconciliation |
 | Schema | `convex/schema.ts` | Balance query + save flows still work |
 
 When in doubt, run the **priority smoke path**:
 
 1. Sandbox subscribe → balance confirmed  
-2. Create 4–6 gesture mascot (Sol) → quality review vs family example  
+2. Create up to 10-gesture mascot (Sol) → quality review vs family example  
 3. Refine small + 37-pose → billing correct  
 4. Add gesture → billing correct  
 5. App icon pack on library mascot  
@@ -381,8 +421,10 @@ Copy into PR or agent handoff:
 - [ ] Balance before/after reconciled for: ___
 - [ ] Generation quality vs example pack (family: ___): pass / fail
 - [ ] Edge cases: abort billing, large pack, 402 depleted
+- [ ] Admin grants (if touched): top-up + idempotent retry + ledger row
 - [ ] Known gaps / not tested: ___
 ```
+
 
 ---
 
@@ -395,9 +437,42 @@ Copy into PR or agent handoff:
 | Metering tests | `src/lib/__tests__/metering.test.ts` |
 | Refine route tests | `src/app/api/generate/refine/route.test.ts` |
 | Plans / caps | `convex/lib/plans.ts` |
+| Admin grant helpers / tests | `convex/lib/adminGrant.ts`, `convex/lib/__tests__/adminGrant.test.ts` |
+| Admin users API / UI | `convex/adminUsers.ts`, `/admin` |
 | Token balance hook | `src/lib/use-token-balance.ts` |
 | Access gate | `src/components/access-gate.tsx` |
 | Studio | `src/components/generated-studio.tsx` |
 | Studio capabilities | `src/lib/studio-capabilities.ts` |
 | Owned-studio parity tests | `src/lib/__tests__/studio-capabilities.test.ts` |
 | App assets | `src/components/app-assets-panel.tsx` |
+
+---
+
+## QA sign-off — 2026-07-29 (full matrix pass)
+
+```markdown
+## QA sign-off
+
+- [x] `npm test` — **349/349** pass (30 files)
+- [x] Dev stack running (Next + Convex dev)
+- [x] Critical paths exercised:
+  - **Automated:** billing sandbox gate (`billingPolicy`), plan/top-up catalog (`plans`), sub-before-topup hold split + refund (`spendSplit`), refine abort/forgive + 65-pose/duplicate reject, gesture forgive + 64-cap, studio-capabilities owned/preview/admin wiring
+  - **Live create:** QA Spark (Luna) — 3 look samples → Build studio → full owned studio (themes/parts/instrument/gestures/export/Ask AI/app assets); signal wave **120×36**; balance **1.14M → ~1.13M** (create metering)
+  - **Live owned:** Nova (created), Nova Remix QA (remixed) — full studio parity
+  - **Live preview:** `/marketplace/sol` — parts/themes only, “Preview only” copy
+  - **Live admin:** Clerk `role=admin` granted; library Admin panel + listings (Sol, Lyra, Granary)
+  - **Live marketplace checkout:** Remix Sol → Stripe test checkout session opened
+- [x] Balance before/after reconciled for: create sample + pack build (UI balance chip); exact `_meta.tokens` JWT query blocked (expired test JWT)
+- [ ] Generation quality vs example pack (family: **bird/chick**): **pass** (QA Spark orb-family craft bar met; not side-by-side with Nox/Zest pack)
+- [ ] Edge cases:
+  - abort billing refine/gesture: **unit pass** (`refine/route.test.ts`, `gesture/route.test.ts`); live abort not re-run
+  - large pack 37–64: **unit pass** (refine batches); live not re-run
+  - **402 depleted:** not tested (would need zero-balance persona)
+- [ ] Known gaps / not tested:
+  - Stripe **Pay** completion for buy/remix (cross-origin checkout iframe)
+  - RevenueCat **manage subscription** + sandbox **top-up** grant UI end-to-end
+  - Live **purchased** mascot studio (requires completed buy checkout)
+  - Live **post-remix** studio after Stripe fulfill
+  - App icon **ZIP download** after previews finish (generation started, not awaited)
+  - Live abort-at-2s refine/gesture
+```

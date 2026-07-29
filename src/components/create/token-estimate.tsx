@@ -37,6 +37,8 @@ type Props = {
   /** User attached a design reference image (vision surcharge). */
   hasReference?: boolean;
   availableModels?: MascotModelId[];
+  /** Hide mid-flight shortfall noise while a metered request is in progress. */
+  busy?: boolean;
   className?: string;
 };
 
@@ -74,6 +76,7 @@ export function TokenEstimate({
   gesturePayloadChars = 0,
   hasReference = false,
   availableModels,
+  busy = false,
   className,
 }: Props) {
   const balance = useTokenBalance();
@@ -220,14 +223,17 @@ export function TokenEstimate({
   if (!model || !quote) return null;
 
   const option = mascotModelOption(model);
-  const available = balance?.total ?? null;
-  const affordable = available == null || available >= quote.total;
+  // Wallet for display; capacity (available) for affordability gates.
+  const wallet = balance?.total ?? null;
+  const spendable = balance?.available ?? wallet;
+  const affordable =
+    busy || spendable == null || spendable >= quote.total;
   const remaining =
-    available == null ? null : runsRemaining(available, quote.total);
+    wallet == null ? null : runsRemaining(wallet, quote.total);
   const usedPct =
-    available == null || available <= 0
+    wallet == null || wallet <= 0
       ? 100
-      : Math.min(100, Math.round((quote.total / available) * 100));
+      : Math.min(100, Math.round((quote.total / wallet) * 100));
 
   return (
     <div
@@ -290,12 +296,12 @@ export function TokenEstimate({
 
       {balance === undefined ? (
         <Skeleton className="h-14 rounded-2xl" />
-      ) : available != null ? (
+      ) : wallet != null ? (
         <div className="space-y-2 border-t border-white/10 pt-3">
           <div className="flex items-baseline justify-between gap-3 text-sm">
             <span className="text-[var(--brand-muted)]">Your balance</span>
             <span className="font-medium tabular-nums text-white">
-              {formatTokens(available)}
+              {formatTokens(wallet)}
             </span>
           </div>
           <div
@@ -330,7 +336,7 @@ export function TokenEstimate({
         >
           <TriangleAlert className="mt-0.5 size-4 shrink-0" />
           <span>
-            Short by {formatTokens(quote.total - (available ?? 0))} tokens. Top up
+            Short by {formatTokens(quote.total - (spendable ?? 0))} tokens. Top up
             or switch to a lighter model.
           </span>
         </Link>

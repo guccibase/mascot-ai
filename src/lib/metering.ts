@@ -68,9 +68,9 @@ function errorData(err: unknown): Record<string, unknown> | null {
 }
 
 /**
- * Reserve the worst-case cost of `action` before running it. The caller must
- * always `settle()` in a `finally`. Non-atomic routes bill each recorded call;
- * atomic routes (refine) call `forgive()` on failure so settle refunds the hold.
+ * Authorize the worst-case cost of `action` before running it (capacity hold;
+ * wallet debits only on successful settle). The caller must always `settle()`
+ * in a `finally`. Atomic routes call `forgive()` on failure so settle charges 0.
  */
 export async function openMeter(
   action: MeteredAction,
@@ -141,6 +141,19 @@ export async function openMeter(
             max: data?.max,
           },
           { status: 413 }
+        ),
+      };
+    }
+    if (code === "TOO_MANY_HOLDS") {
+      return {
+        ok: false,
+        response: NextResponse.json(
+          {
+            error:
+              "Too many generations in flight. Wait for one to finish, then try again.",
+            code,
+          },
+          { status: 429 }
         ),
       };
     }

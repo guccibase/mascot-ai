@@ -13,20 +13,21 @@ export type Affordability = {
   loading: boolean;
 };
 
+type BalanceLike = {
+  total: number;
+  available?: number;
+  hasAccess: boolean;
+} | null | undefined;
+
 /**
- * Whether the signed-in customer can pay for one run of a metered action.
- *
- * `reservation` must be the same worst-case quote the API route reserves
- * (`estimateTokens(...).max`), so the UI refuses exactly what the server would.
- *
- * Fail closed: while the balance is loading (`undefined`) or missing (`null`),
- * the action stays blocked so a zero-credit session cannot submit a refine.
+ * Pure affordability math (also used by unit tests).
+ * Gates on capacity (`available`) when present, else wallet `total`.
  */
-export function useAffordability(
+export function affordabilityFromBalance(
   reservation: number,
+  balance: BalanceLike,
   enabled = true
 ): Affordability {
-  const balance = useTokenBalance(enabled);
   if (!enabled) {
     return {
       blocked: true,
@@ -52,11 +53,29 @@ export function useAffordability(
     };
   }
 
-  const shortfall = Math.max(0, reservation - balance.total);
+  const spendable = balance.available ?? balance.total;
+  const shortfall = Math.max(0, reservation - spendable);
   return {
     blocked: !balance.hasAccess || shortfall > 0,
     needsPlan: !balance.hasAccess,
     shortfall,
     loading: false,
   };
+}
+
+/**
+ * Whether the signed-in customer can pay for one run of a metered action.
+ *
+ * `reservation` must be the same worst-case quote the API route reserves
+ * (`estimateTokens(...).max`), so the UI refuses exactly what the server would.
+ *
+ * Fail closed: while the balance is loading (`undefined`) or missing (`null`),
+ * the action stays blocked so a zero-credit session cannot submit a refine.
+ */
+export function useAffordability(
+  reservation: number,
+  enabled = true
+): Affordability {
+  const balance = useTokenBalance(enabled);
+  return affordabilityFromBalance(reservation, balance, enabled);
 }

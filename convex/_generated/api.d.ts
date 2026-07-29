@@ -8,18 +8,23 @@
  * @module
  */
 
+import type * as adminUsers from "../adminUsers.js";
 import type * as billing from "../billing.js";
 import type * as crons from "../crons.js";
 import type * as http from "../http.js";
+import type * as lib_adminGrant from "../lib/adminGrant.js";
 import type * as lib_appAssetPaths from "../lib/appAssetPaths.js";
 import type * as lib_appAssetStorage from "../lib/appAssetStorage.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_billingExpiry from "../lib/billingExpiry.js";
+import type * as lib_billingPolicy from "../lib/billingPolicy.js";
 import type * as lib_marketplace from "../lib/marketplace.js";
 import type * as lib_marketplaceCategories from "../lib/marketplaceCategories.js";
 import type * as lib_plans from "../lib/plans.js";
 import type * as lib_publicExamples from "../lib/publicExamples.js";
 import type * as lib_serverAuth from "../lib/serverAuth.js";
+import type * as lib_spendCapacity from "../lib/spendCapacity.js";
+import type * as lib_spendSplit from "../lib/spendSplit.js";
 import type * as lib_tokens from "../lib/tokens.js";
 import type * as maintenance from "../maintenance.js";
 import type * as marketplace from "../marketplace.js";
@@ -38,18 +43,23 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  adminUsers: typeof adminUsers;
   billing: typeof billing;
   crons: typeof crons;
   http: typeof http;
+  "lib/adminGrant": typeof lib_adminGrant;
   "lib/appAssetPaths": typeof lib_appAssetPaths;
   "lib/appAssetStorage": typeof lib_appAssetStorage;
   "lib/auth": typeof lib_auth;
   "lib/billingExpiry": typeof lib_billingExpiry;
+  "lib/billingPolicy": typeof lib_billingPolicy;
   "lib/marketplace": typeof lib_marketplace;
   "lib/marketplaceCategories": typeof lib_marketplaceCategories;
   "lib/plans": typeof lib_plans;
   "lib/publicExamples": typeof lib_publicExamples;
   "lib/serverAuth": typeof lib_serverAuth;
+  "lib/spendCapacity": typeof lib_spendCapacity;
+  "lib/spendSplit": typeof lib_spendSplit;
   "lib/tokens": typeof lib_tokens;
   maintenance: typeof maintenance;
   marketplace: typeof marketplace;

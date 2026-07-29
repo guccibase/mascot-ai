@@ -13,6 +13,9 @@ import {
 
 export { MAX_TOKEN_RESERVATION, USD_PER_TOKEN };
 
+/** Max gestures/poses selectable on create or remix before opening the studio. */
+export const MAX_CREATE_GESTURES = 10;
+
 /**
  * Gross-margin multiplier on provider/infra COGS for app-asset actions.
  * `(S - C) / S = 0.5` when S = 2C.
@@ -292,7 +295,10 @@ function phasesFor(action: MeteredAction): PhaseEstimate[] {
       return Array.from({ length: batches }, () => PHASES.refine);
     }
     case "studio": {
-      const gestures = Math.max(1, Math.min(6, Math.floor(action.gestures)));
+      const gestures = Math.max(
+        1,
+        Math.min(MAX_CREATE_GESTURES, Math.floor(action.gestures))
+      );
       return [
         PHASES.bible,
         PHASES.idle,
@@ -300,7 +306,10 @@ function phasesFor(action: MeteredAction): PhaseEstimate[] {
       ];
     }
     case "remix": {
-      const poses = Math.max(1, Math.min(6, Math.floor(action.poses)));
+      const poses = Math.max(
+        1,
+        Math.min(MAX_CREATE_GESTURES, Math.floor(action.poses))
+      );
       return [
         PHASES.remixIdentity,
         ...Array.from({ length: poses }, () => PHASES.remixPose),

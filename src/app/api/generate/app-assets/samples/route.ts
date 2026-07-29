@@ -88,7 +88,28 @@ export async function POST(req: Request) {
   let imageModelUsed = process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-2";
 
   try {
-    const referencePng = await svgToSquarePng(sanitizeSvg(idle.svg), 1024);
+    const idleSvg = sanitizeSvg(idle.svg);
+    if (!idleSvg) {
+      return NextResponse.json(
+        { error: "Mascot idle pose SVG is empty or invalid" },
+        { status: 400 }
+      );
+    }
+
+    let referencePng: Buffer;
+    try {
+      referencePng = await svgToSquarePng(idleSvg, 1024);
+    } catch (rasterErr) {
+      console.error("app-asset svg raster failed:", rasterErr);
+      return NextResponse.json(
+        {
+          error:
+            "Could not prepare your mascot for icon previews. Try regenerating the idle pose in the studio, then try again.",
+        },
+        { status: 422 }
+      );
+    }
+
     const accent = mascot.pack.accent || "#D4A843";
 
     const generated = await Promise.all(
@@ -108,7 +129,6 @@ export async function POST(req: Request) {
           size: "1024x1024",
         });
         imageModelUsed = image.model;
-        meter.recordFallback({ kind: "appAssetSamples", images: 1 });
         const storageId = await uploadConvexBlob(client, image.buffer, "image/png");
         return {
           id,
@@ -128,6 +148,9 @@ export async function POST(req: Request) {
       serverSecret: generationServerSecret(),
     });
 
+    // Charge only after samples are persisted and usable.
+    meter.recordFallback({ kind: "appAssetSamples", images: generated.length });
+
     const detail = await client.query(api.mascotAppAssets.getPack, { packId });
     const tokens = await meter.settle();
 
@@ -141,6 +164,7 @@ export async function POST(req: Request) {
       },
     });
   } catch (err) {
+    meter.forgive();
     const message = err instanceof Error ? err.message : "App icon sample generation failed";
     console.error("app-asset samples error:", message);
     return NextResponse.json({ error: message }, { status: 500 });

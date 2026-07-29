@@ -1,5 +1,6 @@
 import "server-only";
 
+import { repairSvgStructure } from "@/lib/svg/repair";
 import type { AppAssetFileSpec } from "./catalog";
 import { loadSharp } from "./sharp-loader";
 
@@ -11,7 +12,10 @@ export { composeAppIconPreview, parseHexColor } from "./icon-compose";
  */
 export async function svgToSquarePng(svg: string, size = 1024): Promise<Buffer> {
   const sharp = await loadSharp();
-  const rendered = await sharp(Buffer.from(svg), { density: 288 }).png().toBuffer();
+  const wellFormed = repairSvgStructure(svg);
+  const rendered = await sharp(Buffer.from(wellFormed), { density: 288 })
+    .png()
+    .toBuffer();
   const trimmed = await sharp(rendered)
     .trim({ threshold: 2 })
     .png()

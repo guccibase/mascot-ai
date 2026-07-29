@@ -18,6 +18,7 @@ import {
   mascotModelOption,
 } from "../mascot-model-options";
 import {
+  MAX_CREATE_GESTURES,
   PHASE_OUTPUT_CEILINGS,
   REFINE_MARGIN_MULTIPLIER,
   REFINE_RESERVE_BUFFER,
@@ -210,9 +211,16 @@ describe("estimates", () => {
 
   it("clamps the gesture count to the range the API accepts", () => {
     const low = estimateTokens({ kind: "studio", gestures: 0 }, "gpt-5.6-sol");
+    const atCap = estimateTokens(
+      { kind: "studio", gestures: MAX_CREATE_GESTURES },
+      "gpt-5.6-sol"
+    );
     const high = estimateTokens({ kind: "studio", gestures: 99 }, "gpt-5.6-sol");
     expect(low.calls).toBe(2);
-    expect(high.calls).toBe(7);
+    // bible + idle + (MAX_CREATE_GESTURES - 1) secondary = 11 at cap 10
+    expect(MAX_CREATE_GESTURES).toBe(10);
+    expect(atCap.calls).toBe(MAX_CREATE_GESTURES + 1);
+    expect(high.calls).toBe(atCap.calls);
   });
 
   it("reserves every full-context refinement batch", () => {

@@ -164,6 +164,10 @@ async function runClaudeMascotModel(args: {
   const anthropic = new Anthropic({ apiKey });
   const maxTokens = Math.max(args.maxOutputTokens, CLAUDE_MIN_OUTPUT_TOKENS);
 
+  // Fable rejects thinking.type.disabled (adaptive is the default). Opus/Sonnet
+  // still need disabled so thinking does not eat the SVG JSON output budget.
+  const supportsDisableThinking = args.option.id !== "claude-fable-5";
+
   const request = {
     model,
     max_tokens: maxTokens,
@@ -174,7 +178,7 @@ async function runClaudeMascotModel(args: {
         content: claudeUserContent(args.input, args.images),
       },
     ],
-    thinking: { type: "disabled" },
+    ...(supportsDisableThinking ? { thinking: { type: "disabled" as const } } : {}),
     output_config: { effort: args.reasoningEffort },
   } satisfies Anthropic.Messages.MessageCreateParamsNonStreaming;
 

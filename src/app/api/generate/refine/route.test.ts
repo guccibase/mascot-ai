@@ -281,4 +281,24 @@ describe("POST /api/generate/refine", () => {
     expect(mocks.openMeter).not.toHaveBeenCalled();
     expect(mocks.runMascotModel).not.toHaveBeenCalled();
   });
+
+  it("rejects packs over 64 gestures before metering", async () => {
+    mascot.gestures = Array.from({ length: 65 }, (_, index) => ({
+      key: `pose_${index}`,
+      label: `Pose ${index}`,
+      cat: "Core",
+      tip: "Tip",
+      use: "Use",
+      track: index === 0,
+      svg: `<svg viewBox="0 0 420 520"><g data-ms-part="body"></g></svg>`,
+    }));
+
+    const response = await request();
+    const data = (await response.json()) as { error?: string };
+
+    expect(response.status).toBe(400);
+    expect(data.error).toMatch(/64 gestures/);
+    expect(mocks.openMeter).not.toHaveBeenCalled();
+    expect(mocks.runMascotModel).not.toHaveBeenCalled();
+  });
 });

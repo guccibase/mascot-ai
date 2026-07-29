@@ -19,7 +19,7 @@ describe("openMeter settle / forgive", () => {
     });
   });
 
-  it("forgive() settles with actualTokens 0", async () => {
+  it("failure forgive settles with actualTokens 0 (no charge)", async () => {
     mocks.mutation
       .mockResolvedValueOnce({
         reservationId: "res_1",

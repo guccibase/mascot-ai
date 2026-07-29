@@ -6,6 +6,7 @@ import { authedConvexClient } from "@/lib/convex-server";
 import { resolveMascotModel, runMascotModel } from "@/lib/mascot-model";
 import { toGeneratedMascot } from "@/lib/mascot-pack";
 import { openMeter, tokenMetaFields } from "@/lib/metering";
+import { MAX_CREATE_GESTURES } from "@/lib/token-pricing";
 import { parseJsonObject } from "@/lib/parse-json";
 import {
   buildRemixGestures,
@@ -17,6 +18,7 @@ import {
   toGeneratedMascot as toRemixedMascot,
 } from "@/lib/remix/coerce";
 import { preparePackRemixIndex } from "@/lib/remix/from-pack";
+import { resolveRemixBrief } from "@/lib/remix/brief";
 import { buildIdentityPrompt, buildPosePrompt } from "@/lib/remix/prompts";
 import { sanitizePalette } from "@/lib/remix/palette";
 import { normalizeGeneratedMascot } from "@/lib/studio-utils";
@@ -68,19 +70,21 @@ export async function POST(req: Request) {
   const model = resolved.model;
 
   const name = boundedText(body.name, 80);
-  const description = boundedText(body.description, 1200);
-  const look = boundedText(body.look, 1200);
+  const descriptionInput = boundedText(body.description, 1200);
+  const lookInput = boundedText(body.look, 1200);
   const gestures = body.gestures ?? [];
 
-  if (!name || !description || !look) {
-    return NextResponse.json(
-      { error: "Name, description, and look are required" },
-      { status: 400 }
-    );
+  if (!name) {
+    return NextResponse.json({ error: "Name is required" }, { status: 400 });
   }
-  if (gestures.length < 1 || gestures.length > 6) {
+  if (
+    gestures.length < 1 ||
+    gestures.length > MAX_CREATE_GESTURES
+  ) {
     return NextResponse.json(
-      { error: "Select between 1 and 6 poses" },
+      {
+        error: `Select between 1 and ${MAX_CREATE_GESTURES} poses`,
+      },
       { status: 400 }
     );
   }
@@ -167,12 +171,23 @@ export async function POST(req: Request) {
     source: remixSource,
   } = preparePackRemixIndex(pack, selectedKeys);
 
+  const productContext = boundedText(body.productContext, 400) || undefined;
+  const personality = boundedText(body.personality, 400) || undefined;
+  const brief = resolveRemixBrief({
+    sourceName,
+    tagline: pack.tagline,
+    product: productContext ?? pack.product,
+    description: descriptionInput || undefined,
+    look: lookInput || undefined,
+  });
+  const { description, look } = brief;
+
   const briefChars =
     name.length +
     description.length +
     look.length +
-    (body.productContext?.length ?? 0) +
-    (body.personality?.length ?? 0);
+    (productContext?.length ?? 0) +
+    (personality?.length ?? 0);
 
   const payloadChars = measureRemixPayload({
     sharedManifest,
@@ -220,8 +235,10 @@ export async function POST(req: Request) {
         name,
         description,
         look,
-        productContext: boundedText(body.productContext, 400) || undefined,
-        personality: boundedText(body.personality, 400) || undefined,
+        descriptionFromSource: brief.descriptionFromSource,
+        lookFromSource: brief.lookFromSource,
+        productContext,
+        personality,
         sharedManifest,
         palette: paletteEntries.slice(0, 24),
         hasReference: Boolean(referenceImage),
@@ -238,6 +255,7 @@ export async function POST(req: Request) {
       name
     );
     if (!identityParsed) {
+      meter.forgive();
       return NextResponse.json(
         { error: "Failed to parse remix identity", model: identityRun.model },
         { status: 502 }
@@ -269,6 +287,7 @@ export async function POST(req: Request) {
               variantManifest: variantManifests[req.key] ?? [],
               sharedEdits: identityParsed.edits,
               look,
+              lookFromSource: brief.lookFromSource,
             }),
             input: "Return the pose JSON now.",
             maxOutputTokens: 6_000,
@@ -318,6 +337,9 @@ export async function POST(req: Request) {
       );
     }
 
+    const successfulKeys = new Set(built.gestures.map((g) => g.key));
+    const successfulRequests = gestures.filter((g) => successfulKeys.has(g.key));
+
     const raw = toRemixedMascot({
       identity: identityParsed,
       gestures: built.gestures,
@@ -330,7 +352,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const mascot = normalizeGeneratedMascot(raw, gestures);
+    const mascot = normalizeGeneratedMascot(raw, successfulRequests);
     const tokens = await meter.settle();
     succeeded = true;
 

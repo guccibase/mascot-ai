@@ -111,6 +111,21 @@ describe("runMascotModel with Anthropic", () => {
     expect(anthropicMocks.finalMessage).not.toHaveBeenCalled();
   });
 
+  it("omits thinking.type.disabled for Claude Fable (API rejects it)", async () => {
+    await runMascotModel({
+      model: "claude-fable-5",
+      instructions: "Create the mascot.",
+      input: "Return the mascot JSON.",
+      maxOutputTokens: 20_000,
+      reasoningEffort: "low",
+    });
+
+    const request = anthropicMocks.create.mock.calls[0]?.[0] as {
+      thinking?: unknown;
+    };
+    expect(request.thinking).toBeUndefined();
+  });
+
   it("rejects a streamed response that exhausted its output budget", async () => {
     anthropicMocks.finalMessage.mockResolvedValueOnce({
       content: [{ type: "text", text: '{"incomplete":' }],

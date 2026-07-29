@@ -197,4 +197,28 @@ describe("studio entry wiring (UI functional matrix)", () => {
     expect(source).toMatch(/sourceMascotId:/);
     expect(source).toMatch(/Remix source required/);
   });
+
+  it("library admin panel wires adminUpsert for marketplace publish", () => {
+    const library = readApp("app/library/page.tsx");
+    expect(library).toMatch(/AdminListingsPanel/);
+    const admin = readFileSync(
+      join(ROOT, "components/marketplace/admin-listings-panel.tsx"),
+      "utf8"
+    );
+    expect(admin).toMatch(/api\.marketplace\.adminUpsert/);
+    expect(admin).toMatch(/adminSetStatus/);
+  });
+
+  it("owned studio QA matrix: every gated feature maps to a capability flag", () => {
+    const features = resolveStudioFeatures({
+      capabilities: OWNED_STUDIO_CAPABILITIES,
+      mascotId: "mascots_qa",
+      hasMascotChangeHandler: true,
+    });
+    const coverage = ownedStudioGatedCoverage(features);
+    for (const key of OWNED_STUDIO_GATED_FEATURES) {
+      expect(coverage[key], key).toBe(true);
+    }
+    expect(hasFullOwnedStudio(features)).toBe(true);
+  });
 });

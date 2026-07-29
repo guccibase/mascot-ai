@@ -139,6 +139,8 @@ export async function POST(req: Request) {
     });
     const parsed = parseJsonObject(run.text);
     if (!isSamples(parsed)) {
+      // No usable samples — do not bill the model call.
+      meter.forgive();
       return NextResponse.json(
         { error: "Model returned incomplete samples", model: run.model },
         { status: 502 }
@@ -156,6 +158,7 @@ export async function POST(req: Request) {
       .filter((s) => s.svg.length > 0);
 
     if (samples.length === 0) {
+      meter.forgive();
       return NextResponse.json(
         { error: "Model returned no usable sample SVGs", model: run.model },
         { status: 502 }

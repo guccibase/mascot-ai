@@ -43,12 +43,21 @@ export function buildIdentityPrompt(args: {
   name: string;
   description: string;
   look: string;
+  descriptionFromSource?: boolean;
+  lookFromSource?: boolean;
   productContext?: string;
   personality?: string;
   sharedManifest: unknown[];
   palette: unknown[];
   hasReference?: boolean;
 }): string {
+  const briefMode =
+    args.descriptionFromSource && args.lookFromSource
+      ? "SOURCE VISUAL REFERENCE (no user description/look overrides — treat pose thumbnails and palette as canonical):"
+      : args.descriptionFromSource || args.lookFromSource
+        ? "BRIEF (blank fields inherit source artwork; honour any user overrides below):"
+        : "NEW CHARACTER BRIEF (user overrides):";
+
   return `You are remixing the "${args.exampleName}" example mascot (${args.slug}) into a NEW character.
 
 CRITICAL RULES:
@@ -61,7 +70,7 @@ CRITICAL RULES:
 - Assign part keys (accessory, prop, halo, instrument, etc.) via edits[].part where appropriate.
 ${args.hasReference ? `- ${remixReferenceBlock()}` : ""}
 
-NEW CHARACTER BRIEF:
+${briefMode}
 Name: ${args.name}
 Description: ${args.description}
 Look: ${args.look}
@@ -84,7 +93,12 @@ export function buildPosePrompt(args: {
   variantManifest: unknown[];
   sharedEdits: unknown[];
   look: string;
+  lookFromSource?: boolean;
 }): string {
+  const lookLine = args.lookFromSource
+    ? `TARGET LOOK (source reference — preserve craft unless brief overrides): ${args.look}`
+    : `TARGET LOOK (user override): ${args.look}`;
+
   return `Continue remixing this mascot. This is pose "${args.poseLabel}" (${args.poseKey}).
 
 CRITICAL RULES:
@@ -93,7 +107,7 @@ CRITICAL RULES:
 - Do NOT repeat shared-body edits unless this pose needs a pose-specific override.
 - Never touch animation, style, or viewBox tokens.
 
-TARGET LOOK: ${args.look}
+${lookLine}
 
 SHARED EDITS ALREADY APPLIED (reference; do not re-emit unless overriding):
 ${JSON.stringify(args.sharedEdits)}

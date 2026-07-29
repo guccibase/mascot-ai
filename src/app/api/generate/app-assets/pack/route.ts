@@ -77,6 +77,7 @@ export async function POST(req: Request) {
   try {
     const masterRes = await fetch(sample.url);
     if (!masterRes.ok) {
+      meter.forgive();
       return NextResponse.json({ error: "Could not load selected icon" }, { status: 502 });
     }
     const masterPng = Buffer.from(await masterRes.arrayBuffer());
@@ -93,8 +94,6 @@ export async function POST(req: Request) {
       name: mascot.name,
       tagline: mascot.tagline,
     });
-
-    meter.recordFallback({ kind: "appAssetPack", fileCount });
 
     const masterStorageId = await uploadConvexBlob(client, masterPng, "image/png");
     const storedFiles: Array<{
@@ -124,6 +123,9 @@ export async function POST(req: Request) {
       serverSecret: generationServerSecret(),
     });
 
+    // Charge only after the pack is persisted.
+    meter.recordFallback({ kind: "appAssetPack", fileCount });
+
     const detail = await client.query(api.mascotAppAssets.getPack, {
       packId: body.packId as Id<"mascotAppAssetPacks">,
     });
@@ -146,6 +148,7 @@ export async function POST(req: Request) {
       },
     });
   } catch (err) {
+    meter.forgive();
     const message = err instanceof Error ? err.message : "App asset pack generation failed";
     console.error("app-asset pack error:", message);
     return NextResponse.json({ error: message }, { status: 500 });

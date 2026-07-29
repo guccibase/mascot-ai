@@ -106,8 +106,10 @@ export function AppAssetsPanel({ mascotId, mascotName, model }: Props) {
     [billingModel, fileCount]
   );
   const totalQuote = samplesQuote.typical + packQuote.typical;
+  const spendable = balance?.available ?? balance?.total;
+  // Gate on reservation max — same worst-case the API reserves.
   const affordable =
-    balance?.total == null || balance.total >= samplesQuote.typical;
+    spendable == null || spendable >= samplesQuote.max;
 
   const expandedSampleIndex = expandedSampleId
     ? samples.findIndex((sample) => sample.id === expandedSampleId)
@@ -314,7 +316,8 @@ export function AppAssetsPanel({ mascotId, mascotName, model }: Props) {
 
   const generatePack = async () => {
     if (!packId || !selectedSampleId) return;
-    if (balance?.total != null && balance.total < packQuote.typical) {
+    const packSpendable = balance?.available ?? balance?.total;
+    if (packSpendable != null && packSpendable < packQuote.max) {
       toast.error("Not enough tokens to build the asset pack");
       return;
     }

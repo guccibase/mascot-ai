@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { boundedText, rateLimit, readJsonBody } from "@/lib/api-guard";
 import { resolveMascotModel, runMascotModel } from "@/lib/mascot-model";
 import { openMeter, tokenMetaFields } from "@/lib/metering";
+import { MAX_CREATE_GESTURES } from "@/lib/token-pricing";
 import { parseJsonObject } from "@/lib/parse-json";
 import { isReferenceId } from "@/lib/reference-image-client";
 import { loadReferenceImage } from "@/lib/reference-image";
@@ -28,6 +29,30 @@ export const maxDuration = 180;
 const MAX_BODY_BYTES = 200_000;
 
 const SVG_INSTRUCTIONS = SVG_GESTURE_INSTRUCTIONS;
+
+/** Bound parallel secondary-gesture calls so a 10-pose create does not stampede the provider. */
+const STUDIO_GESTURE_CONCURRENCY = 4;
+
+async function mapPool<T, R>(
+  items: readonly T[],
+  concurrency: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  if (items.length === 0) return [];
+  const results = new Array<R>(items.length);
+  let next = 0;
+  const workers = Array.from(
+    { length: Math.min(concurrency, items.length) },
+    async () => {
+      while (next < items.length) {
+        const index = next++;
+        results[index] = await fn(items[index]!);
+      }
+    }
+  );
+  await Promise.all(workers);
+  return results;
+}
 
 type BiblePack = {
   name: string;
@@ -122,9 +147,14 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
-  if (gestures.length < 1 || gestures.length > 6) {
+  if (
+    gestures.length < 1 ||
+    gestures.length > MAX_CREATE_GESTURES
+  ) {
     return NextResponse.json(
-      { error: "Select between 1 and 6 gestures" },
+      {
+        error: `Select between 1 and ${MAX_CREATE_GESTURES} gestures`,
+      },
       { status: 400 }
     );
   }
@@ -209,6 +239,7 @@ export async function POST(req: Request) {
       const parsed = parseJsonObject(bibleRun.text);
       if (!isBible(parsed)) {
         // No usable pack yet — do not bill the bible call.
+        meter.forgive();
         return NextResponse.json(
           {
             error: "Failed to lock character bible",
@@ -222,6 +253,7 @@ export async function POST(req: Request) {
     } catch (err) {
       const detail = err instanceof Error ? err.message : "bad bible JSON";
       console.error("bible parse failed:", detail, "len=", bibleRun.text.length);
+      meter.forgive();
       return NextResponse.json(
         { error: `Character bible JSON broken: ${detail}`, model: bibleRun.model },
         { status: 502 }
@@ -301,9 +333,11 @@ export async function POST(req: Request) {
       svg: idleParsed.svg,
     };
 
-    /* Phase 3: remaining gestures in parallel; tolerate per-gesture failures */
-    const settled = await Promise.all(
-      otherReqs.map(async (g) => {
+    /* Phase 3: remaining gestures (bounded concurrency); tolerate per-gesture failures */
+    const settled = await mapPool(
+      otherReqs,
+      STUDIO_GESTURE_CONCURRENCY,
+      async (g) => {
         try {
           const run = await runMascotModel({
             model,
@@ -351,7 +385,7 @@ export async function POST(req: Request) {
           console.error(`gesture "${g.key}" failed:`, detail);
           return { ok: false as const, key: g.key, detail };
         }
-      })
+      }
     );
 
     const otherGestures: GeneratedGesture[] = [];
