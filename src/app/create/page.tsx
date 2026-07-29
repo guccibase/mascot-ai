@@ -9,6 +9,7 @@ import {
   ModelPickerSkeleton,
   SampleConceptsSkeleton,
 } from "@/components/skeletons";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { GeneratedStudio } from "@/components/generated-studio";
 import { Button } from "@/components/ui/button";
@@ -437,42 +438,43 @@ export default function CreatePage() {
 
   if (step === "studio" && result) {
     return (
-      <div className="relative min-h-screen bg-[#0a0e18]">
-        <div className="absolute left-4 top-4 z-50 flex gap-2 sm:left-6 sm:top-6">
+      <div className="relative min-h-screen bg-[var(--brand-bg)] text-[var(--brand-ink)]">
+        <SiteHeader />
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-5 py-3 sm:px-8">
           <Link
             href="/library"
-            className="rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-xs font-semibold text-white/85 backdrop-blur hover:bg-black/55"
+            className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10"
           >
             ← Library
           </Link>
           {mascotId && (
             <Link
               href={`/library/${mascotId}`}
-              className="rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-xs font-semibold text-white/85 backdrop-blur hover:bg-black/55"
+              className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10"
             >
               Open saved
             </Link>
           )}
-          {saving && (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-xs text-white/70 backdrop-blur">
-              <Loader2 className="size-3 animate-spin" />
-              Saving…
-            </span>
-          )}
           <button
             type="button"
             onClick={() => void restartFromStudio("samples")}
-            className="rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-xs font-semibold text-white/85 backdrop-blur hover:bg-black/55"
+            className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10"
           >
             Change look
           </button>
           <button
             type="button"
             onClick={() => void restartFromStudio("brief")}
-            className="rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-xs font-semibold text-white/85 backdrop-blur hover:bg-black/55"
+            className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10"
           >
             Edit brief
           </button>
+          {saving && (
+            <span className="inline-flex items-center gap-1.5 text-xs text-[var(--brand-muted)]">
+              <Loader2 className="size-3 animate-spin" />
+              Saving…
+            </span>
+          )}
         </div>
         <GeneratedStudio
           mascot={result}
@@ -485,6 +487,7 @@ export default function CreatePage() {
           }}
           fullPage
         />
+        <SiteFooter />
       </div>
     );
   }

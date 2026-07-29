@@ -18,6 +18,7 @@ import type * as lib_billingExpiry from "../lib/billingExpiry.js";
 import type * as lib_marketplace from "../lib/marketplace.js";
 import type * as lib_marketplaceCategories from "../lib/marketplaceCategories.js";
 import type * as lib_plans from "../lib/plans.js";
+import type * as lib_publicExamples from "../lib/publicExamples.js";
 import type * as lib_serverAuth from "../lib/serverAuth.js";
 import type * as lib_tokens from "../lib/tokens.js";
 import type * as maintenance from "../maintenance.js";
@@ -47,6 +48,7 @@ declare const fullApi: ApiFromModules<{
   "lib/marketplace": typeof lib_marketplace;
   "lib/marketplaceCategories": typeof lib_marketplaceCategories;
   "lib/plans": typeof lib_plans;
+  "lib/publicExamples": typeof lib_publicExamples;
   "lib/serverAuth": typeof lib_serverAuth;
   "lib/tokens": typeof lib_tokens;
   maintenance: typeof maintenance;

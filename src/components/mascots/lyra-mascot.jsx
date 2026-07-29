@@ -422,16 +422,19 @@ function Beak({ kind, p }) {
 
 /* ---------- props ---------- */
 const Star4 = ({ x, y, s = 1, fill, cls, delay }) => (
-  <path className={cls} transform={`translate(${x},${y}) scale(${s})`} fill={fill}
-    style={delay ? { animationDelay: delay } : undefined}
-    d="M0,-9 L2.4,-2.4 L9,0 L2.4,2.4 L0,9 L-2.4,2.4 L-9,0 L-2.4,-2.4 Z" />
+  <g transform={`translate(${x},${y}) scale(${s})`}>
+    <path className={cls} fill={fill}
+      style={delay ? { animationDelay: delay } : undefined}
+      d="M0,-9 L2.4,-2.4 L9,0 L2.4,2.4 L0,9 L-2.4,2.4 L-9,0 L-2.4,-2.4 Z" />
+  </g>
 );
 const Note = ({ x, y, s = 1, fill, delay }) => (
-  <g className="lv-note" transform={`translate(${x},${y}) scale(${s})`} fill={fill}
-    style={delay ? { animationDelay: delay } : undefined}>
-    <ellipse cx="0" cy="0" rx="5.6" ry="4.3" transform="rotate(-18)" />
-    <path d="M4.6,-1.4 L4.6,-19 Q11,-17 13.5,-12" fill="none" stroke={fill} strokeWidth="3"
-      strokeLinecap="round" />
+  <g transform={`translate(${x},${y}) scale(${s})`} fill={fill}>
+    <g className="lv-note" style={delay ? { animationDelay: delay } : undefined}>
+      <ellipse cx="0" cy="0" rx="5.6" ry="4.3" transform="rotate(-18)" />
+      <path d="M4.6,-1.4 L4.6,-19 Q11,-17 13.5,-12" fill="none" stroke={fill} strokeWidth="3"
+        strokeLinecap="round" />
+    </g>
   </g>
 );
 const HEART_D = "M0,10 C-13,1 -15,-7 -8,-11.5 C-3.4,-14.5 0,-10.5 0,-7 C0,-10.5 3.4,-14.5 8,-11.5 C15,-7 13,1 0,10 Z";
@@ -615,13 +618,16 @@ function Props({ g, p, score }) {
       );
     case "heart":
       return (
-        <path className="lv-rise" d={HEART_D} fill={p.blush}
-          transform="translate(286,232) scale(1.15)" />
+        <g transform="translate(286,232) scale(1.15)">
+          <path className="lv-rise" d={HEART_D} fill={p.blush} />
+        </g>
       );
     case "sweat":
       return (
-        <path className="lv-drop" transform="translate(246,244)" fill="#9AD7EC" opacity=".95"
-          d="M0,-10 Q7,-1.5 7,3.5 A7,7 0 1,1 -7,3.5 Q-7,-1.5 0,-10 Z" />
+        <g transform="translate(246,244)">
+          <path className="lv-drop" fill="#9AD7EC" opacity=".95"
+            d="M0,-10 Q7,-1.5 7,3.5 A7,7 0 1,1 -7,3.5 Q-7,-1.5 0,-10 Z" />
+        </g>
       );
     case "zzz":
       return (

@@ -1,25 +1,25 @@
 import { NextResponse } from "next/server";
 import { boundedText, rateLimit, readJsonBody } from "@/lib/api-guard";
 import { isAppAssetKind, type AppAssetKind } from "@/lib/app-assets/catalog";
-import { composeAppIconPreview } from "@/lib/app-assets/icon-compose";
 import { svgToSquarePng } from "@/lib/app-assets/raster";
 import { uploadConvexBlob } from "@/lib/convex-upload";
 import { authedConvexClient } from "@/lib/convex-server";
-import { openMeter } from "@/lib/metering";
+import { openMeter, tokenMetaFields } from "@/lib/metering";
 import { resolveMascotModel } from "@/lib/mascot-model";
+import { buildIconPrompt } from "@/lib/app-assets/icon-prompt";
+import { generateAppIconImage } from "@/lib/openai-image";
 import { sanitizeSvg } from "@/lib/sanitize-svg";
 import type { AppAssetSamplesRequest } from "@/lib/types";
 import { api } from "../../../../../../convex/_generated/api";
 import type { Id } from "../../../../../../convex/_generated/dataModel";
 
 export const runtime = "nodejs";
-/** Deterministic composite + uploads — no long image-model wait. */
-export const maxDuration = 60;
+/** Three parallel high-quality image edits + uploads. */
+export const maxDuration = 120;
 
 const MAX_BODY_BYTES = 16_000;
 const SAMPLE_LABELS = ["Option A", "Option B", "Option C"] as const;
 const SAMPLE_IDS = ["a", "b", "c"] as const;
-const PREVIEW_ENGINE = "mascot-composite";
 
 function generationServerSecret(): string | undefined {
   return process.env.GENERATION_SERVER_SECRET;
@@ -85,20 +85,31 @@ export async function POST(req: Request) {
   const { meter } = metered;
 
   const started = Date.now();
+  let imageModelUsed = process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-2";
 
   try {
-    const mascotPng = await svgToSquarePng(sanitizeSvg(idle.svg), 1024);
+    const referencePng = await svgToSquarePng(sanitizeSvg(idle.svg), 1024);
     const accent = mascot.pack.accent || "#D4A843";
 
     const generated = await Promise.all(
       SAMPLE_IDS.map(async (id, i) => {
-        const buffer = await composeAppIconPreview({
-          mascotPng,
+        const prompt = buildIconPrompt({
+          mascotName: mascot.name,
+          tagline: mascot.tagline,
+          product: mascot.pack.product,
           accent,
+          styleDescription,
+          kinds,
           variantIndex: i,
         });
+        const image = await generateAppIconImage({
+          prompt,
+          referencePng,
+          size: "1024x1024",
+        });
+        imageModelUsed = image.model;
         meter.recordFallback({ kind: "appAssetSamples", images: 1 });
-        const storageId = await uploadConvexBlob(client, buffer, "image/png");
+        const storageId = await uploadConvexBlob(client, image.buffer, "image/png");
         return {
           id,
           label: SAMPLE_LABELS[i]!,
@@ -111,7 +122,7 @@ export async function POST(req: Request) {
       mascotId: body.mascotId as Id<"mascots">,
       kinds,
       styleDescription,
-      imageModel: PREVIEW_ENGINE,
+      imageModel: imageModelUsed,
       samples: generated,
       packId: body.packId as Id<"mascotAppAssetPacks"> | undefined,
       serverSecret: generationServerSecret(),
@@ -124,10 +135,9 @@ export async function POST(req: Request) {
       packId,
       samples: detail?.sampleOptions ?? [],
       _meta: {
-        model: PREVIEW_ENGINE,
+        model: imageModelUsed,
         elapsedMs: Date.now() - started,
-        tokens: tokens.tokens,
-        balance: tokens.balance,
+        ...tokenMetaFields(tokens),
       },
     });
   } catch (err) {

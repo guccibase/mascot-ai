@@ -31,7 +31,7 @@ import {
   tokenRate,
   tokensForUsage,
 } from "../token-pricing";
-import { MAX_REFINE_GESTURES } from "../refine-pack";
+import { MAX_STUDIO_GESTURES } from "../refine-pack";
 
 /** Worst-case margin: the customer burns every token they were granted. */
 function marginFor(price: number, tokens: number): number {
@@ -237,7 +237,7 @@ describe("estimates", () => {
     ).toBe(1);
     expect(
       estimateTokens({ kind: "refine", batches: 99 }, "gpt-5.6-sol").calls
-    ).toBe(24);
+    ).toBe(MAX_STUDIO_GESTURES);
   });
 
   it("always reserves at least the typical spend", () => {
@@ -407,7 +407,7 @@ describe("refine reservation quotes", () => {
   it("keeps Fable worst-case refine holds under MAX_TOKEN_RESERVATION", () => {
     const worst = estimateRefineReservation(
       {
-        batches: MAX_REFINE_GESTURES,
+        batches: MAX_STUDIO_GESTURES,
         payloadChars: 500_000,
         hasReference: true,
       },

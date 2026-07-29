@@ -11,8 +11,11 @@ import {
   releaseExpiredReservations,
 } from "./lib/tokens";
 
-/** A hold outlives the longest generation route (180s) with room to spare. */
-const RESERVATION_TTL_MS = 5 * 60 * 1000;
+/**
+ * Hold must outlive the longest metered route. Refine runs up to 300s; keep
+ * several minutes of margin so settle never races expiry sweeps.
+ */
+const RESERVATION_TTL_MS = 10 * 60 * 1000;
 
 const balanceShape = v.object({
   subscriptionTokens: v.number(),

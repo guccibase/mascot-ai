@@ -4,7 +4,7 @@ import { packOutputFileCount, type AppAssetKind } from "@/lib/app-assets/catalog
 import { buildAssetFiles, type BuiltAssetFile } from "@/lib/app-assets/pack-builder";
 import { uploadConvexBlob } from "@/lib/convex-upload";
 import { authedConvexClient } from "@/lib/convex-server";
-import { openMeter } from "@/lib/metering";
+import { openMeter, tokenMetaFields } from "@/lib/metering";
 import { resolveMascotModel } from "@/lib/mascot-model";
 import { sanitizeSvg } from "@/lib/sanitize-svg";
 import type { AppAssetPackRequest } from "@/lib/types";
@@ -142,8 +142,7 @@ export async function POST(req: Request) {
         })) ?? [],
       _meta: {
         elapsedMs: Date.now() - started,
-        tokens: tokens.tokens,
-        balance: tokens.balance,
+        ...tokenMetaFields(tokens),
       },
     });
   } catch (err) {

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Loader2, Send, TriangleAlert } from "lucide-react";
+import { Loader2, Send, TriangleAlert, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { ReferenceImageUpload } from "@/components/reference-image-upload";
 import {
@@ -34,19 +34,34 @@ import type {
 } from "@/lib/types";
 import { trackEvent, trackGenerationFailure } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
+import { shouldResetUndoStack } from "@/hooks/use-mascot-undo";
+import type { Id } from "../../convex/_generated/dataModel";
 
 type Props = {
   mascot: GeneratedMascot;
   look?: string;
   model?: MascotModelId;
   enabledParts: Set<string>;
-  onMascotChange?: (mascot: GeneratedMascot) => void;
+  onMascotChange?: (
+    mascot: GeneratedMascot,
+    options?: { refineHistoryLength?: number }
+  ) => void;
   referenceId?: string;
   onReferenceIdChange?: (referenceId: string | undefined) => void;
   mutationBusy?: boolean;
   onMutationStart?: () => boolean;
   onMutationEnd?: () => void;
   isMutationCurrent?: () => boolean;
+  /** Revert AI pack edits (refine / add gesture). */
+  canUndo?: boolean;
+  undoDepth?: number;
+  onUndo?: () => void;
+  /** Bumps on each undo so chat trim runs even when length is unchanged. */
+  undoGeneration?: number;
+  restoreHistoryLength?: number;
+  onRefineHistoryLengthChange?: (length: number) => void;
+  /** Clears refine chat when switching saved mascots — not on pack field edits. */
+  mascotId?: Id<"mascots"> | null;
   accent: string;
 };
 
@@ -149,6 +164,13 @@ export function MascotEditPanel({
   onMutationStart,
   onMutationEnd,
   isMutationCurrent,
+  canUndo = false,
+  undoDepth = 0,
+  onUndo,
+  undoGeneration = 0,
+  restoreHistoryLength = 0,
+  onRefineHistoryLengthChange,
+  mascotId = null,
   accent,
 }: Props) {
   const [draft, setDraft] = useState("");
@@ -160,15 +182,26 @@ export function MascotEditPanel({
   const [availableIds, setAvailableIds] = useState<Set<MascotModelId> | null>(
     null
   );
-  const identity = `${mascot.name}\0${mascot.tagline}`;
-  const [previousIdentity, setPreviousIdentity] = useState(identity);
+  const prevMascotId = useRef(mascotId);
 
-  if (previousIdentity !== identity) {
-    setPreviousIdentity(identity);
-    setHistory([]);
-    setDraft("");
-    setEditModel(model ?? DEFAULT_MASCOT_MODEL);
-  }
+  useEffect(() => {
+    const prev = prevMascotId.current;
+    prevMascotId.current = mascotId;
+    if (shouldResetUndoStack(prev, mascotId)) {
+      setHistory([]);
+      setDraft("");
+      setEditModel(model ?? DEFAULT_MASCOT_MODEL);
+    }
+  }, [mascotId, model]);
+
+  useEffect(() => {
+    onRefineHistoryLengthChange?.(history.length);
+  }, [history.length, onRefineHistoryLengthChange]);
+
+  useEffect(() => {
+    if (undoGeneration === 0) return;
+    setHistory((current) => current.slice(0, restoreHistoryLength));
+  }, [undoGeneration, restoreHistoryLength]);
 
   useEffect(() => {
     let cancelled = false;
@@ -304,7 +337,7 @@ export function MascotEditPanel({
             : "Couldn't apply that edit";
         throw new Error(data?.error || fallbackError);
       }
-      onMascotChange(data.mascot);
+      onMascotChange(data.mascot, { refineHistoryLength: history.length });
       setHistory((h) =>
         [
           ...h,
@@ -351,7 +384,36 @@ export function MascotEditPanel({
     >
       {onMascotChange && (
         <div>
-          <h3 className="gs-eyebrow mb-2">Ask AI</h3>
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <h3 className="gs-eyebrow">Ask AI</h3>
+            {canUndo && onUndo && (
+              <button
+                type="button"
+                className="gs-btn ghost inline-flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm"
+                disabled={busy || mutationBusy}
+                onClick={onUndo}
+                title={
+                  undoDepth > 1
+                    ? `Revert the last ${undoDepth} AI changes one step at a time (⌘Z)`
+                    : "Revert the last AI change (⌘Z)"
+                }
+              >
+                <Undo2 className="size-3.5 sm:size-4" aria-hidden />
+                Revert
+                {undoDepth > 1 ? (
+                  <span
+                    className="tabular-nums rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none"
+                    style={{
+                      background: `${accent}33`,
+                      color: "#F5EDE0",
+                    }}
+                  >
+                    {undoDepth}
+                  </span>
+                ) : null}
+              </button>
+            )}
+          </div>
 
           <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
             {availableIds !== null && availableIds.size === 0 ? (

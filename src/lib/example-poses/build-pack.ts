@@ -30,7 +30,6 @@ import { POSE_SOURCE as BOLT } from "@/components/mascots/bolt-mascot";
 import { POSE_SOURCE as RELAY } from "@/components/mascots/relay-mascot";
 import { POSE_SOURCE as ORBIT } from "@/components/mascots/orbit-mascot";
 import { POSE_SOURCE as BREW } from "@/components/mascots/brew-mascot";
-import { POSE_SOURCE as LUMEN } from "@/components/mascots/lumen-mascot";
 import { POSE_SOURCE as SHADE } from "@/components/mascots/shade-mascot";
 import { POSE_SOURCE as WATT } from "@/components/mascots/watt-mascot";
 import { POSE_SOURCE as ARC } from "@/components/mascots/arc-mascot";
@@ -78,7 +77,6 @@ const SOURCES: Record<MascotSlug, PoseSource> = {
   relay: RELAY as PoseSource,
   orbit: ORBIT as PoseSource,
   brew: BREW as PoseSource,
-  lumen: LUMEN as PoseSource,
   shade: SHADE as PoseSource,
   watt: WATT as PoseSource,
   arc: ARC as PoseSource,

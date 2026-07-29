@@ -1,0 +1,37 @@
+---
+description: After critical changes, run comprehensive QA (docs/comprehensive-qa.md) in addition to unit tests
+alwaysApply: true
+---
+
+# Comprehensive QA after critical changes
+
+Unit tests (`npm test`) are necessary but **not sufficient** for billing, generation quality, studio UX, and marketplace flows.
+
+## When to run full QA
+
+After changing any of:
+
+- `src/lib/metering.ts`, `convex/tokens.ts`, `convex/lib/plans.ts`, `convex/billing.ts`
+- `src/app/api/generate/**` (create, samples, refine, gesture, app-assets, remix)
+- `src/lib/generate-system-prompt.ts`, `src/lib/refine-pack.ts`, `src/lib/token-pricing.ts`
+- `src/components/generated-studio.tsx`, create/library/marketplace/remix pages
+- `src/components/mascots/**` (factories / example poses)
+- `convex/marketplace*.ts`, pricing/onboarding flows
+
+## Required workflow
+
+1. Run `npm test` (full suite when billing/generation touched).
+2. Open and follow **`docs/comprehensive-qa.md`** — execute every checklist section that matches your diff.
+3. For billing changes: verify balance before/after via `api.tokens.balance`; confirm failure/abort paths charge **0**; confirm success `_meta.tokens` + `_meta.balance` reconcile.
+4. For generation/prompt changes: compare output quality to the **same-family example pack** (orb/lantern/bird/robot) — production bar in the doc.
+5. For studio changes: exercise themes, instrument, parts, gestures, export, Ask AI, add gesture, and app assets on **created**, **remixed**, and **bought** mascots where applicable.
+6. Record sign-off using the template at the bottom of `docs/comprehensive-qa.md` in your PR or handoff.
+
+## Do not skip
+
+- Live balance reconciliation (Convex query or UI)
+- Abort / failure → no charge (refine & gesture)
+- Large packs (37+ poses) not blocked below 64 cap
+- App icon generation at least once per app-assets change
+
+If dev servers or Clerk sandbox are unavailable, say so explicitly and list what was not verified.

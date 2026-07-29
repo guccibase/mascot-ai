@@ -14,10 +14,10 @@ export const USD_PER_TOKEN = 0.00001;
 
 /**
  * Hard ceiling for a single `tokens.reserve` hold (and settle clamp).
- * Sized above post-margin Ask AI worst case (Fable × 24 batches × large pack
- * ≈ 16.5M) with headroom; still an abuse backstop, not a plan grant.
+ * Sized above Ask AI worst case (Fable × 64 batches × large pack ≈ 21.5M)
+ * with headroom; still an abuse backstop, not a plan grant.
  */
-export const MAX_TOKEN_RESERVATION = 20_000_000;
+export const MAX_TOKEN_RESERVATION = 30_000_000;
 
 /** Payment processing: Stripe 2.9% + $0.30, plus headroom for RevenueCat/tax. */
 export const FEE_RATE = 0.039;

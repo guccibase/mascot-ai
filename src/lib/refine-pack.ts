@@ -5,7 +5,15 @@ import {
 } from "@/lib/refine-limits";
 import type { GeneratedGesture, GeneratedMascot } from "@/lib/types";
 
-export const MAX_REFINE_GESTURES = 24;
+/**
+ * Soft safety ceiling for poses in studio / refine / add-gesture.
+ * Real packs already ship ~38 poses; users may add more. Hard product limits
+ * of 12/24 blocked Ask AI on those packs. Body bytes, per-SVG size, and token
+ * holds remain the real cost/abuse backstops.
+ */
+export const MAX_STUDIO_GESTURES = 64;
+/** @deprecated Prefer MAX_STUDIO_GESTURES — same value. */
+export const MAX_REFINE_GESTURES = MAX_STUDIO_GESTURES;
 export const MAX_REFINE_GESTURES_PER_BATCH = 12;
 export const MAX_REFINE_SVG_CHARS_PER_BATCH = 80_000;
 

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Check, Loader2, Sparkles } from "lucide-react";
 import { ModelChipsSkeleton } from "@/components/skeletons";
 import { sanitizeSvg } from "@/lib/sanitize-svg";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { GeneratedStudio } from "@/components/generated-studio";
 import { TokenEstimate } from "@/components/create/token-estimate";
@@ -381,6 +382,7 @@ export function RemixClient({
             void persistSafe(next);
           }}
         />
+        <SiteFooter />
       </div>
     );
   }

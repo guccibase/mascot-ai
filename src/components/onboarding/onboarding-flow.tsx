@@ -23,9 +23,10 @@ import {
   serializeOnboardingDraft,
 } from "@/lib/onboarding-flow";
 import { BrandLogo } from "@/components/brand-logo";
+import { OnboardingExamplePicker } from "@/components/onboarding/onboarding-example-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MASCOTS } from "@/lib/mascots";
+import { isPublicExampleSlug, PUBLIC_EXAMPLES } from "@/lib/mascots";
 import { PROOF_POINTS, PROOF_QUOTE } from "@/lib/proof";
 import { cn } from "@/lib/utils";
 import { api } from "../../../convex/_generated/api";
@@ -106,6 +107,11 @@ const PAID_BEFORE = [
   { id: "never", label: "No — first time for me" },
 ] as const;
 
+/** Shared across pitch CTA, Continue, and finish so every step matches. */
+const PRIMARY_BTN =
+  "bg-[var(--brand-accent)] px-8 text-[#12141c] hover:bg-[var(--brand-accent)]/90";
+const BACK_BTN = "text-[var(--brand-muted)] hover:text-white";
+
 function firstName(name: string | null | undefined) {
   if (!name?.trim()) return "there";
   return name.trim().split(/\s+/)[0]!;
@@ -169,7 +175,11 @@ export function OnboardingFlow() {
   const [paidBefore, setPaidBefore] = useState<string | null>(
     () => draft?.paidBefore ?? null
   );
-  const [favorite, setFavorite] = useState<string | null>(() => draft?.favorite ?? null);
+  const [favorite, setFavorite] = useState<string | null>(() =>
+    draft?.favorite && isPublicExampleSlug(draft.favorite)
+      ? draft.favorite
+      : null
+  );
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -208,7 +218,8 @@ export function OnboardingFlow() {
         stack: stack || undefined,
         referral: referral ?? undefined,
         paidBefore: paidBefore ?? undefined,
-        favoriteExample: favorite ?? undefined,
+        favoriteExample:
+          favorite && isPublicExampleSlug(favorite) ? favorite : undefined,
       });
       trackEvent("onboarding_completed", {
         useCase,
@@ -276,14 +287,14 @@ export function OnboardingFlow() {
                   craft was too good to keep as one-offs.
                 </p>
                 <p className="text-white/90">
-                  So we opened it up. Animated, gestural, downloadable, and
+                  So we opened it up for everyone to try it. Animated, gestural, downloadable, and
                   ready to drop into whatever you&apos;re shipping.
                 </p>
               </div>
               <Button
                 type="button"
                 size="lg"
-                className="mt-10 bg-[var(--brand-accent)] px-8 text-[#12141c] hover:bg-[var(--brand-accent)]/90"
+                className={cn("mt-10", PRIMARY_BTN)}
                 onClick={() => go(1)}
               >
                 Show me
@@ -485,105 +496,60 @@ export function OnboardingFlow() {
               <h2 className="font-[family-name:var(--font-display)] text-3xl tracking-tight sm:text-4xl">
                 Here&apos;s the bar
               </h2>
-              <p className="mt-2 text-[var(--brand-muted)]">
-                {MASCOTS.length} studios we built for real products. Pick the one closest to
-                what you want, or skip and start clean.
-              </p>
 
-              <div className="mt-8 grid gap-3 sm:grid-cols-2">
-                {MASCOTS.map((m) => {
-                  const on = favorite === m.slug;
-                  return (
-                    <button
-                      key={m.slug}
-                      type="button"
-                      onClick={() => setFavorite(on ? null : m.slug)}
-                      aria-pressed={on}
-                      className={cn(
-                        "rounded-[1.25rem] border p-4 text-left transition",
-                        on
-                          ? "border-[var(--brand-accent)] ring-2 ring-[var(--brand-accent)]/35"
-                          : "border-white/10 bg-white/[0.03] hover:border-white/25"
-                      )}
-                      style={{
-                        background: on
-                          ? `linear-gradient(135deg, ${m.accent}18, transparent)`
-                          : undefined,
-                      }}
-                    >
-                      <div className="flex items-baseline justify-between gap-2">
-                        <p
-                          className="text-[10px] font-semibold uppercase tracking-[0.18em]"
-                          style={{ color: m.accent }}
-                        >
-                          {m.name}
-                        </p>
-                        <p className="text-[11px] text-[var(--brand-muted)]">
-                          {m.poseCount} poses
-                        </p>
-                      </div>
-                      <p className="mt-1 font-[family-name:var(--font-display)] text-base">
-                        {m.tagline}
-                      </p>
-                      <p className="mt-2 line-clamp-2 text-xs text-[var(--brand-muted)]">
-                        {m.blurb}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  disabled={busy}
-                  className="text-[var(--brand-muted)] hover:text-white"
-                  onClick={() => go(-1)}
-                >
-                  Back
-                </Button>
-                <Button
-                  type="button"
-                  size="lg"
-                  disabled={busy}
-                  className="w-full bg-[var(--brand-accent)] text-[#12141c] hover:bg-[var(--brand-accent)]/90 sm:w-auto sm:px-8"
-                  onClick={() => void finish()}
-                >
-                  {busy ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <>
-                      Build my mascot
-                      <ArrowRight className="size-4" />
-                    </>
-                  )}
-                </Button>
+              <div className="mt-8">
+                <OnboardingExamplePicker
+                  examples={PUBLIC_EXAMPLES}
+                  favorite={favorite}
+                  onFavoriteChange={setFavorite}
+                />
               </div>
             </div>
           )}
         </div>
       </main>
 
-      {step !== "pitch" && step !== "examples" && (
-        <footer className="relative z-10 flex items-center justify-between px-5 pb-8 sm:px-8">
+      {step !== "pitch" && (
+        <footer className="relative z-10 flex items-center justify-between gap-3 px-5 pb-8 sm:px-8">
           <Button
             type="button"
             variant="ghost"
-            className="text-[var(--brand-muted)] hover:text-white"
+            size="lg"
+            disabled={busy}
+            className={BACK_BTN}
             onClick={() => go(-1)}
           >
             Back
           </Button>
-          <Button
-            type="button"
-            className="bg-[var(--brand-accent)] text-[#12141c] hover:bg-[var(--brand-accent)]/90"
-            disabled={step === "building" && !useCase}
-            onClick={() => go(1)}
-          >
-            Continue
-            <ArrowRight className="size-4" />
-          </Button>
+          {step === "examples" ? (
+            <Button
+              type="button"
+              size="lg"
+              disabled={busy}
+              className={PRIMARY_BTN}
+              onClick={() => void finish()}
+            >
+              {busy ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <>
+                  Build my mascot
+                  <ArrowRight className="size-4" />
+                </>
+              )}
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              size="lg"
+              className={PRIMARY_BTN}
+              disabled={step === "building" && !useCase}
+              onClick={() => go(1)}
+            >
+              Continue
+              <ArrowRight className="size-4" />
+            </Button>
+          )}
         </footer>
       )}
     </div>

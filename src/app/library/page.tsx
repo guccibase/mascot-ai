@@ -1,11 +1,12 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { usePaginatedQuery, useMutation } from "convex/react";
+import { usePaginatedQuery, useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
-import { SiteHeader } from "@/components/site-header";
 import { AdminListingsPanel } from "@/components/marketplace/admin-listings-panel";
+import { SiteHeader } from "@/components/site-header";
 import { MascotCardGridSkeleton, MascotCardSkeleton } from "@/components/skeletons";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { sanitizeSvg } from "@/lib/sanitize-svg";
@@ -13,7 +14,17 @@ import { cn } from "@/lib/utils";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 
+/** Lazy + mount-gated so non-admins never download the admin catalog chunk. */
+const AdminGeneratedSection = dynamic(
+  () =>
+    import("@/components/library/admin-generated-section").then(
+      (m) => m.AdminGeneratedSection
+    ),
+  { ssr: false }
+);
+
 export default function LibraryPage() {
+  const isAdmin = useQuery(api.marketplace.isAdmin);
   const { results, status, loadMore } = usePaginatedQuery(
     api.mascots.listMine,
     {},
@@ -143,6 +154,7 @@ export default function LibraryPage() {
             </div>
           )}
 
+          {isAdmin ? <AdminGeneratedSection /> : null}
           <AdminListingsPanel />
         </main>
       </div>

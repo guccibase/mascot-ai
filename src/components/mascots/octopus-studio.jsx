@@ -854,9 +854,11 @@ const PROP_GLYPHS = {
 
 /* ---------- props ---------- */
 const Star4 = ({ x, y, s = 1, fill, cls, delay }) => (
-  <path className={cls} transform={`translate(${x},${y}) scale(${s})`} fill={fill}
-    style={delay ? { animationDelay: delay } : undefined}
-    d="M0,-9 L2.4,-2.4 L9,0 L2.4,2.4 L0,9 L-2.4,2.4 L-9,0 L-2.4,-2.4 Z" />
+  <g transform={`translate(${x},${y}) scale(${s})`}>
+    <path className={cls} fill={fill}
+      style={delay ? { animationDelay: delay } : undefined}
+      d="M0,-9 L2.4,-2.4 L9,0 L2.4,2.4 L0,9 L-2.4,2.4 L-9,0 L-2.4,-2.4 Z" />
+  </g>
 );
 
 const Glyph = ({ x, y, size = 16, fill, cls, delay, children }) => (
@@ -939,8 +941,10 @@ function Props({ g, p, propKit = "math" }) {
       );
     case "tear":
       return (
-        <path className="nm-tear" transform="translate(146,246)" fill={p.accent} opacity=".9"
-          d="M0,-12 Q8,-2 8,4 A8,8 0 1,1 -8,4 Q-8,-2 0,-12 Z" />
+        <g transform="translate(146,246)">
+          <path className="nm-tear" fill={p.accent} opacity=".9"
+            d="M0,-12 Q8,-2 8,4 A8,8 0 1,1 -8,4 Q-8,-2 0,-12 Z" />
+        </g>
       );
     case "zzz":
       return (

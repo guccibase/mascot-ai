@@ -13,7 +13,7 @@ export const REMIX_IDENTITY_SCHEMA = `{
     "lowLabel": "string",
     "midLabel": "string",
     "highLabel": "string",
-    "defaultValue": 0-100,
+    "defaultValue": 55-80 integer (resting signal; never 0-15),
     "ramp": ["#hex","#hex","#hex","#hex","#hex"]
   },
   "themes": {

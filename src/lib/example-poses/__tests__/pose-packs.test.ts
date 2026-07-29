@@ -4,6 +4,7 @@ import {
   finalizeMarketplacePack,
   parseMarketplacePackFile,
 } from "@/lib/marketplace/parse-pack-file";
+import { PUBLIC_EXAMPLE_SLUGS } from "@/lib/mascots";
 import { POSE_PACK_SLUGS, buildPosePack } from "../build-pack";
 import { restoreSharedCss, stripSharedCss } from "../types";
 
@@ -76,6 +77,25 @@ describe("example pose packs", () => {
 
     expect(restored).toContain("@keyframes lv-float");
     expect(stripSharedCss(restored).svg).toBe(pose.svg);
+  });
+
+  describe("public idle previews", () => {
+    for (const slug of PUBLIC_EXAMPLE_SLUGS) {
+      it(`${slug} idle preview matches the pack idle pose`, async () => {
+        const pack = buildPosePack(slug);
+        const idle =
+          pack.poses.find((pose) => pose.key === "idle") ?? pack.poses[0];
+        expect(idle).toBeTruthy();
+        const extract = {
+          slug,
+          css: pack.css,
+          svg: idle!.svg,
+        };
+        await expect(JSON.stringify(extract, null, 2) + "\n").toMatchFileSnapshot(
+          `../idle-previews/${slug}.json`
+        );
+      });
+    }
   });
 
   describe("sol orb family studios", () => {
@@ -199,10 +219,9 @@ describe("example pose packs", () => {
   });
 
   describe("lantern family studios", () => {
-    const lanternSlugs = ["lumen", "shade", "watt", "arc"] as const;
+    const lanternSlugs = ["shade", "watt", "arc"] as const;
     const eyeMarkerBySlug = {
-      // soft lozenge / soft circle / tall Fanous oval / rounded HUD — distinct idle eyes
-      lumen: "M0,-17 Q8,-8 14,0",
+      // soft circle / tall Fanous oval / rounded HUD — distinct idle eyes
       shade: 'r="15.5"',
       watt: 'rx="12" ry="18"',
       arc: 'width="20" height="24" rx="8"',
@@ -224,10 +243,16 @@ describe("example pose packs", () => {
       "accessory",
       "eyes",
     ];
+    /** Arc (desk) and Shade (mushroom) omit mitten arms — lamp body is the limb. */
+    const persistentPartsFor = (slug: string) =>
+      slug === "arc" || slug === "shade"
+        ? persistentParts.filter((part) => part !== "arms")
+        : persistentParts;
 
     for (const slug of lanternSlugs) {
       it(`${slug} has the exact preset set and toggle contract`, () => {
         const pack = buildPosePack(slug);
+        const parts = persistentPartsFor(slug);
 
         expect(pack.poses.map((pose) => pose.key)).toEqual(expectedKeys);
         expect(pack.poses).toHaveLength(37);
@@ -235,11 +260,17 @@ describe("example pose packs", () => {
         expect(Object.keys(pack.meta?.themes ?? {})).toHaveLength(5);
 
         for (const pose of pack.poses) {
-          for (const part of persistentParts) {
+          for (const part of parts) {
             expect(
               pose.svg.includes(`data-ms-part="${part}"`),
               `${slug}/${pose.key} must expose the “${part}” toggle`
             ).toBe(true);
+          }
+          if (slug === "arc" || slug === "shade") {
+            expect(
+              pose.svg.includes('data-ms-part="arms"'),
+              `${slug} must not render mitten arms`
+            ).toBe(false);
           }
           expect(
             pose.tip,
@@ -259,12 +290,12 @@ describe("example pose packs", () => {
           parseMarketplacePackFile(JSON.stringify(pack))
         );
         expect(imported.parts.map((part) => part.key).sort()).toEqual(
-          [...persistentParts, "thrusters"].sort()
+          [...parts, "thrusters"].sort()
         );
       });
     }
 
-    it("keeps four mutually distinct chassis silhouettes and eye styles", () => {
+    it("keeps three mutually distinct chassis silhouettes and eye styles", () => {
       const idleSvg = Object.fromEntries(
         lanternSlugs.map((slug) => {
           const pack = buildPosePack(slug);
@@ -273,27 +304,22 @@ describe("example pose packs", () => {
         })
       );
 
-      expect(idleSvg.lumen).toContain("M108,190 L312,190 C318,262");
       expect(idleSvg.shade).toContain("M90,206 C90,118 148,96 210,94");
       expect(idleSvg.watt).toContain("M210,96 C284,96 334,164 334,236");
       expect(idleSvg.arc).toContain("M148,126 C168,112 252,112 272,126");
 
       // Each silhouette marker belongs to only one mascot
-      expect(idleSvg.shade).not.toContain("M108,190 L312,190 C318,262");
-      expect(idleSvg.watt).not.toContain("M108,190 L312,190 C318,262");
-      expect(idleSvg.arc).not.toContain("M108,190 L312,190 C318,262");
-      expect(idleSvg.lumen).not.toContain("M210,96 C284,96 334,164 334,236");
       expect(idleSvg.shade).not.toContain("M210,96 C284,96 334,164 334,236");
       expect(idleSvg.arc).not.toContain("M210,96 C284,96 334,164 334,236");
+      expect(idleSvg.watt).not.toContain("M90,206 C90,118 148,96 210,94");
+      expect(idleSvg.arc).not.toContain("M90,206 C90,118 148,96 210,94");
 
-      expect(idleSvg.lumen).toContain(eyeMarkerBySlug.lumen);
       expect(idleSvg.shade).toContain(eyeMarkerBySlug.shade);
       expect(idleSvg.watt).toContain(eyeMarkerBySlug.watt);
       expect(idleSvg.arc).toContain(eyeMarkerBySlug.arc);
-      expect(idleSvg.lumen).not.toContain(eyeMarkerBySlug.watt);
-      expect(idleSvg.watt).not.toContain(eyeMarkerBySlug.lumen);
       expect(idleSvg.shade).not.toContain(eyeMarkerBySlug.arc);
       expect(idleSvg.arc).not.toContain(eyeMarkerBySlug.watt);
+      expect(idleSvg.watt).not.toContain(eyeMarkerBySlug.shade);
     });
 
     it("keeps Fanous-grade thumbs, clap morph, and unique paint ids", () => {
@@ -305,15 +331,21 @@ describe("example pose packs", () => {
         const flying = pack.poses.find((pose) => pose.key === "flying")!;
         const idle = pack.poses.find((pose) => pose.key === "idle")!;
 
-        // Knuckle slab + short fat digit (not a floating prop)
-        expect(thumbsUp.svg).toContain('width="41" height="28"');
-        expect(thumbsUp.svg).toContain("Q21,-23 15,-34");
-        expect(thumbsDown.svg).toContain("Q21,-23 15,-34");
-        expect(thumbsUp.svg).not.toMatch(/data-ms-part="props"[\s\S]*thumbsUp/);
+        if (slug !== "arc" && slug !== "shade") {
+          // Knuckle slab + short fat digit (not a floating prop)
+          expect(thumbsUp.svg).toContain('width="41" height="28"');
+          expect(thumbsUp.svg).toContain("Q21,-23 15,-34");
+          expect(thumbsDown.svg).toContain("Q21,-23 15,-34");
+          expect(thumbsUp.svg).not.toMatch(/data-ms-part="props"[\s\S]*thumbsUp/);
 
-        // Clap open ↔ shut morph frames
-        expect(clapping.svg).toContain("Q-28,8 18,2");
-        expect(clapping.svg).toContain("Q-6,20 56,16");
+          // Clap open ↔ shut morph frames
+          expect(clapping.svg).toContain("Q-28,8 18,2");
+          expect(clapping.svg).toContain("Q-6,20 56,16");
+        } else {
+          // Desk / mushroom lamps: no mitten/thumb geometry
+          expect(thumbsUp.svg).not.toContain("Q21,-23 15,-34");
+          expect(clapping.svg).not.toContain("Q-28,8 18,2");
+        }
 
         // Instance-scoped ids (multi-SVG pages must not collide)
         expect(flying.svg).toContain(`id="${slug}-flying-lift-bloom"`);
@@ -831,6 +863,86 @@ describe("example pose packs", () => {
         expect(kiss.svg).toContain("nm-rise");
         expect(kiss.svg).toContain("Q252,252 278,256");
       });
+    }
+  });
+
+  /**
+   * CSS `transform` animations override SVG `transform` attributes on the same
+   * node, teleporting tears/hearts/stars to the viewBox origin. Position must
+   * live on a parent `<g>`; the anim class stays on the child.
+   */
+  it("never puts a transform animation class on the same node as SVG translate", () => {
+    const animClass = /(?:tear|rise|pulse|fall|note|drift|drop|drip|float|sweatD)\b/;
+    const offenders: string[] = [];
+
+    for (const slug of POSE_PACK_SLUGS) {
+      const pack = buildPosePack(slug);
+      const transformAnimClasses = new Set<string>();
+      for (const m of pack.css.matchAll(
+        /\.([a-zA-Z0-9_-]+)\{[^}]*animation:([a-zA-Z0-9_-]+)/g
+      )) {
+        const cls = m[1]!;
+        const anim = m[2]!;
+        const kf = pack.css.match(
+          new RegExp(`@keyframes\\s+${anim}\\{([\\s\\S]*?)\\}(?=\\s*@|\\s*\\.|$)`)
+        );
+        if (kf?.[1]?.includes("transform:") && animClass.test(cls)) {
+          transformAnimClasses.add(cls);
+        }
+      }
+
+      for (const pose of pack.poses) {
+        for (const tag of pose.svg.matchAll(/<([a-zA-Z0-9]+)([^>]*?)>/g)) {
+          const attrs = tag[2]!;
+          if (!attrs.includes('transform="translate')) continue;
+          const classMatch = attrs.match(/class="([^"]*)"/);
+          if (!classMatch) continue;
+          for (const cls of classMatch[1]!.split(/\s+/)) {
+            if (transformAnimClasses.has(cls)) {
+              offenders.push(`${slug}/${pose.key}: class="${cls}" + transform`);
+            }
+          }
+        }
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("tear keyframes fall downward, not upward into the eyes", () => {
+    const tearAnim =
+      /@keyframes\s+[a-zA-Z0-9_-]*(?:tear|drip|drop|sweatK)[a-zA-Z0-9_-]*\{([\s\S]*?)\}(?=\s*@|\s*\.|$)/g;
+    const tearClassOnPose =
+      /class="[^"]*(?:-tear|ck-tear|ob-tear|gw-tear|bd-tear|lm-tear|nm-tear|lv-drop|sd-drip|lm-sweatD)[^"]*"/;
+
+    for (const slug of POSE_PACK_SLUGS) {
+      const pack = buildPosePack(slug);
+      const tearPoses = pack.poses.filter(
+        (pose) =>
+          /crying|sad|sorry|pale|focused|oops/.test(pose.key) &&
+          tearClassOnPose.test(pose.svg)
+      );
+      const hasTearKeyframes = tearAnim.test(pack.css);
+      tearAnim.lastIndex = 0;
+      if (tearPoses.length === 0 && !hasTearKeyframes) continue;
+
+      for (const m of pack.css.matchAll(tearAnim)) {
+        const body = m[1]!;
+        // Must end with a positive translateY (down the face), never negative.
+        expect(
+          body,
+          `${slug} tear keyframes must drop downward`
+        ).toMatch(/100%\{[^}]*translateY\(\d+px\)/);
+        expect(body).not.toMatch(/100%\{[^}]*translateY\(-\d+px\)/);
+      }
+
+      // Tear droplets must not ride upward drift/rise animations.
+      for (const pose of tearPoses) {
+        expect(
+          pose.svg,
+          `${slug}/${pose.key} tears must not use upward drift/rise`
+        ).not.toMatch(/class="[^"]*(?:-drift|-rise)[^"]*"/);
+      }
     }
   });
 });

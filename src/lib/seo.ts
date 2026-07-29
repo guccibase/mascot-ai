@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { MASCOTS, type MascotMeta } from "@/lib/mascots";
+import { PUBLIC_EXAMPLES, type MascotMeta } from "@/lib/mascots";
 
 export const SITE_NAME = "MascotAI";
 
@@ -112,7 +112,7 @@ export function publicSitemapEntries(): Array<{
     { path: "/pricing", changeFrequency: "monthly", priority: 0.8 },
     { path: "/privacy", changeFrequency: "monthly", priority: 0.3 },
     { path: "/terms", changeFrequency: "monthly", priority: 0.3 },
-    ...MASCOTS.map((mascot) => ({
+    ...PUBLIC_EXAMPLES.map((mascot) => ({
       path: studioPath(mascot.slug),
       changeFrequency: "monthly" as const,
       priority: 0.9,
@@ -163,7 +163,7 @@ export function homeJsonLd() {
       {
         "@type": "ItemList",
         name: "MascotAI example studios",
-        itemListElement: MASCOTS.map((mascot, index) => ({
+        itemListElement: PUBLIC_EXAMPLES.map((mascot, index) => ({
           "@type": "ListItem",
           position: index + 1,
           name: `${mascot.name} studio`,

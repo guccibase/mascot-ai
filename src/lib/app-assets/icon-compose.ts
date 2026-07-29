@@ -95,8 +95,9 @@ async function buildIconPreviewBackground(
 }
 
 /**
- * Build a store-ready icon preview from the **exact** mascot pixels.
- * Only the background varies — the character is never redrawn by a model.
+ * Deterministic composite helper (exact mascot pixels + background).
+ * Production samples use AI reference edits via `generateAppIconImage` instead;
+ * this remains for tests / offline fidelity checks.
  */
 export async function composeAppIconPreview(args: {
   mascotPng: Buffer;

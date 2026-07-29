@@ -551,9 +551,11 @@ function Arm({ d, shoulder, p, anim, animKey, morph }) {
 }
 
 const Star4 = ({ x, y, s = 1, fill, cls, delay }) => (
-  <path className={cls} transform={`translate(${x},${y}) scale(${s})`} fill={fill}
-    style={delay ? { animationDelay: delay } : undefined}
-    d="M0,-8 L2.2,-2.2 L8,0 L2.2,2.2 L0,8 L-2.2,2.2 L-8,0 L-2.2,-2.2 Z" />
+  <g transform={`translate(${x},${y}) scale(${s})`}>
+    <path className={cls} fill={fill}
+      style={delay ? { animationDelay: delay } : undefined}
+      d="M0,-8 L2.2,-2.2 L8,0 L2.2,2.2 L0,8 L-2.2,2.2 L-8,0 L-2.2,-2.2 Z" />
+  </g>
 );
 
 /**
@@ -747,10 +749,14 @@ function Props({ g, p, showCoins }) {
     case "tears":
       return (
         <g>
-          <path className="hm-tear" transform="translate(168,248)" fill={accent} opacity=".88"
-            d="M0,-10 Q6,-2 6,2.5 A6,6 0 1,1 -6,2.5 Q-6,-2 0,-10 Z" />
-          <path className="hm-tear" transform="translate(252,248)" fill={accent} opacity=".88"
-            d="M0,-10 Q6,-2 6,2.5 A6,6 0 1,1 -6,2.5 Q-6,-2 0,-10 Z" style={{ animationDelay: ".4s" }} />
+          <g transform="translate(168,248)">
+            <path className="hm-tear" fill={accent} opacity=".88"
+              d="M0,-10 Q6,-2 6,2.5 A6,6 0 1,1 -6,2.5 Q-6,-2 0,-10 Z" />
+          </g>
+          <g transform="translate(252,248)">
+            <path className="hm-tear" fill={accent} opacity=".88"
+              d="M0,-10 Q6,-2 6,2.5 A6,6 0 1,1 -6,2.5 Q-6,-2 0,-10 Z" style={{ animationDelay: ".4s" }} />
+          </g>
         </g>
       );
     case "steam":
@@ -817,9 +823,11 @@ function Props({ g, p, showCoins }) {
     case "notes":
       return (
         <g fill={accent}>
-          <g className="hm-rise" transform="translate(316,148)">
-            <ellipse cx="0" cy="0" rx="5" ry="3.8" transform="rotate(-18)" />
-            <path d="M3.5,-1 L3.5,-17" fill="none" stroke={accent} strokeWidth="2.8" strokeLinecap="round" />
+          <g transform="translate(316,148)">
+            <g className="hm-rise">
+              <ellipse cx="0" cy="0" rx="5" ry="3.8" transform="rotate(-18)" />
+              <path d="M3.5,-1 L3.5,-17" fill="none" stroke={accent} strokeWidth="2.8" strokeLinecap="round" />
+            </g>
           </g>
           {showCoins && <Coin x={96} y={142} s={0.5} metal="copper" uid={`${uid}-dn`} />}
         </g>
@@ -1047,7 +1055,8 @@ export function HaySVG({ p, glow, paused, waving, gesture, svgRef, eyeRef, parts
           rx={flying ? 52 : 84} ry="8" fill="#000" opacity=".2" />
       )}
 
-      <g className="hm-float" transform={`translate(0,${lift})`}>
+      <g transform={`translate(0,${lift})`}>
+        <g className="hm-float">
         <g transform="translate(210,470)">
           {g.shake && (
             <animateTransform attributeName="transform" type="translate" additive="sum"
@@ -1200,6 +1209,7 @@ export function HaySVG({ p, glow, paused, waving, gesture, svgRef, eyeRef, parts
               </g>
             </g>
           </g>
+        </g>
         </g>
       </g>
     </svg>

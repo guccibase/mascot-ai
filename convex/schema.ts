@@ -259,7 +259,6 @@ export default defineSchema({
         v.literal("relay"),
         v.literal("orbit"),
         v.literal("brew"),
-        v.literal("lumen"),
         v.literal("shade"),
         v.literal("watt"),
         v.literal("arc"),

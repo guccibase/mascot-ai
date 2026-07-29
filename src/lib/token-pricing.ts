@@ -4,7 +4,7 @@ import {
   optionByApiModel,
   type MascotModelOption,
 } from "@/lib/mascot-model-options";
-import { MAX_REFINE_GESTURES } from "@/lib/refine-pack";
+import { MAX_STUDIO_GESTURES } from "@/lib/refine-pack";
 import type { MascotModelId } from "@/lib/types";
 import {
   MAX_TOKEN_RESERVATION,
@@ -78,27 +78,18 @@ export function estimateImageEditTokens(count: number): {
 export const estimateImageGenTokens = estimateImageEditTokens;
 
 /**
- * Infra COGS per composited icon preview (exact mascot pixels + background).
- * No image-model spend — character fidelity is guaranteed by compositing.
+ * Sample previews are high-quality gpt-image reference edits.
+ * Aliases keep older imports/tests aligned with IMAGE_EDIT COGS.
  */
-export const APP_ASSET_SAMPLE_USD_PER_IMAGE = 0.0008;
-export const APP_ASSET_SAMPLE_USD_PER_IMAGE_MAX = 0.0012;
+export const APP_ASSET_SAMPLE_USD_PER_IMAGE = IMAGE_EDIT_USD_PER_IMAGE;
+export const APP_ASSET_SAMPLE_USD_PER_IMAGE_MAX = IMAGE_EDIT_USD_PER_IMAGE_MAX;
 
+/** Three creative icon masters billed as image edits @ ≥50% gross margin. */
 export function estimateAppAssetSampleTokens(count: number): {
   typical: number;
   max: number;
 } {
-  const n = Math.max(1, Math.min(3, Math.floor(count)));
-  return {
-    typical: Math.ceil(
-      ((n * APP_ASSET_SAMPLE_USD_PER_IMAGE) / USD_PER_TOKEN) *
-        APP_ASSET_MARGIN_MULTIPLIER
-    ),
-    max: Math.ceil(
-      ((n * APP_ASSET_SAMPLE_USD_PER_IMAGE_MAX) / USD_PER_TOKEN) *
-        APP_ASSET_MARGIN_MULTIPLIER
-    ),
-  };
+  return estimateImageEditTokens(count);
 }
 
 /** Infra COGS for pack assembly (resize + storage uploads); no LLM. */
@@ -224,7 +215,7 @@ const PHASES = {
     outputMax: 6_000,
     carriesPayload: true,
   },
-  /** Three 1024px icon previews (exact mascot composite, no image model). */
+  /** Three 1024px AI icon masters (reference edit; billed via image COGS). */
   appAssetSamples: {
     input: 0,
     outputTypical: 0,
@@ -290,10 +281,11 @@ function phasesFor(action: MeteredAction): PhaseEstimate[] {
     case "gesture":
       return [PHASES.addGesture];
     case "refine": {
+      // Worst case: one pose per batch up to the studio ceiling.
       const batches = Math.max(
         1,
         Math.min(
-          MAX_REFINE_GESTURES,
+          MAX_STUDIO_GESTURES,
           Math.floor(action.batches ?? 1)
         )
       );

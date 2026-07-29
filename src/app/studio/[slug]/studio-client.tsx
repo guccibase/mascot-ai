@@ -67,7 +67,6 @@ export function StudioClient({
     case "relay":
     case "orbit":
     case "brew":
-    case "lumen":
     case "shade":
     case "watt":
     case "arc":

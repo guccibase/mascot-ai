@@ -22,7 +22,17 @@ export type TokenMeta = {
   balance: number;
   /** What the estimate panel quoted, for client-side reconciliation. */
   estimated: number;
+  /** False when Convex settle did not complete (hold may still be open). */
+  committed: boolean;
 };
+
+/** Omit token fields from API meta when settle did not commit. */
+export function tokenMetaFields(
+  meta: TokenMeta
+): { tokens: number; balance: number } | Record<string, never> {
+  if (!meta.committed) return {};
+  return { tokens: meta.tokens, balance: meta.balance };
+}
 
 export type Meter = {
   /**
@@ -32,6 +42,12 @@ export type Meter = {
   record(usage: ProviderUsage | undefined, actualApiModel?: string): void;
   /** Charge a call that succeeded but reported no usage. */
   recordFallback(action: MeteredAction): void;
+  /**
+   * Drop every recorded charge so the next `settle()` fully refunds the hold.
+   * Required for atomic outcomes (e.g. Ask AI refine) where the user gets
+   * nothing usable unless the whole request succeeds.
+   */
+  forgive(): void;
   /** Close the hold. Safe to call twice; the second call is a no-op. */
   settle(): Promise<TokenMeta>;
 };
@@ -53,8 +69,8 @@ function errorData(err: unknown): Record<string, unknown> | null {
 
 /**
  * Reserve the worst-case cost of `action` before running it. The caller must
- * always `settle()`. Do it in a `finally` so a thrown generation still bills
- * for the calls that completed and releases the rest of the hold.
+ * always `settle()` in a `finally`. Non-atomic routes bill each recorded call;
+ * atomic routes (refine) call `forgive()` on failure so settle refunds the hold.
  */
 export async function openMeter(
   action: MeteredAction,
@@ -174,6 +190,9 @@ export async function openMeter(
       // fallbackTokens → estimateTokens; refine estimates already include margin.
       charged += fallbackTokens(fallbackAction, model);
     },
+    forgive() {
+      charged = 0;
+    },
     async settle() {
       if (settled) return settled;
       try {
@@ -187,18 +206,20 @@ export async function openMeter(
           tokens: result.charged,
           balance: result.balance,
           estimated: estimate.typical,
+          committed: true,
         };
+        return settled;
       } catch (err) {
-        // The hold expires on its own within minutes, so a failed settle costs
-        // the customer nothing permanent. Never fail the response over it.
+        // Do not mark settled — `finally` may retry. Hold still expires on its
+        // own if every settle attempt fails, so the customer is not stuck.
         console.error("token settle failed:", err);
-        settled = {
-          tokens: charged,
+        return {
+          tokens: 0,
           balance: -1,
           estimated: estimate.typical,
+          committed: false,
         };
       }
-      return settled;
     },
   };
 

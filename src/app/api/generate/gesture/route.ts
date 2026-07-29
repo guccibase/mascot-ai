@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { boundedText, rateLimit, readJsonBody } from "@/lib/api-guard";
 import { resolveMascotModel, runMascotModel } from "@/lib/mascot-model";
 import { extractPartsFromMascot } from "@/lib/mascot-parts";
-import { openMeter } from "@/lib/metering";
+import { openMeter, tokenMetaFields } from "@/lib/metering";
 import { parseJsonObject } from "@/lib/parse-json";
 import { isReferenceId } from "@/lib/reference-image-client";
 import { loadReferenceImage } from "@/lib/reference-image";
@@ -12,6 +12,7 @@ import {
   defaultTrackForGesture,
   normalizeSingleGesture,
 } from "@/lib/studio-utils";
+import { MAX_STUDIO_GESTURES } from "@/lib/refine-pack";
 import { SVG_GESTURE_INSTRUCTIONS } from "@/lib/svg-gesture-prompt";
 import { gestureReferenceBlock, referenceImageBlock } from "@/lib/vision-prompt";
 import type {
@@ -25,7 +26,6 @@ export const runtime = "nodejs";
 export const maxDuration = 90;
 
 const MAX_BODY_BYTES = 1_200_000;
-const MAX_GESTURES = 12;
 
 function isMascot(value: unknown): value is GeneratedMascot {
   if (!value || typeof value !== "object") return false;
@@ -138,9 +138,11 @@ export async function POST(req: Request) {
       { status: 409 }
     );
   }
-  if (body.mascot.gestures.length >= MAX_GESTURES) {
+  if (body.mascot.gestures.length >= MAX_STUDIO_GESTURES) {
     return NextResponse.json(
-      { error: `Studio is limited to ${MAX_GESTURES} gestures` },
+      {
+        error: `Studio is limited to ${MAX_STUDIO_GESTURES} gestures for safe generation`,
+      },
       { status: 400 }
     );
   }
@@ -220,10 +222,19 @@ export async function POST(req: Request) {
       maxOutputTokens: 14000,
       reasoningEffort: "low",
     });
-    meter.record(run.usage, run.model);
 
     const coerced = coerceRawGesture(parseJsonObject(run.text), gestureReq);
     const gesture = normalizeSingleGesture(body.mascot, gestureReq, coerced);
+
+    if (run.usage) {
+      meter.record(run.usage, run.model);
+    } else {
+      meter.recordFallback({
+        kind: "gesture",
+        payloadChars,
+        referenceImages: referenceImage ? 1 : 0,
+      });
+    }
 
     const nextMascot: GeneratedMascot = {
       ...body.mascot,
@@ -239,11 +250,11 @@ export async function POST(req: Request) {
       _meta: {
         model: run.model,
         elapsedMs: Date.now() - started,
-        tokens: tokens.tokens,
-        balance: tokens.balance,
+        ...tokenMetaFields(tokens),
       },
     });
   } catch (err) {
+    meter.forgive();
     const message = err instanceof Error ? err.message : "Gesture generation failed";
     console.error("add-gesture error:", message);
     return NextResponse.json({ error: message }, { status: 500 });

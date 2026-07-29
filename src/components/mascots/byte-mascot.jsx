@@ -553,9 +553,11 @@ function Thrusters({ p }) {
 }
 
 const Star4 = ({ x, y, s = 1, fill, cls, delay }) => (
-  <path className={cls} transform={`translate(${x},${y}) scale(${s})`} fill={fill}
-    style={delay ? { animationDelay: delay } : undefined}
-    d="M0,-8 L2.2,-2.2 L8,0 L2.2,2.2 L0,8 L-2.2,2.2 L-8,0 L-2.2,-2.2 Z" />
+  <g transform={`translate(${x},${y}) scale(${s})`}>
+    <path className={cls} fill={fill}
+      style={delay ? { animationDelay: delay } : undefined}
+      d="M0,-8 L2.2,-2.2 L8,0 L2.2,2.2 L0,8 L-2.2,2.2 L-8,0 L-2.2,-2.2 Z" />
+  </g>
 );
 
 function Props({ g, p }) {
@@ -638,10 +640,14 @@ function Props({ g, p }) {
     case "tears":
       return (
         <g>
-          <path className="bt-tear" transform="translate(166,246)" fill={p.accent} opacity=".9"
-            d="M0,-11 Q7,-2 7,3 A7,7 0 1,1 -7,3 Q-7,-2 0,-11 Z" />
-          <path className="bt-tear" transform="translate(254,246)" fill={p.accent} opacity=".9"
-            d="M0,-11 Q7,-2 7,3 A7,7 0 1,1 -7,3 Q-7,-2 0,-11 Z" style={{ animationDelay: ".4s" }} />
+          <g transform="translate(166,246)">
+            <path className="bt-tear" fill={p.accent} opacity=".9"
+              d="M0,-11 Q7,-2 7,3 A7,7 0 1,1 -7,3 Q-7,-2 0,-11 Z" />
+          </g>
+          <g transform="translate(254,246)">
+            <path className="bt-tear" fill={p.accent} opacity=".9"
+              d="M0,-11 Q7,-2 7,3 A7,7 0 1,1 -7,3 Q-7,-2 0,-11 Z" style={{ animationDelay: ".4s" }} />
+          </g>
         </g>
       );
     case "steam":
@@ -705,14 +711,18 @@ function Props({ g, p }) {
     case "notes":
       return (
         <g fill={accent}>
-          <g className="bt-rise" transform="translate(320,150)">
-            <ellipse cx="0" cy="0" rx="5.5" ry="4.2" transform="rotate(-18)" />
-            <path d="M4,-1 L4,-19 Q11,-17 13,-11" fill="none" stroke={accent} strokeWidth="3"
-              strokeLinecap="round" />
+          <g transform="translate(320,150)">
+            <g className="bt-rise">
+              <ellipse cx="0" cy="0" rx="5.5" ry="4.2" transform="rotate(-18)" />
+              <path d="M4,-1 L4,-19 Q11,-17 13,-11" fill="none" stroke={accent} strokeWidth="3"
+                strokeLinecap="round" />
+            </g>
           </g>
-          <g className="bt-rise" transform="translate(96,138)" style={{ animationDelay: ".7s" }}>
-            <ellipse cx="0" cy="0" rx="4.5" ry="3.4" transform="rotate(-18)" />
-            <path d="M3.5,-1 L3.5,-15" fill="none" stroke={p.led} strokeWidth="2.6" strokeLinecap="round" />
+          <g transform="translate(96,138)">
+            <g className="bt-rise" style={{ animationDelay: ".7s" }}>
+              <ellipse cx="0" cy="0" rx="4.5" ry="3.4" transform="rotate(-18)" />
+              <path d="M3.5,-1 L3.5,-15" fill="none" stroke={p.led} strokeWidth="2.6" strokeLinecap="round" />
+            </g>
           </g>
         </g>
       );
@@ -970,7 +980,8 @@ function ByteSVG({ p, glow, paused, waving, gesture, svgRef, eyeRef, parts = ALL
           rx={flying ? 68 : 88} ry="9" fill="#000" opacity=".2" />
       )}
 
-      <g className="bt-float" transform={`translate(0,${lift})`}>
+      <g transform={`translate(0,${lift})`}>
+        <g className="bt-float">
         <g transform="translate(210,470)">
           {g.shake && (
             <animateTransform attributeName="transform" type="translate" additive="sum"
@@ -1141,6 +1152,7 @@ function ByteSVG({ p, glow, paused, waving, gesture, svgRef, eyeRef, parts = ALL
               </g>
             </g>
           </g>
+        </g>
         </g>
       </g>
     </svg>

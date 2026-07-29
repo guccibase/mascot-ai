@@ -1,43 +1,19 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/json-ld";
-import { getMascot, type MascotSlug } from "@/lib/mascots";
+import { SiteFooter } from "@/components/site-footer";
+import { SiteHeader } from "@/components/site-header";
+import { isAdminUser } from "@/lib/admin";
+import {
+  getMascot,
+  isPublicExampleSlug,
+  PUBLIC_EXAMPLE_SLUGS,
+  type MascotSlug,
+} from "@/lib/mascots";
 import { loadExampleMarketplacePack } from "@/lib/marketplace/example-packs";
 import { studioMetadata, studioSoftwareJsonLd } from "@/lib/seo";
 import { normalizeGeneratedMascot } from "@/lib/studio-utils";
 import { StudioClient } from "./studio-client";
-
-const SLUGS: MascotSlug[] = [
-  "lyra",
-  "sol",
-  "bud",
-  "fanous",
-  "granary",
-  "byte",
-  "numi",
-  "lexa",
-  "coda",
-  "kelp",
-  "nori",
-  "hay",
-  "nox",
-  "zest",
-  "quill",
-  "pip",
-  "bolt",
-  "relay",
-  "orbit",
-  "brew",
-  "lumen",
-  "shade",
-  "watt",
-  "arc",
-  "aura",
-  "glint",
-  "trove",
-  "zephyr",
-];
 
 const GENERATED_STUDIO_SLUGS = new Set<MascotSlug>([
   "granary",
@@ -49,7 +25,6 @@ const GENERATED_STUDIO_SLUGS = new Set<MascotSlug>([
   "relay",
   "orbit",
   "brew",
-  "lumen",
   "shade",
   "watt",
   "arc",
@@ -59,9 +34,11 @@ const GENERATED_STUDIO_SLUGS = new Set<MascotSlug>([
   "zephyr",
 ]);
 
+/** Admin-only slugs are not prebuilt; resolve on demand after the auth gate. */
+export const dynamicParams = true;
 
 export function generateStaticParams() {
-  return SLUGS.map((slug) => ({ slug }));
+  return PUBLIC_EXAMPLE_SLUGS.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({
@@ -72,6 +49,15 @@ export async function generateMetadata({
   const { slug } = await params;
   const mascot = getMascot(slug);
   if (!mascot) return { title: "Studio" };
+  if (!isPublicExampleSlug(slug)) {
+    if (!(await isAdminUser())) {
+      return { title: "Studio", robots: { index: false, follow: false } };
+    }
+    return {
+      ...studioMetadata(mascot),
+      robots: { index: false, follow: false },
+    };
+  }
   return studioMetadata(mascot);
 }
 
@@ -83,6 +69,12 @@ export default async function StudioPage({
   const { slug } = await params;
   const mascot = getMascot(slug);
   if (!mascot) notFound();
+
+  const isPublic = isPublicExampleSlug(mascot.slug);
+  if (!isPublic && !(await isAdminUser())) {
+    notFound();
+  }
+
   const isGeneratedStudio = GENERATED_STUDIO_SLUGS.has(mascot.slug);
   const examplePack = isGeneratedStudio
     ? await loadExampleMarketplacePack(mascot.slug)
@@ -92,46 +84,30 @@ export default async function StudioPage({
     : undefined;
 
   return (
-    <div className="relative min-h-screen bg-[#0a0e18]">
-      <JsonLd data={studioSoftwareJsonLd(mascot)} />
-      <nav
-        aria-label="Studio"
-        className="relative z-50 flex gap-2 px-4 pt-4 sm:px-6 sm:pt-6"
-      >
-        <Link
-          href="/"
-          className="rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-xs font-semibold text-white/85 backdrop-blur hover:bg-black/55"
-        >
-          ← Home
-        </Link>
-        <Link
-          href="/marketplace"
-          className="rounded-full border border-[var(--brand-accent)]/40 bg-[var(--brand-accent)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--brand-accent)] backdrop-blur hover:bg-[var(--brand-accent)]/20"
-        >
-          Marketplace
-        </Link>
-        <Link
-          href="/create"
-          className="rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-xs font-semibold text-white/85 backdrop-blur hover:bg-black/55"
-        >
-          Create yours
-        </Link>
-      </nav>
-      <noscript>
-        <div className="px-6 py-10 text-white">
-          <p className="text-2xl font-semibold">
-            {mascot.name} studio — {mascot.tagline}
-          </p>
-          <p className="mt-3 max-w-xl text-white/70">{mascot.blurb}</p>
-          <p className="mt-2 text-sm text-white/50">
-            Built for {mascot.product}. {mascot.poseCount} interactive gestures.
-            Enable JavaScript to explore the live studio.
-          </p>
-        </div>
-      </noscript>
-      <main>
-        <StudioClient slug={mascot.slug} initialMascot={initialMascot} />
-      </main>
+    <div className="relative min-h-screen bg-[var(--brand-bg)] text-[var(--brand-ink)]">
+      {isPublic ? <JsonLd data={studioSoftwareJsonLd(mascot)} /> : null}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[820px] bg-[radial-gradient(900px_480px_at_20%_-10%,rgba(245,179,79,0.16),transparent_55%),radial-gradient(700px_420px_at_90%_0%,rgba(88,140,255,0.12),transparent_50%)]" />
+      <div className="relative">
+        <SiteHeader />
+        <noscript>
+          <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8 lg:px-12">
+            <p className="text-2xl font-semibold">
+              {mascot.name} studio — {mascot.tagline}
+            </p>
+            <p className="mt-3 max-w-xl text-[var(--brand-muted)]">
+              {mascot.blurb}
+            </p>
+            <p className="mt-2 text-sm text-white/50">
+              Built for {mascot.product}. {mascot.poseCount} interactive
+              gestures. Enable JavaScript to explore the live studio.
+            </p>
+          </div>
+        </noscript>
+        <main>
+          <StudioClient slug={mascot.slug} initialMascot={initialMascot} />
+        </main>
+        <SiteFooter />
+      </div>
     </div>
   );
 }

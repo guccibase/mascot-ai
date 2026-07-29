@@ -43,11 +43,11 @@ import type {
 import type { Id } from "../../convex/_generated/dataModel";
 import { trackEvent, trackGenerationFailure } from "@/lib/analytics";
 import { zipSync, strToU8 } from "fflate";
-import { Loader2, Plus, Undo2 } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
   useMascotUndo,
-  useResetUndoOnIdentityChange,
+  useResetUndoOnMascotIdChange,
 } from "@/hooks/use-mascot-undo";
 import { isReferenceId } from "@/lib/reference-image-client";
 
@@ -312,21 +312,38 @@ export function GeneratedStudio({
     []
   );
 
-  const { pushSnapshot, undo, canUndo, clear: clearUndo } = useMascotUndo(
-    useCallback(
-      (restored) => {
-        onMascotChange?.(restored);
-        toast.success("Reverted to previous version");
-      },
-      [onMascotChange]
-    )
-  );
+  const refineHistoryLengthRef = useRef(0);
+  const [undoGeneration, setUndoGeneration] = useState(0);
+  const [refineHistoryRestoreLength, setRefineHistoryRestoreLength] = useState(0);
 
-  useResetUndoOnIdentityChange(mascot, clearUndo);
+  const { pushSnapshot, undo, canUndo, undoDepth, clear: clearUndo } =
+    useMascotUndo(
+      useCallback(
+        ({ mascot: restored, refineHistoryLength }) => {
+          setRefineHistoryRestoreLength(refineHistoryLength);
+          setUndoGeneration((g) => g + 1);
+          onMascotChange?.(restored);
+          toast.success("Reverted to previous version");
+        },
+        [onMascotChange]
+      )
+    );
+
+  useResetUndoOnMascotIdChange(mascotId, clearUndo);
 
   const applyMascotChange = useCallback(
-    (next: GeneratedMascot) => {
-      pushSnapshot(mascot);
+    (
+      next: GeneratedMascot,
+      options?: { refineHistoryLength?: number }
+    ) => {
+      const historyLength =
+        options?.refineHistoryLength ?? refineHistoryLengthRef.current;
+      const saved = pushSnapshot(mascot, historyLength);
+      if (!saved) {
+        toast.warning(
+          "This pack is too large to save a revert point — undo may be unavailable"
+        );
+      }
       onMascotChange?.(next);
     },
     [mascot, onMascotChange, pushSnapshot]
@@ -342,6 +359,30 @@ export function GeneratedStudio({
       toast.error("Nothing to revert");
     }
   }, [onMascotChange, undo]);
+
+  useEffect(() => {
+    if (!canEdit || !canUndo) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "z" || event.shiftKey) return;
+      if (!(event.metaKey || event.ctrlKey)) return;
+
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        (target.isContentEditable ||
+          target.closest("input, textarea, select, [contenteditable='true']"))
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      handleUndo();
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [canEdit, canUndo, handleUndo]);
   const [enabledParts, setEnabledParts] = useState<Set<string>>(
     () => new Set(parts.map((p) => p.key))
   );
@@ -990,6 +1031,15 @@ export function GeneratedStudio({
               onMutationStart={beginAiMutation}
               onMutationEnd={endAiMutation}
               isMutationCurrent={isAiMutationCurrent}
+              canUndo={canUndo}
+              undoDepth={undoDepth}
+              onUndo={handleUndo}
+              undoGeneration={undoGeneration}
+              restoreHistoryLength={refineHistoryRestoreLength}
+              onRefineHistoryLengthChange={(length) => {
+                refineHistoryLengthRef.current = length;
+              }}
+              mascotId={mascotId}
               accent={accent}
             />
           )}
@@ -1367,17 +1417,6 @@ export function GeneratedStudio({
           </div>
 
           <div className="flex flex-col gap-2">
-            {canEdit && canUndo && (
-              <button
-                type="button"
-                className="gs-btn ghost w-full inline-flex items-center justify-center gap-2"
-                disabled={aiMutationBusy}
-                onClick={handleUndo}
-              >
-                <Undo2 className="size-4" />
-                Revert last AI change
-              </button>
-            )}
             {canExport ? (
               <>
                 <div className="flex gap-3">

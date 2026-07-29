@@ -30,9 +30,13 @@ vi.mock("@/lib/mascot-model", async (importOriginal) => {
   };
 });
 
-vi.mock("@/lib/metering", () => ({
-  openMeter: mocks.openMeter,
-}));
+vi.mock("@/lib/metering", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/metering")>();
+  return {
+    ...actual,
+    openMeter: mocks.openMeter,
+  };
+});
 
 vi.mock("@/lib/reference-image-client", () => ({
   isReferenceId: () => false,
@@ -100,10 +104,12 @@ describe("POST /api/generate/refine", () => {
   const meter = {
     record: vi.fn(),
     recordFallback: vi.fn(),
+    forgive: vi.fn(),
     settle: vi.fn(async () => ({
       tokens: 123,
       balance: 456,
       estimated: 789,
+      committed: true,
     })),
   };
 
@@ -172,13 +178,15 @@ describe("POST /api/generate/refine", () => {
     expect(data.mascot.gestures[0]?.track).toBe(true);
     expect(data.assistantMessage).toBe("Updated every pose.");
     expect(meter.record).toHaveBeenCalledTimes(3);
+    expect(meter.forgive).not.toHaveBeenCalled();
+    expect(meter.settle).toHaveBeenCalled();
     expect(mocks.openMeter).toHaveBeenCalledWith(
       expect.objectContaining({ kind: "refine", batches: 3 }),
       "gpt-5.6-sol"
     );
   });
 
-  it("returns no partial mascot and records every batch when one truncates", async () => {
+  it("returns no partial mascot and refunds fully when one batch truncates", async () => {
     const success = mocks.runMascotModel.getMockImplementation()!;
     let call = 0;
     mocks.runMascotModel.mockImplementation(async (args) => {
@@ -203,7 +211,45 @@ describe("POST /api/generate/refine", () => {
     expect(data.code).toBe("REFINE_INCOMPLETE");
     expect(data.mascot).toBeUndefined();
     expect(mocks.runMascotModel).toHaveBeenCalledTimes(3);
-    expect(meter.record).toHaveBeenCalledTimes(3);
+    // Atomic refine: never bill for an edit that did not apply.
+    expect(meter.record).not.toHaveBeenCalled();
+    expect(meter.recordFallback).not.toHaveBeenCalled();
+    expect(meter.forgive).toHaveBeenCalledTimes(1);
+    expect(meter.settle).toHaveBeenCalled();
+  });
+
+  it("refunds fully when every batch returns but merge cannot assemble a pack", async () => {
+    mocks.runMascotModel.mockResolvedValue({
+      model: "gpt-5.6-sol",
+      usage: { input_tokens: 1_000, output_tokens: 2_000 },
+      text: JSON.stringify({
+        assistantMessage: "oops",
+        mascot: {
+          ...mascot,
+          // Wrong keys → merge throws IncompleteRefineError after all calls.
+          gestures: [
+            {
+              ...mascot.gestures[0]!,
+              key: "not_assigned",
+              svg: `<svg viewBox="0 0 420 520"><g data-ms-part="body"></g></svg>`,
+            },
+          ],
+        },
+      }),
+    });
+
+    const response = await request();
+    const data = (await response.json()) as {
+      code?: string;
+      mascot?: GeneratedMascot;
+    };
+
+    expect(response.status).toBe(502);
+    expect(data.code).toBe("REFINE_INCOMPLETE");
+    expect(data.mascot).toBeUndefined();
+    expect(meter.record).not.toHaveBeenCalled();
+    expect(meter.forgive).toHaveBeenCalledTimes(1);
+    expect(meter.settle).toHaveBeenCalled();
   });
 
   it("rejects an individually oversized pose before metering", async () => {

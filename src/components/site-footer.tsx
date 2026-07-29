@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
-import { MASCOTS } from "@/lib/mascots";
+import { PUBLIC_EXAMPLES } from "@/lib/mascots";
 import { SITE_NAME, SITE_TAGLINE } from "@/lib/seo";
 
 const FOOTER_LINKS = [
@@ -54,7 +54,7 @@ export function SiteFooter() {
                 Studios
               </p>
               <ul className="mt-3 space-y-2">
-                {MASCOTS.map((mascot) => (
+                {PUBLIC_EXAMPLES.map((mascot) => (
                   <li key={mascot.slug}>
                     <Link
                       href={`/studio/${mascot.slug}`}

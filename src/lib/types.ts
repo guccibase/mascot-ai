@@ -173,7 +173,6 @@ export type RemixRequest = {
     | "relay"
     | "orbit"
     | "brew"
-    | "lumen"
     | "shade"
     | "watt"
     | "arc"

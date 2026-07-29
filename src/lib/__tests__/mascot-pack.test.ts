@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { packHasLiveSignal, toGeneratedMascot } from "@/lib/mascot-pack";
+import { normalizeInstrumentDefault } from "@/lib/studio-utils";
 
 const basePack = {
   name: "Bud",
@@ -88,5 +89,36 @@ describe("toGeneratedMascot", () => {
       ],
     });
     expect(pack.instrument.hidden).toBe(true);
+  });
+
+  it("coerces stub instrument defaults (e.g. 3) up to a usable resting value", () => {
+    const pack = toGeneratedMascot({
+      ...basePack,
+      instrument: { ...basePack.instrument, defaultValue: 3 },
+      gestures: [
+        {
+          ...basePack.gestures[0]!,
+          svg: '<svg><g class="ms-signal-fan"></g></svg>',
+        },
+      ],
+    });
+    expect(pack.instrument.defaultValue).toBe(50);
+  });
+});
+
+describe("normalizeInstrumentDefault", () => {
+  it("keeps mid-range values", () => {
+    expect(normalizeInstrumentDefault(68)).toBe(68);
+    expect(normalizeInstrumentDefault(55)).toBe(55);
+  });
+
+  it("scales 0–1 fractions", () => {
+    expect(normalizeInstrumentDefault(0.68)).toBe(68);
+  });
+
+  it("replaces near-zero stubs with the craft fallback", () => {
+    expect(normalizeInstrumentDefault(3)).toBe(68);
+    expect(normalizeInstrumentDefault(0)).toBe(68);
+    expect(normalizeInstrumentDefault(undefined)).toBe(68);
   });
 });

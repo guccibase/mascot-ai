@@ -6,7 +6,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { MascotExampleCard } from "@/components/mascot-example-card";
 import { buttonVariants } from "@/components/ui/button";
-import { MASCOTS } from "@/lib/mascots";
+import { PUBLIC_EXAMPLES } from "@/lib/mascots";
 import { PROOF_POINTS, PROOF_QUOTE } from "@/lib/proof";
 import { buildPageMetadata, homeJsonLd } from "@/lib/seo";
 import { cn } from "@/lib/utils";
@@ -121,7 +121,7 @@ export default function HomePage() {
                 "border-white/15 bg-transparent text-white hover:bg-white/10"
               )}
             >
-              See {MASCOTS.length} we built
+              See {PUBLIC_EXAMPLES.length} we built
             </Link>
           </div>
 
@@ -136,7 +136,7 @@ export default function HomePage() {
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 className="font-[family-name:var(--font-display)] text-3xl tracking-tight sm:text-4xl">
-                {MASCOTS.length} we already built
+                {PUBLIC_EXAMPLES.length} we already built
               </h2>
               <p className="mt-3 max-w-xl text-[var(--brand-muted)]">
                 Each of these was made for an actual product. Open one and click
@@ -147,7 +147,7 @@ export default function HomePage() {
           </div>
 
           <div className="mt-8 grid gap-5 sm:grid-cols-2">
-            {MASCOTS.map((mascot, index) => (
+            {PUBLIC_EXAMPLES.map((mascot, index) => (
               <MascotExampleCard
                 key={mascot.slug}
                 mascot={mascot}

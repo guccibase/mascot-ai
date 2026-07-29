@@ -5,7 +5,7 @@ import { boundedText, rateLimit, readJsonBody } from "@/lib/api-guard";
 import { authedConvexClient } from "@/lib/convex-server";
 import { resolveMascotModel, runMascotModel } from "@/lib/mascot-model";
 import { toGeneratedMascot } from "@/lib/mascot-pack";
-import { openMeter } from "@/lib/metering";
+import { openMeter, tokenMetaFields } from "@/lib/metering";
 import { parseJsonObject } from "@/lib/parse-json";
 import {
   buildRemixGestures,
@@ -233,8 +233,6 @@ export async function POST(req: Request) {
       maxOutputTokens: 10_000,
       reasoningEffort: "low",
     });
-    meter.record(identityRun.usage, identityRun.model);
-
     const identityParsed = coerceRemixIdentity(
       parseJsonObject(identityRun.text),
       name
@@ -245,6 +243,7 @@ export async function POST(req: Request) {
         { status: 502 }
       );
     }
+    meter.record(identityRun.usage, identityRun.model);
 
     const allowedOld = new Set(paletteEntries.map((p) => p.hex));
     const palette = sanitizePalette(identityParsed.palette, allowedOld);
@@ -275,9 +274,9 @@ export async function POST(req: Request) {
             maxOutputTokens: 6_000,
             reasoningEffort: "low",
           });
-          meter.record(run.usage, run.model);
           const parsed = coerceRemixPose(parseJsonObject(run.text), req.key);
           if (!parsed) throw new Error("bad pose JSON");
+          meter.record(run.usage, run.model);
           return parsed;
         } catch (err) {
           const msg = err instanceof Error ? err.message : "pose failed";
@@ -308,6 +307,7 @@ export async function POST(req: Request) {
     warnings.push(...built.warnings);
 
     if (built.gestures.length === 0) {
+      meter.forgive();
       return NextResponse.json(
         {
           error: "Remix produced no usable poses",
@@ -323,6 +323,7 @@ export async function POST(req: Request) {
       gestures: built.gestures,
     });
     if (!raw) {
+      meter.forgive();
       return NextResponse.json(
         { error: "Failed to assemble mascot pack" },
         { status: 502 }
@@ -342,10 +343,11 @@ export async function POST(req: Request) {
         skippedGestures: built.skippedGestures,
         source: sourceId,
         sourceKind,
-        tokens,
+        ...tokenMetaFields(tokens),
       },
     });
   } catch (err) {
+    meter.forgive();
     const message = err instanceof Error ? err.message : "Remix failed";
     console.error("remix failed:", err);
     return NextResponse.json({ error: message }, { status: 502 });

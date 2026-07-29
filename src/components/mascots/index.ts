@@ -23,7 +23,6 @@ export { default as GlintStudio } from "./glint-mascot";
 export { default as TroveStudio } from "./trove-mascot";
 export { default as ZephyrStudio } from "./zephyr-mascot";
 
-export { default as LumenStudio } from "./lumen-mascot";
 export { default as ShadeStudio } from "./shade-mascot";
 export { default as WattStudio } from "./watt-mascot";
 export { default as ArcStudio } from "./arc-mascot";

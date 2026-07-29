@@ -394,16 +394,19 @@ const Crescent = ({ p, x, y, s = 0.8, o = 0.92 }) => (
     transform={`translate(${x},${y}) scale(${s})`} />
 );
 const Star4 = ({ x, y, s = 1, fill, cls, delay }) => (
-  <path className={cls} transform={`translate(${x},${y}) scale(${s})`} fill={fill}
-    style={delay ? { animationDelay: delay } : undefined}
-    d="M0,-9 L2.4,-2.4 L9,0 L2.4,2.4 L0,9 L-2.4,2.4 L-9,0 L-2.4,-2.4 Z" />
+  <g transform={`translate(${x},${y}) scale(${s})`}>
+    <path className={cls} fill={fill}
+      style={delay ? { animationDelay: delay } : undefined}
+      d="M0,-9 L2.4,-2.4 L9,0 L2.4,2.4 L0,9 L-2.4,2.4 L-9,0 L-2.4,-2.4 Z" />
+  </g>
 );
 const Note = ({ x, y, s = 1, fill, delay }) => (
-  <g className="bd-note" transform={`translate(${x},${y}) scale(${s})`} fill={fill}
-    style={delay ? { animationDelay: delay } : undefined}>
-    <ellipse cx="0" cy="0" rx="6" ry="4.6" transform="rotate(-18)" />
-    <path d="M5,-1.5 L5,-22 Q12,-20 15,-14" fill="none" stroke={fill} strokeWidth="3.4"
-      strokeLinecap="round" />
+  <g transform={`translate(${x},${y}) scale(${s})`} fill={fill}>
+    <g className="bd-note" style={delay ? { animationDelay: delay } : undefined}>
+      <ellipse cx="0" cy="0" rx="6" ry="4.6" transform="rotate(-18)" />
+      <path d="M5,-1.5 L5,-22 Q12,-20 15,-14" fill="none" stroke={fill} strokeWidth="3.4"
+        strokeLinecap="round" />
+    </g>
   </g>
 );
 
@@ -539,8 +542,10 @@ function Props({ g, p }) {
       );
     case "tear":
       return (
-        <path className="bd-tear" transform="translate(150,282)" fill="#9AD7EC" opacity=".95"
-          d="M0,-13 Q9,-2 9,4 A9,9 0 1,1 -9,4 Q-9,-2 0,-13 Z" />
+        <g transform="translate(150,282)">
+          <path className="bd-tear" fill="#9AD7EC" opacity=".95"
+            d="M0,-13 Q9,-2 9,4 A9,9 0 1,1 -9,4 Q-9,-2 0,-13 Z" />
+        </g>
       );
     case "orbit":
       return (
@@ -555,10 +560,13 @@ function Props({ g, p }) {
     case "hearts":
       return (
         <g>
-          <path className="bd-rise" d={HEART_D} fill={p.comb}
-            transform="translate(302,168) scale(1.25)" />
-          <path className="bd-rise" d={HEART_D} fill={A2} opacity=".85"
-            transform="translate(122,150) scale(0.8)" style={{ animationDelay: ".9s" }} />
+          <g transform="translate(302,168) scale(1.25)">
+            <path className="bd-rise" d={HEART_D} fill={p.comb} />
+          </g>
+          <g transform="translate(122,150) scale(0.8)">
+            <path className="bd-rise" d={HEART_D} fill={A2} opacity=".85"
+              style={{ animationDelay: ".9s" }} />
+          </g>
         </g>
       );
     default:
