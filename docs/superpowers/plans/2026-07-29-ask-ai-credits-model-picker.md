@@ -31,13 +31,13 @@
 - Produces: `estimateRefineReservation({ batches, payloadChars, hasReference }, model) → { minCost, editCost, typical }`
 - Consumes: existing `estimateTokens`, `tokensForUsage`, `openMeter`
 
-- [ ] **Step 1: Add failing tests** for refine ×2, non-refine unchanged, min ≤ edit, reservation covers `ceil(cogs × 2)`
+- [x] **Step 1: Add failing tests** for refine ×2, non-refine unchanged, min ≤ edit, reservation covers `ceil(cogs × 2)`
 
-- [ ] **Step 2: Implement** `REFINE_MARGIN_MULTIPLIER`; apply at end of `estimateTokens` for `kind === "refine"`; add `estimateRefineReservation`; in `openMeter.record` multiply refine usage by multiplier
+- [x] **Step 2: Implement** `REFINE_MARGIN_MULTIPLIER`; apply at end of `estimateTokens` for `kind === "refine"`; add `estimateRefineReservation`; in `openMeter.record` multiply refine usage by multiplier
 
-- [ ] **Step 3: Run** `npx vitest run src/lib/__tests__/token-pricing.test.ts` — expect PASS
+- [x] **Step 3: Run** `npx vitest run src/lib/__tests__/token-pricing.test.ts` — expect PASS
 
-- [ ] **Step 4: Commit** pricing + metering + tests
+- [x] **Step 4: Commit** pricing + metering + tests
 
 ---
 
@@ -46,16 +46,16 @@
 **Files:**
 - Modify: `src/components/mascot-edit-panel.tsx`
 
-- [ ] Local `editModel` state (default `model ?? DEFAULT`); reset on identity change
-- [ ] Fetch `/api/models`; compact `<select>` or button row; keep visible when token-blocked
-- [ ] Quotes via `estimateRefineReservation`; `useAffordability(editCost)`
-- [ ] Warning copy: needs-plan / needs `editCost` (mention lighter model); show typical chip when affordable
-- [ ] POST body uses `editModel`; analytics use `editModel`
-- [ ] Do not write `mascots.model`
+- [x] Local `editModel` state (default `model ?? DEFAULT`); reset on identity change
+- [x] Fetch `/api/models`; compact `<select>` or button row; keep visible when token-blocked
+- [x] Quotes via `estimateRefineReservation`; `useAffordability(editCost)`
+- [x] Warning copy: needs-plan / needs `editCost` (mention lighter model); show typical chip when affordable
+- [x] POST body uses `editModel`; analytics use `editModel`
+- [x] Do not write `mascots.model`
 
-- [ ] **Verify:** typecheck/lint on touched files; manual sanity on studio Ask AI
+- [x] **Verify:** typecheck/lint on touched files; manual sanity on studio Ask AI
 
-- [ ] **Commit** panel changes
+- [x] **Commit** panel changes
 
 ---
 
@@ -64,8 +64,8 @@
 **Files:**
 - Read/confirm: `src/app/api/generate/refine/route.ts` (only change if body model / openMeter wiring is wrong)
 
-- [ ] Confirm route uses `resolveMascotModel(body.model)` + `openMeter({ kind: "refine", … })` so Task 1 margin applies automatically
-- [ ] No unrelated edits
+- [x] Confirm route uses `resolveMascotModel(body.model)` + `openMeter({ kind: "refine", … })` so Task 1 margin applies automatically
+- [x] No unrelated edits
 
 ---
 
