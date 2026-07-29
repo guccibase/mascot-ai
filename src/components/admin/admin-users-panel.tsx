@@ -696,7 +696,7 @@ export function AdminUsersPanel() {
             </div>
             <div className="mt-3 flex items-center justify-between text-sm">
               <span className="tabular-nums text-[var(--brand-accent)]">
-                {formatTokens(user.available)}
+                {formatTokens(user.totalTokens)}
               </span>
               <span className="text-xs text-[var(--brand-muted)]">
                 {formatDate(user.createdAt)}
