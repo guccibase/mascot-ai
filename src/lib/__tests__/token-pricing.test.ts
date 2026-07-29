@@ -19,6 +19,7 @@ import {
 import {
   PHASE_OUTPUT_CEILINGS,
   REFINE_MARGIN_MULTIPLIER,
+  billUsageTokens,
   estimateFullCreate,
   estimateRefineReservation,
   estimateTokens,
@@ -374,22 +375,35 @@ describe("refine margin and reservation quotes", () => {
     expect(REFINE_MARGIN_MULTIPLIER).toBe(2);
   });
 
-  it("marks up refine estimates but leaves studio at COGS", () => {
-    const refine = estimateTokens(
-      { kind: "refine", batches: 1, payloadChars: 30_000 },
-      "gpt-5.6-sol"
+  it("marks up bare refine estimates by exactly ×2 COGS", () => {
+    const model = "gpt-5.6-sol";
+    const rate = tokenRate(mascotModelOption(model));
+    // PHASES.refine: input 16_000, outputTypical 8_000, outputMax 32_000, no payload.
+    const cogsTypical = 16_000 * rate.input + 8_000 * rate.output;
+    const cogsMax = 16_000 * rate.input + 32_000 * rate.output;
+    const estimate = estimateTokens({ kind: "refine", batches: 1 }, model);
+    expect(estimate.typical).toBe(
+      Math.ceil(cogsTypical * REFINE_MARGIN_MULTIPLIER)
     );
-    // Undo margin: ceil(cogs * 2) / 2 ≤ cogs+0.5 — check even integer half when possible.
-    expect(refine.typical % 2 === 0 || refine.typical > 0).toBe(true);
-    expect(refine.max).toBeGreaterThanOrEqual(refine.typical);
+    expect(estimate.max).toBe(Math.ceil(cogsMax * REFINE_MARGIN_MULTIPLIER));
+  });
 
-    const studio = estimateTokens(
-      { kind: "studio", gestures: 3, payloadChars: 30_000 },
-      "gpt-5.6-sol"
-    );
-    // Studio must stay cheaper than a 1-batch refine on the same payload once
-    // refine carries the ×2 margin (refine also has a heavier phase table).
-    expect(refine.max).toBeGreaterThan(studio.max);
+  it("does not mark up studio estimates", () => {
+    const model = "gpt-5.6-sol";
+    const rate = tokenRate(mascotModelOption(model));
+    // bible + idle scaffolds only (gestures: 1 → no studioGesture phases).
+    const cogsMax =
+      (7_000 + 6_500) * rate.input +
+      (Math.max(8_000, 0) + 16_000) * rate.output;
+    const studio = estimateTokens({ kind: "studio", gestures: 1 }, model);
+    expect(studio.max).toBe(Math.ceil(cogsMax));
+  });
+
+  it("billUsageTokens applies refine margin without double-ceil inflation", () => {
+    expect(billUsageTokens(1_000, 1)).toBe(1_000);
+    expect(billUsageTokens(1_000, REFINE_MARGIN_MULTIPLIER)).toBe(2_000);
+    expect(billUsageTokens(0, REFINE_MARGIN_MULTIPLIER)).toBe(0);
+    expect(billUsageTokens(-5, REFINE_MARGIN_MULTIPLIER)).toBe(0);
   });
 
   it("estimateRefineReservation: min is 1-batch; edit scales with batches", () => {

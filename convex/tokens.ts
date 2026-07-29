@@ -13,8 +13,12 @@ import {
 /** A hold outlives the longest generation route (180s) with room to spare. */
 const RESERVATION_TTL_MS = 5 * 60 * 1000;
 
-/** Refuse absurd holds outright rather than locking up a whole balance. */
-const MAX_RESERVATION = 5_000_000;
+/**
+ * Refuse absurd holds outright rather than locking up a whole balance.
+ * Sized for post-margin Ask AI refine (×2 COGS) on large multi-batch packs;
+ * still far above any single plan cycle grant.
+ */
+const MAX_RESERVATION = 12_000_000;
 
 const balanceShape = v.object({
   subscriptionTokens: v.number(),
@@ -95,7 +99,11 @@ export const reserve = mutation({
       throw new ConvexError({ code: "INVALID_AMOUNT" });
     }
     if (amount > MAX_RESERVATION) {
-      throw new ConvexError({ code: "INVALID_AMOUNT" });
+      throw new ConvexError({
+        code: "RESERVATION_TOO_LARGE",
+        required: amount,
+        max: MAX_RESERVATION,
+      });
     }
 
     const now = Date.now();

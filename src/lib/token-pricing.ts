@@ -23,6 +23,17 @@ export const APP_ASSET_MARGIN_MULTIPLIER = 2;
 export const REFINE_MARGIN_MULTIPLIER = 2;
 
 /**
+ * Apply an action margin to already-computed COGS billing tokens.
+ * Integer COGS × integer margin stays exact (no second ceil inflation).
+ */
+export function billUsageTokens(cogsTokens: number, margin: number): number {
+  const cogs = Math.max(0, Math.floor(cogsTokens));
+  const m = Number.isFinite(margin) && margin > 0 ? margin : 1;
+  if (m === 1) return cogs;
+  return Math.ceil(cogs * m);
+}
+
+/**
  * Conservative USD COGS per gpt-image-2 reference **edit** at 1024×1024 high
  * quality (text + image input + image output). Sourced from OpenAI image
  * pricing examples (~$0.211 high square output) plus edit reference headroom.

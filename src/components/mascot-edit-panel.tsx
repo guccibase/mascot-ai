@@ -17,7 +17,7 @@ import {
   MAX_REFINE_MESSAGE_CHARS,
 } from "@/lib/refine-limits";
 import {
-  maxRefinePayloadChars,
+  refinePayloadChars,
   splitRefineGestures,
 } from "@/lib/refine-pack";
 import {
@@ -185,6 +185,7 @@ export function MascotEditPanel({
             .map((m) => m.id)
         );
         setAvailableIds(available);
+        if (available.size === 0) return;
         setEditModel((prev) => {
           if (available.has(prev)) return prev;
           const fallback =
@@ -212,15 +213,16 @@ export function MascotEditPanel({
    */
   const quote = useMemo(() => {
     const batches = splitRefineGestures(mascot.gestures).length;
+    // Match the refine route: compact mascot + message + history (not max caps).
     return estimateRefineReservation(
       {
         batches,
-        payloadChars: maxRefinePayloadChars(mascot),
+        payloadChars: refinePayloadChars(mascot, draft, history),
         hasReference: isReferenceId(referenceId),
       },
       editModel
     );
-  }, [mascot, editModel, referenceId]);
+  }, [mascot, editModel, referenceId, draft, history]);
 
   const {
     blocked: unaffordable,
@@ -235,9 +237,16 @@ export function MascotEditPanel({
     unaffordable &&
     quote.editCost - shortfall < quote.minCost;
 
+  const noModels =
+    availableIds !== null && availableIds.size === 0;
+
   const send = async () => {
     const message = draft.trim();
     if (!message || busy || mutationBusy || !onMascotChange) return;
+    if (noModels) {
+      toast.error("No model provider configured.");
+      return;
+    }
     if (unaffordable) {
       toast.error("AI edits need tokens. Top up to continue.");
       return;
@@ -328,44 +337,60 @@ export function MascotEditPanel({
           <h3 className="gs-eyebrow mb-2">Ask AI</h3>
 
           <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-            <label className="sr-only" htmlFor="ask-ai-model">
-              Model for this edit
-            </label>
-            <select
-              id="ask-ai-model"
-              value={editModel}
-              disabled={busy || mutationBusy || modelOptions.length === 0}
-              onChange={(e) => {
-                const next = asMascotModelId(e.target.value);
-                if (next) {
-                  setEditModel(next);
-                  trackEvent("model_selected", {
-                    model: next,
-                    provider: mascotModelOption(next).provider,
-                  });
-                }
-              }}
-              className="gs-range w-full min-w-0 flex-1 rounded-xl border px-3 py-2.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 sm:max-w-[16rem]"
-              style={{
-                height: "auto",
-                background: "rgba(255,255,255,.04)",
-                borderColor: `${accent}40`,
-                color: "#F5EDE0",
-              }}
-            >
-              {modelOptions.map((opt) => (
-                <option key={opt.id} value={opt.id}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-            <span
-              className="tabular-nums text-xs"
-              style={{ color: "#C6BCA7" }}
-              title="Typical tokens for this edit on the selected model"
-            >
-              ~{formatTokens(quote.typical)} tokens
-            </span>
+            {availableIds !== null && availableIds.size === 0 ? (
+              <p
+                className="rounded-xl border border-red-400/30 bg-red-500/10 px-3.5 py-3 text-sm text-red-100"
+                role="status"
+              >
+                No model provider configured. AI edits are unavailable until a
+                provider key is set.
+              </p>
+            ) : (
+              <>
+                <label className="sr-only" htmlFor="ask-ai-model">
+                  Model for this edit
+                </label>
+                <select
+                  id="ask-ai-model"
+                  value={
+                    modelOptions.some((opt) => opt.id === editModel)
+                      ? editModel
+                      : (modelOptions[0]?.id ?? editModel)
+                  }
+                  disabled={busy || mutationBusy || modelOptions.length === 0}
+                  onChange={(e) => {
+                    const next = asMascotModelId(e.target.value);
+                    if (next) {
+                      setEditModel(next);
+                      trackEvent("model_selected", {
+                        model: next,
+                        provider: mascotModelOption(next).provider,
+                      });
+                    }
+                  }}
+                  className="gs-range w-full min-w-0 flex-1 rounded-xl border px-3 py-2.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 sm:max-w-[16rem]"
+                  style={{
+                    height: "auto",
+                    background: "rgba(255,255,255,.04)",
+                    borderColor: `${accent}40`,
+                    color: "#F5EDE0",
+                  }}
+                >
+                  {modelOptions.map((opt) => (
+                    <option key={opt.id} value={opt.id}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <span
+                  className="tabular-nums text-xs"
+                  style={{ color: "#C6BCA7" }}
+                  title="Typical tokens for this edit on the selected model"
+                >
+                  ~{formatTokens(quote.typical)} tokens
+                </span>
+              </>
+            )}
           </div>
 
           {onReferenceIdChange && !unaffordable && (
@@ -416,7 +441,7 @@ export function MascotEditPanel({
               </div>
             ))}
           </div>
-          {balanceLoading ? (
+          {noModels ? null : balanceLoading ? (
             <p className="px-1 text-xs text-white/50">Checking token balance…</p>
           ) : unaffordable ? (
             <Link

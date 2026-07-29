@@ -68,6 +68,22 @@ export function compactMascotForRefine(mascot: GeneratedMascot) {
   };
 }
 
+/**
+ * Payload size matching `/api/generate/refine` reserve math:
+ * compact mascot JSON + current message + history contents.
+ */
+export function refinePayloadChars(
+  mascot: GeneratedMascot,
+  message: string,
+  history: ReadonlyArray<{ content: string }>
+): number {
+  return (
+    JSON.stringify(compactMascotForRefine(mascot)).length +
+    message.length +
+    history.reduce((total, entry) => total + entry.content.length, 0)
+  );
+}
+
 /** Conservative client quote for the largest allowed message and history. */
 export function maxRefinePayloadChars(mascot: GeneratedMascot): number {
   return (

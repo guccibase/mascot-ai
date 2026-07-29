@@ -70,7 +70,7 @@ Shared helper (name e.g. `estimateRefineReservation`) used by UI and conceptuall
 | `minCost` | `estimateTokens({ kind: "refine", batches: 1, payloadChars, referenceImages: ref ? 1 : 0 }).max` |
 | `editCost` | Same with **actual** `batches = splitRefineGestures(mascot.gestures).length` and `referenceImages: ref ? batches : 0` (matching today’s panel) |
 
-`payloadChars` = `maxRefinePayloadChars(mascot)` (same worst-case payload the route prices against). Do **not** invent an empty-pack min. `ref` means a valid reference id is attached.
+`payloadChars` = compact mascot JSON + current message + history (same as `/api/generate/refine`). Do **not** invent an empty-pack min. `ref` means a valid reference id is attached.
 
 ### Affordability gates
 

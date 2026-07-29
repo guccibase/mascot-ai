@@ -3,11 +3,13 @@ import { loadExampleMarketplacePack } from "@/lib/marketplace/example-packs";
 import {
   MAX_REFINE_GESTURES_PER_BATCH,
   MAX_REFINE_SVG_CHARS_PER_BATCH,
+  compactMascotForRefine,
   mergeRefinedGestureBatches,
+  refinePayloadChars,
   splitRefineGestures,
 } from "@/lib/refine-pack";
 import { normalizeGeneratedMascot } from "@/lib/studio-utils";
-import type { GeneratedGesture } from "@/lib/types";
+import type { GeneratedGesture, GeneratedMascot } from "@/lib/types";
 
 function gesture(key: string, svgChars = 100): GeneratedGesture {
   return {
@@ -108,5 +110,32 @@ describe("refine pose batches", () => {
         ],
       ])
     ).toThrow(/incomplete pose batch/i);
+  });
+});
+
+describe("refinePayloadChars", () => {
+  it("matches compact mascot JSON + message + history (route reserve math)", () => {
+    const mascot = {
+      name: "Test",
+      tagline: "Hi",
+      product: "App",
+      accent: "#fff",
+      glowLabel: "Glow",
+      instrument: { type: "sine", notes: [1] },
+      themes: { dusk: { bg: "#000" } },
+      parts: [],
+      gestures: [gesture("idle", 20)],
+    } as unknown as GeneratedMascot;
+    const message = "make it softer";
+    const history = [
+      { role: "user" as const, content: "earlier" },
+      { role: "assistant" as const, content: "ok" },
+    ];
+    const expected =
+      JSON.stringify(compactMascotForRefine(mascot)).length +
+      message.length +
+      "earlier".length +
+      "ok".length;
+    expect(refinePayloadChars(mascot, message, history)).toBe(expected);
   });
 });

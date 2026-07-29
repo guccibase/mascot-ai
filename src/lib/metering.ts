@@ -3,6 +3,7 @@ import { ConvexError } from "convex/values";
 import { authedConvexClient } from "@/lib/convex-server";
 import {
   REFINE_MARGIN_MULTIPLIER,
+  billUsageTokens,
   estimateTokens,
   fallbackTokens,
   tokensForUsage,
@@ -108,6 +109,21 @@ export async function openMeter(
         ),
       };
     }
+    if (code === "RESERVATION_TOO_LARGE") {
+      return {
+        ok: false,
+        response: NextResponse.json(
+          {
+            error:
+              "This edit is too large to price in one run. Try a smaller pack, a lighter model, or a shorter message.",
+            code,
+            required: data?.required,
+            max: data?.max,
+          },
+          { status: 413 }
+        ),
+      };
+    }
     if (code === "UNAUTHENTICATED" || code === "USER_NOT_FOUND") {
       // An auth problem the customer can act on, not a transient backend
       // failure, so it must not be dressed up as one and retried.
@@ -136,9 +152,10 @@ export async function openMeter(
 
   const meter: Meter = {
     record(usage, actualApiModel) {
-      const cogs = tokensForUsage(usage, model, actualApiModel);
-      charged +=
-        refineMargin === 1 ? cogs : Math.ceil(cogs * refineMargin);
+      charged += billUsageTokens(
+        tokensForUsage(usage, model, actualApiModel),
+        refineMargin
+      );
     },
     recordFallback(fallbackAction) {
       // fallbackTokens → estimateTokens; refine estimates already include margin.
