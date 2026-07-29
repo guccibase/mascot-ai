@@ -83,6 +83,8 @@ Shared helper (name e.g. `estimateRefineReservation`) used by UI and conceptuall
 
 Client `useAffordability(editCost)` stays the primary gate (same number the API reserves). Copy differentiates below-min vs below-edit when useful; both link to `/pricing` and encourage a lighter model.
 
+Also hard-block (no pricing CTA) when `editCost > MAX_TOKEN_RESERVATION` so the UI never invites a submit that Convex would reject as `RESERVATION_TOO_LARGE`.
+
 ## Architecture
 
 ```

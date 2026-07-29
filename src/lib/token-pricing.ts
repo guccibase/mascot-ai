@@ -6,9 +6,12 @@ import {
 } from "@/lib/mascot-model-options";
 import { MAX_REFINE_GESTURES } from "@/lib/refine-pack";
 import type { MascotModelId } from "@/lib/types";
-import { USD_PER_TOKEN } from "../../convex/lib/plans";
+import {
+  MAX_TOKEN_RESERVATION,
+  USD_PER_TOKEN,
+} from "../../convex/lib/plans";
 
-export { USD_PER_TOKEN };
+export { MAX_TOKEN_RESERVATION, USD_PER_TOKEN };
 
 /**
  * Gross-margin multiplier on provider/infra COGS for app-asset actions.

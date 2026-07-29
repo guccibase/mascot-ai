@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   FEE_FIXED,
   FEE_RATE,
+  MAX_TOKEN_RESERVATION,
   PLANS,
   TOPUPS,
   USD_PER_TOKEN,
@@ -28,6 +29,7 @@ import {
   tokenRate,
   tokensForUsage,
 } from "../token-pricing";
+import { MAX_REFINE_GESTURES } from "../refine-pack";
 
 /** Worst-case margin: the customer burns every token they were granted. */
 function marginFor(price: number, tokens: number): number {
@@ -404,6 +406,31 @@ describe("refine margin and reservation quotes", () => {
     expect(billUsageTokens(1_000, REFINE_MARGIN_MULTIPLIER)).toBe(2_000);
     expect(billUsageTokens(0, REFINE_MARGIN_MULTIPLIER)).toBe(0);
     expect(billUsageTokens(-5, REFINE_MARGIN_MULTIPLIER)).toBe(0);
+  });
+
+  it("openMeter settle path: refine usage is marked up like billUsageTokens", () => {
+    // Mirrors openMeter.record: tokensForUsage (COGS) → billUsageTokens(margin).
+    const cogs = tokensForUsage(
+      { input_tokens: 10_000, output_tokens: 4_000 },
+      "gpt-5.6-sol"
+    );
+    const refineCharged = billUsageTokens(cogs, REFINE_MARGIN_MULTIPLIER);
+    const studioCharged = billUsageTokens(cogs, 1);
+    expect(refineCharged).toBe(cogs * REFINE_MARGIN_MULTIPLIER);
+    expect(studioCharged).toBe(cogs);
+  });
+
+  it("keeps Fable worst-case refine holds under MAX_TOKEN_RESERVATION", () => {
+    const worst = estimateRefineReservation(
+      {
+        batches: MAX_REFINE_GESTURES,
+        payloadChars: 500_000,
+        hasReference: true,
+      },
+      "claude-fable-5"
+    );
+    expect(worst.editCost).toBeLessThanOrEqual(MAX_TOKEN_RESERVATION);
+    expect(MAX_TOKEN_RESERVATION).toBeGreaterThanOrEqual(20_000_000);
   });
 
   it("estimateRefineReservation: min is 1-batch; edit scales with batches", () => {

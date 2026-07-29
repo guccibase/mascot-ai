@@ -2,6 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getCurrentUser, getCurrentUserOrNull } from "./lib/auth";
 import { assertServerCaller } from "./lib/serverAuth";
+import { MAX_TOKEN_RESERVATION } from "./lib/plans";
 import {
   activePlan,
   applyRefill,
@@ -12,13 +13,6 @@ import {
 
 /** A hold outlives the longest generation route (180s) with room to spare. */
 const RESERVATION_TTL_MS = 5 * 60 * 1000;
-
-/**
- * Refuse absurd holds outright rather than locking up a whole balance.
- * Sized for post-margin Ask AI refine (×2 COGS) on large multi-batch packs;
- * still far above any single plan cycle grant.
- */
-const MAX_RESERVATION = 12_000_000;
 
 const balanceShape = v.object({
   subscriptionTokens: v.number(),
@@ -98,11 +92,11 @@ export const reserve = mutation({
     if (!Number.isFinite(amount) || amount <= 0) {
       throw new ConvexError({ code: "INVALID_AMOUNT" });
     }
-    if (amount > MAX_RESERVATION) {
+    if (amount > MAX_TOKEN_RESERVATION) {
       throw new ConvexError({
         code: "RESERVATION_TOO_LARGE",
         required: amount,
-        max: MAX_RESERVATION,
+        max: MAX_TOKEN_RESERVATION,
       });
     }
 
@@ -183,7 +177,7 @@ export const settle = mutation({
 
     const charged = Math.max(
       0,
-      Math.min(Math.ceil(args.actualTokens || 0), MAX_RESERVATION)
+      Math.min(Math.ceil(args.actualTokens || 0), MAX_TOKEN_RESERVATION)
     );
     const model = args.model ?? reservation.model;
 

@@ -124,6 +124,15 @@ export async function openMeter(
         ),
       };
     }
+    if (code === "INVALID_AMOUNT") {
+      return {
+        ok: false,
+        response: NextResponse.json(
+          { error: "Invalid token reservation amount", code },
+          { status: 400 }
+        ),
+      };
+    }
     if (code === "UNAUTHENTICATED" || code === "USER_NOT_FOUND") {
       // An auth problem the customer can act on, not a transient backend
       // failure, so it must not be dressed up as one and retried.

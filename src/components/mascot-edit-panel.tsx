@@ -21,6 +21,7 @@ import {
   splitRefineGestures,
 } from "@/lib/refine-pack";
 import {
+  MAX_TOKEN_RESERVATION,
   estimateRefineReservation,
   formatTokens,
 } from "@/lib/token-pricing";
@@ -213,11 +214,11 @@ export function MascotEditPanel({
    */
   const quote = useMemo(() => {
     const batches = splitRefineGestures(mascot.gestures).length;
-    // Match the refine route: compact mascot + message + history (not max caps).
+    // Match the refine route: compact mascot + trimmed message + history.
     return estimateRefineReservation(
       {
         batches,
-        payloadChars: refinePayloadChars(mascot, draft, history),
+        payloadChars: refinePayloadChars(mascot, draft.trim(), history),
         hasReference: isReferenceId(referenceId),
       },
       editModel
@@ -239,12 +240,20 @@ export function MascotEditPanel({
 
   const noModels =
     availableIds !== null && availableIds.size === 0;
+  /** Server will reject holds above this — preflight so we never 413 after send. */
+  const tooLarge = quote.editCost > MAX_TOKEN_RESERVATION;
 
   const send = async () => {
     const message = draft.trim();
     if (!message || busy || mutationBusy || !onMascotChange) return;
     if (noModels) {
       toast.error("No model provider configured.");
+      return;
+    }
+    if (tooLarge) {
+      toast.error(
+        "This edit is too large to run in one request. Pick a lighter model or simplify the pack."
+      );
       return;
     }
     if (unaffordable) {
@@ -327,6 +336,14 @@ export function MascotEditPanel({
     availableIds === null ? true : availableIds.has(opt.id)
   );
 
+  // Keep controlled <select> value in sync with submit state (never display ≠ send).
+  useEffect(() => {
+    if (!availableIds || availableIds.size === 0) return;
+    if (availableIds.has(editModel)) return;
+    const first = [...availableIds][0];
+    if (first) setEditModel(first);
+  }, [availableIds, editModel]);
+
   return (
     <div
       className="mt-2 flex flex-col gap-5 border-t pt-5"
@@ -352,11 +369,7 @@ export function MascotEditPanel({
                 </label>
                 <select
                   id="ask-ai-model"
-                  value={
-                    modelOptions.some((opt) => opt.id === editModel)
-                      ? editModel
-                      : (modelOptions[0]?.id ?? editModel)
-                  }
+                  value={editModel}
                   disabled={busy || mutationBusy || modelOptions.length === 0}
                   onChange={(e) => {
                     const next = asMascotModelId(e.target.value);
@@ -393,7 +406,7 @@ export function MascotEditPanel({
             )}
           </div>
 
-          {onReferenceIdChange && !unaffordable && (
+          {onReferenceIdChange && !unaffordable && !tooLarge && (
             <ReferenceImageUpload
               className="mb-4"
               title="Visual reference"
@@ -443,6 +456,18 @@ export function MascotEditPanel({
           </div>
           {noModels ? null : balanceLoading ? (
             <p className="px-1 text-xs text-white/50">Checking token balance…</p>
+          ) : tooLarge ? (
+            <div
+              className="flex items-start gap-2.5 rounded-xl border border-red-400/30 bg-red-500/10 px-3.5 py-3 text-sm text-red-100"
+              role="status"
+            >
+              <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+              <span>
+                This edit is too large to run in one request (about{" "}
+                {formatTokens(quote.editCost)} tokens). Pick a lighter model or
+                simplify the pack.
+              </span>
+            </div>
           ) : unaffordable ? (
             <Link
               href="/pricing"
