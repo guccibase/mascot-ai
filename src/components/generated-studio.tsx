@@ -50,17 +50,12 @@ import {
   useResetUndoOnMascotIdChange,
 } from "@/hooks/use-mascot-undo";
 import { isReferenceId } from "@/lib/reference-image-client";
+import {
+  resolveStudioFeatures,
+  type StudioCapabilities,
+} from "@/lib/studio-capabilities";
 
-export type StudioCapabilities = {
-  /** Download pose/pack ZIP and copy SVG. */
-  export?: boolean;
-  /** Show AI edit / undo / add-gesture controls that mutate the pack. */
-  edit?: boolean;
-  /** Show reversible SVG element toggles without enabling AI mutation. */
-  parts?: boolean;
-  /** App-asset generation panel. */
-  appAssets?: boolean;
-};
+export type { StudioCapabilities };
 
 type Props = {
   mascot: GeneratedMascot;
@@ -72,8 +67,9 @@ type Props = {
   mascotId?: Id<"mascots"> | null;
   onMascotChange?: (mascot: GeneratedMascot) => void;
   /**
-   * Marketplace / example previews pass export:false so visitors can play
-   * poses but cannot save, copy, or download files.
+   * Privileged features are opt-in (fail-closed). Pass
+   * `OWNED_STUDIO_CAPABILITIES` for created/remixed/purchased library studios,
+   * or a preview preset for marketplace / example surfaces.
    */
   capabilities?: StudioCapabilities;
 };
@@ -117,7 +113,14 @@ function swatchBg(t: ThemeSwatch) {
 function SignalWave({ score, ramp }: { score: number; ramp: string[] }) {
   const bars = computeSignalBars(score);
   return (
-    <svg width="120" height="36" viewBox="0 0 120 36" aria-hidden>
+    <svg
+      className="gs-signal-wave"
+      width="120"
+      height="36"
+      viewBox="0 0 120 36"
+      aria-hidden
+      style={{ width: 120, height: 36, display: "block", flex: "0 0 auto" }}
+    >
       {bars.map((b) => (
         <rect
           key={b.i}
@@ -252,10 +255,12 @@ export function GeneratedStudio({
   onMascotChange,
   capabilities,
 }: Props) {
-  const canExport = capabilities?.export !== false;
-  const canEdit = capabilities?.edit !== false && Boolean(onMascotChange);
-  const canToggleParts = capabilities?.parts ?? canEdit;
-  const canAppAssets = capabilities?.appAssets !== false && Boolean(mascotId);
+  const { canExport, canEdit, canToggleParts, canAppAssets } =
+    resolveStudioFeatures({
+      capabilities,
+      mascotId,
+      hasMascotChangeHandler: Boolean(onMascotChange),
+    });
   const svgInstanceId = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const parts = useMemo(() => extractPartsFromMascot(mascot), [mascot]);
   const themeKeys = Object.keys(mascot.themes);

@@ -205,7 +205,8 @@ API: `POST /api/generate/gesture`
 
 ### 6. Studio settings (all studio entry points)
 
-Component: `src/components/generated-studio.tsx`
+Component: `src/components/generated-studio.tsx`  
+Capability source of truth: `src/lib/studio-capabilities.ts`
 
 | Setting | Verify |
 |---------|--------|
@@ -215,8 +216,42 @@ Component: `src/components/generated-studio.tsx`
 | Gestures | Grid preview; click animates; track cursor on `track: true` poses |
 | Export | ZIP download; copy SVG sanitized |
 | Undo | Undo stack restores prior pack state |
+| Ask AI / add gesture | Available whenever `edit` is on |
+| App assets | Available whenever saved `mascotId` exists |
 
-Test on: **created** (library), **remixed** (library remix + marketplace remix), **bought** (marketplace buy-to-own copy).
+#### Owned-studio parity (created = remixed = bought)
+
+**Rule:** Once a mascot is in your library (`userId` ownership), studio features must match created mascots. `source` (`created` / `remixed` / `purchased`) must never reduce capabilities. Privileged studio features are **opt-in** via explicit capability presets (omitting `capabilities` keeps export/edit/app assets off).
+
+Automated lock: `npm test -- src/lib/__tests__/studio-capabilities.test.ts`
+
+| Feature | Created (`/create` → `/library/[id]`) | Remixed (library or marketplace remix → library) | Bought (checkout → library) |
+|---------|---------------------------------------|--------------------------------------------------|-----------------------------|
+| Themes / instrument / poses | ✓ | ✓ | ✓ |
+| Parts toggles | ✓ | ✓ | ✓ |
+| Ask AI / refine | ✓ | ✓ | ✓ |
+| Add gesture | ✓ | ✓ | ✓ |
+| Undo | ✓ | ✓ | ✓ |
+| Export / copy SVG | ✓ | ✓ | ✓ |
+| App assets (icons) | ✓ | ✓ | ✓ |
+| Autosave | ✓ | ✓ | ✓ |
+| Remix again | ✓ | ✓ | ✓ |
+
+Manual UI functional pass (run on **each** of created / remixed / bought library studios):
+
+- [ ] Open studio from library card — full controls visible (not “Preview only”)
+- [ ] Switch theme; instrument slider; toggle a part; play 3 gestures
+- [ ] Ask AI small edit → pack updates + autosave
+- [ ] Add gesture (preset) → animates
+- [ ] Undo restores prior pack
+- [ ] Download pose + download pack ZIP; copy SVG
+- [ ] App assets: generate 3 previews → expand/inspect → build pack → download ZIP
+- [ ] Remix link still works from library toolbar
+
+Preview-only (must stay restricted):
+
+- [ ] Marketplace listing: themes/parts/poses work; no export / Ask AI / app assets
+- [ ] Example `/studio/[slug]` pack studios: same preview restrictions
 
 ---
 
@@ -314,7 +349,7 @@ Run **full sections** relevant to your diff when you change:
 | Billing / tokens | `src/lib/metering.ts`, `convex/tokens.ts`, `convex/lib/plans.ts` | Token economics + abort/failure refund + balance reconciliation |
 | Generate APIs | `src/app/api/generate/**` | Create + refine + gesture + app-assets billing paths |
 | Prompts / craft | `src/lib/generate-system-prompt.ts`, `src/lib/svg-gesture-prompt.ts` | Create quality vs family example + animation |
-| Studio UI | `generated-studio.tsx`, `mascot-edit-panel.tsx` | Settings + export + Ask AI affordance |
+| Studio UI | `generated-studio.tsx`, `mascot-edit-panel.tsx`, `studio-capabilities.ts` | Settings + export + Ask AI + **owned parity** (created/remixed/bought) |
 | Refine pack logic | `src/lib/refine-pack.ts`, `token-pricing.ts` | 37-pose accept; 65 reject; batch behavior |
 | Mascot factories | `src/components/mascots/**` | `npm run poses:build` + example studio smoke |
 | Marketplace | `convex/marketplace*.ts`, checkout pages | Browse, pay, remix unlock, buy-to-own |
@@ -363,4 +398,6 @@ Copy into PR or agent handoff:
 | Token balance hook | `src/lib/use-token-balance.ts` |
 | Access gate | `src/components/access-gate.tsx` |
 | Studio | `src/components/generated-studio.tsx` |
+| Studio capabilities | `src/lib/studio-capabilities.ts` |
+| Owned-studio parity tests | `src/lib/__tests__/studio-capabilities.test.ts` |
 | App assets | `src/components/app-assets-panel.tsx` |

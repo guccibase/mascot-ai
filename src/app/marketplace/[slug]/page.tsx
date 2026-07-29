@@ -13,6 +13,7 @@ import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { toGeneratedMascot } from "@/lib/mascot-pack";
 import { formatUsdCents } from "@/lib/marketplace/format";
+import { MARKETPLACE_PREVIEW_CAPABILITIES } from "@/lib/studio-capabilities";
 import { api } from "../../../../convex/_generated/api";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -137,7 +138,7 @@ export default function MarketplaceListingPage({ params }: Props) {
       <GeneratedStudio
         mascot={pack}
         fullPage
-        capabilities={{ export: false, edit: false, appAssets: false }}
+        capabilities={MARKETPLACE_PREVIEW_CAPABILITIES}
       />
       <SiteFooter />
     </div>

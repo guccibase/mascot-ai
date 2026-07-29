@@ -10,6 +10,7 @@ import { SiteHeader } from "@/components/site-header";
 import { StudioPageSkeleton } from "@/components/skeletons";
 import { useMascotPersistence } from "@/hooks/use-mascot-persistence";
 import { toGeneratedMascot } from "@/lib/mascot-pack";
+import { ownedStudioCapabilitiesForSource } from "@/lib/studio-capabilities";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import type { GeneratedMascot, MascotModelId } from "@/lib/types";
@@ -110,6 +111,7 @@ export default function LibraryMascotPage({ params }: Props) {
         look={saved.look}
         model={(saved.model as MascotModelId | undefined) ?? undefined}
         mascotId={mascotId}
+        capabilities={ownedStudioCapabilitiesForSource(saved.source)}
         onMascotChange={(next) => {
           setPack(next);
           persistSafe(next);

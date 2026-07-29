@@ -36,12 +36,21 @@ async function assertPackNotMarketplaceLocked(
   }
 }
 
+const mascotSource = v.optional(
+  v.union(
+    v.literal("created"),
+    v.literal("purchased"),
+    v.literal("remixed")
+  )
+);
+
 const listItem = v.object({
   _id: v.id("mascots"),
   _creationTime: v.number(),
   name: v.string(),
   tagline: v.string(),
   model: v.optional(v.string()),
+  source: mascotSource,
   gestureCount: v.number(),
   accent: v.string(),
   previewSvg: v.string(),
@@ -83,6 +92,7 @@ export const listMine = query({
           name: m.name,
           tagline: m.tagline,
           model: m.model,
+          source: m.source,
           gestureCount: m.pack.gestures.length,
           accent: m.pack.accent,
           previewSvg: idle.svg,
@@ -105,6 +115,7 @@ export const getMine = query({
       productContext: v.optional(v.string()),
       personality: v.optional(v.string()),
       model: v.optional(v.string()),
+      source: mascotSource,
       pack: validators.pack,
       createdAt: v.number(),
       updatedAt: v.number(),
@@ -124,6 +135,7 @@ export const getMine = query({
       productContext: mascot.productContext,
       personality: mascot.personality,
       model: mascot.model,
+      source: mascot.source,
       pack: mascot.pack,
       createdAt: mascot.createdAt,
       updatedAt: mascot.updatedAt,
@@ -139,14 +151,10 @@ export const save = mutation({
     personality: v.optional(v.string()),
     model: v.optional(v.string()),
     pack: validators.pack,
-    source: v.optional(
-      v.union(
-        v.literal("created"),
-        v.literal("purchased"),
-        v.literal("remixed")
-      )
-    ),
+    source: mascotSource,
     sourceListingId: v.optional(v.id("marketplaceListings")),
+    /** Library remix provenance — validated on insert, not stored. */
+    sourceMascotId: v.optional(v.id("mascots")),
   },
   returns: v.id("mascots"),
   handler: async (ctx, args) => {
@@ -157,6 +165,20 @@ export const save = mutation({
     // Clients must not self-attest a purchase; fulfill writes those rows.
     if (args.source === "purchased") {
       throw new Error("Purchased mascots are granted by checkout only");
+    }
+
+    // Remixed badge requires a real source (listing or owned library mascot).
+    if (args.source === "remixed" && !args.mascotId) {
+      if (args.sourceListingId) {
+        const listing = await ctx.db.get(args.sourceListingId);
+        if (!listing) {
+          throw new Error("Invalid remix source listing");
+        }
+      } else if (args.sourceMascotId) {
+        await requireOwnedMascot(ctx, args.sourceMascotId);
+      } else {
+        throw new Error("Remix source required");
+      }
     }
 
     // Block unpaid saves/overwrites of marketplace packs (preview returns full pack).

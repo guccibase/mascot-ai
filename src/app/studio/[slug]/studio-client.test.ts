@@ -8,8 +8,7 @@ describe("example GeneratedStudio studios", () => {
       join(__dirname, "studio-client.tsx"),
       "utf8"
     );
-    expect(source).toMatch(
-      /capabilities=\{\{\s*export:\s*false,\s*edit:\s*false,\s*parts:\s*true\s*\}\}/
-    );
+    expect(source).toMatch(/EXAMPLE_PREVIEW_CAPABILITIES/);
+    expect(source).toMatch(/capabilities=\{EXAMPLE_PREVIEW_CAPABILITIES\}/);
   });
 });

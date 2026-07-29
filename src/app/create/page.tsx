@@ -12,6 +12,7 @@ import {
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { GeneratedStudio } from "@/components/generated-studio";
+import { OWNED_STUDIO_CAPABILITIES } from "@/lib/studio-capabilities";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -481,6 +482,7 @@ export default function CreatePage() {
           look={look}
           model={model ?? undefined}
           mascotId={mascotId}
+          capabilities={OWNED_STUDIO_CAPABILITIES}
           onMascotChange={(next) => {
             setResult(next);
             persistSafe(next);

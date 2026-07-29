@@ -14,6 +14,8 @@ export type MascotSaveMeta = {
   model?: string;
   source?: "created" | "purchased" | "remixed";
   sourceListingId?: Id<"marketplaceListings">;
+  /** Library remix provenance for server-side badge validation. */
+  sourceMascotId?: Id<"mascots">;
 };
 
 /**
@@ -67,6 +69,9 @@ export function useMascotPersistence(initialId?: Id<"mascots"> | null) {
           sourceListingId: mascotIdRef.current
             ? undefined
             : meta.sourceListingId,
+          sourceMascotId: mascotIdRef.current
+            ? undefined
+            : meta.sourceMascotId,
           pack: toSave,
         });
         mascotIdRef.current = id;

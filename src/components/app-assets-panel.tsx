@@ -21,6 +21,11 @@ import {
   type AppAssetKind,
 } from "@/lib/app-assets/catalog";
 import {
+  resolvePackLoadStrategy,
+  shouldMountIconPreviewDialog,
+  snapshotFromActivePack,
+} from "@/lib/app-assets/pack-panel-state";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -71,10 +76,11 @@ export function AppAssetsPanel({ mascotId, mascotName, model }: Props) {
     null
   );
   const [expandedSampleId, setExpandedSampleId] = useState<string | null>(null);
-  /** Keeps last preview visible through Dialog close animation. */
-  const displayedSampleRef = useRef<SampleOption | null>(null);
+  /** Bumps when loading a pack so the same pack can be re-opened after clear. */
+  const [packLoadToken, setPackLoadToken] = useState(0);
   /** Expand button that opened the modal — restore focus on close. */
   const expandTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const lastHydratedPackId = useRef<Id<"mascotAppAssetPacks"> | null>(null);
 
   const removePack = useMutation(api.mascotAppAssets.removePack);
 
@@ -108,10 +114,6 @@ export function AppAssetsPanel({ mascotId, mascotName, model }: Props) {
     : -1;
   const expandedSample =
     expandedSampleIndex >= 0 ? samples[expandedSampleIndex] ?? null : null;
-  const displayedSample = expandedSample ?? displayedSampleRef.current;
-  const displayedSampleIndex = displayedSample
-    ? samples.findIndex((sample) => sample.id === displayedSample.id)
-    : -1;
 
   const stepExpandedSample = (delta: number) => {
     if (samples.length <= 1) return;
@@ -130,18 +132,16 @@ export function AppAssetsPanel({ mascotId, mascotName, model }: Props) {
     trigger: HTMLButtonElement | null = null
   ) => {
     expandTriggerRef.current = trigger;
-    const sample = samples.find((entry) => entry.id === sampleId);
-    if (sample) displayedSampleRef.current = sample;
     setExpandedSampleId(sampleId);
   };
 
-  const closeExpandedPreview = () => setExpandedSampleId(null);
-
-  useEffect(() => {
-    if (expandedSample) {
-      displayedSampleRef.current = expandedSample;
-    }
-  }, [expandedSample]);
+  const closeExpandedPreview = () => {
+    const trigger = expandTriggerRef.current;
+    expandTriggerRef.current = null;
+    setExpandedSampleId(null);
+    // Restore focus after the dialog unmounts so it cannot leave the page inert.
+    queueMicrotask(() => trigger?.focus());
+  };
 
   useEffect(() => {
     if (expandedSampleId && expandedSampleIndex < 0) {
@@ -180,30 +180,45 @@ export function AppAssetsPanel({ mascotId, mascotName, model }: Props) {
     });
   };
 
+  const applyPackSnapshot = (pack: NonNullable<typeof activePack>) => {
+    const snap = snapshotFromActivePack(pack);
+    lastHydratedPackId.current = pack._id;
+    setSamples(snap.samples);
+    setSelectedSampleId(snap.selectedSampleId);
+    setFiles(snap.files);
+    setStyleDescription(snap.styleDescription);
+    setKinds(new Set(snap.kinds));
+  };
+
   const loadPack = (id: Id<"mascotAppAssetPacks">) => {
-    setPackId(id);
+    setExpandedSampleId(null);
+    const strategy = resolvePackLoadStrategy({
+      targetPackId: id,
+      activePackId: activePack?._id,
+    });
+    if (strategy === "sync" && activePack) {
+      // Same pack already in memory — re-apply without clearing (no empty flash).
+      setPackId(id);
+      applyPackSnapshot(activePack);
+      return;
+    }
+    // Different pack (or cache miss): clear, then hydrate when query resolves.
+    // packLoadToken forces rehydrate even if packId is unchanged after a miss.
+    lastHydratedPackId.current = null;
     setSelectedSampleId(null);
     setSamples([]);
     setFiles([]);
-    setExpandedSampleId(null);
+    setPackId(id);
+    setPackLoadToken((n) => n + 1);
   };
-
-  const lastHydratedPackId = useRef<Id<"mascotAppAssetPacks"> | null>(null);
-
-  useEffect(() => {
-    lastHydratedPackId.current = null;
-  }, [packId]);
 
   useEffect(() => {
     if (!activePack || activePack._id !== packId) return;
     if (lastHydratedPackId.current === packId) return;
-    lastHydratedPackId.current = packId;
-    setSamples(activePack.sampleOptions);
-    setSelectedSampleId(activePack.selectedSampleId ?? null);
-    setFiles(activePack.files);
-    setStyleDescription(activePack.styleDescription ?? "");
-    setKinds(new Set(activePack.kinds));
-  }, [activePack, packId]);
+    applyPackSnapshot(activePack);
+    // applyPackSnapshot closes over latest setters; re-run when pack/token changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional hydrate gate
+  }, [activePack, packId, packLoadToken]);
 
   const deletePack = async (id: Id<"mascotAppAssetPacks">) => {
     if (!window.confirm("Delete this asset pack and its files?")) return;
@@ -614,93 +629,82 @@ export function AppAssetsPanel({ mascotId, mascotName, model }: Props) {
         </div>
       )}
 
-      <Dialog
-        open={expandedSampleId != null}
-        onOpenChange={(open) => {
-          if (!open) closeExpandedPreview();
-        }}
-        onOpenChangeComplete={(open) => {
-          if (open) return;
-          displayedSampleRef.current = null;
-          const trigger = expandTriggerRef.current;
-          expandTriggerRef.current = null;
-          trigger?.focus();
-        }}
-      >
-        <DialogContent
-          showCloseButton
-          overlayClassName="bg-black/80 supports-backdrop-filter:backdrop-blur-sm"
-          className="flex max-h-[min(92vh,920px)] w-[min(92vw,720px)] max-w-[720px] flex-col gap-4 overflow-hidden border-white/10 bg-[#121722] p-4 text-[#F5EDE0] sm:max-w-[720px] sm:p-5 [&_[data-slot=dialog-close]]:text-[#F5EDE0] [&_[data-slot=dialog-close]]:hover:bg-white/10"
+      {/* Mount only while open so a stuck close animation cannot leave the page inert. */}
+      {shouldMountIconPreviewDialog(expandedSampleId) && expandedSample ? (
+        <Dialog
+          open
+          onOpenChange={(open) => {
+            if (!open) closeExpandedPreview();
+          }}
         >
-          {displayedSample ? (
-            <>
-              <DialogHeader className="pr-8">
-                <DialogTitle aria-live="polite">
-                  {displayedSample.label}
-                </DialogTitle>
-                <DialogDescription className="text-[#8D8472]">
-                  Inspect the icon at full size, then select it for your pack.
-                </DialogDescription>
-              </DialogHeader>
+          <DialogContent
+            showCloseButton
+            overlayClassName="bg-black/80 supports-backdrop-filter:backdrop-blur-sm"
+            className="flex max-h-[min(92vh,920px)] w-[min(92vw,720px)] max-w-[720px] flex-col gap-4 overflow-hidden border-white/10 bg-[#121722] p-4 text-[#F5EDE0] sm:max-w-[720px] sm:p-5 [&_[data-slot=dialog-close]]:text-[#F5EDE0] [&_[data-slot=dialog-close]]:hover:bg-white/10"
+          >
+            <DialogHeader className="pr-8">
+              <DialogTitle aria-live="polite">{expandedSample.label}</DialogTitle>
+              <DialogDescription className="text-[#8D8472]">
+                Inspect the icon at full size, then select it for your pack.
+              </DialogDescription>
+            </DialogHeader>
 
-              <div className="relative flex min-h-0 flex-1 items-center justify-center gap-2 px-12 sm:px-14">
-                {samples.length > 1 ? (
-                  <>
-                    <button
-                      type="button"
-                      aria-label="Previous icon option"
-                      onClick={() => stepExpandedSample(-1)}
-                      className="absolute left-0 z-10 inline-flex size-10 items-center justify-center rounded-xl border border-white/15 bg-black/50 text-white transition hover:bg-black/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-accent)]"
-                    >
-                      <ChevronLeft className="size-5" />
-                    </button>
-                    <button
-                      type="button"
-                      aria-label="Next icon option"
-                      onClick={() => stepExpandedSample(1)}
-                      className="absolute right-0 z-10 inline-flex size-10 items-center justify-center rounded-xl border border-white/15 bg-black/50 text-white transition hover:bg-black/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-accent)]"
-                    >
-                      <ChevronRight className="size-5" />
-                    </button>
-                  </>
-                ) : null}
+            <div className="relative flex min-h-0 flex-1 items-center justify-center gap-2 px-12 sm:px-14">
+              {samples.length > 1 ? (
+                <>
+                  <button
+                    type="button"
+                    aria-label="Previous icon option"
+                    onClick={() => stepExpandedSample(-1)}
+                    className="absolute left-0 z-10 inline-flex size-10 items-center justify-center rounded-xl border border-white/15 bg-black/50 text-white transition hover:bg-black/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-accent)]"
+                  >
+                    <ChevronLeft className="size-5" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Next icon option"
+                    onClick={() => stepExpandedSample(1)}
+                    className="absolute right-0 z-10 inline-flex size-10 items-center justify-center rounded-xl border border-white/15 bg-black/50 text-white transition hover:bg-black/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-accent)]"
+                  >
+                    <ChevronRight className="size-5" />
+                  </button>
+                </>
+              ) : null}
 
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={displayedSample.url}
-                  alt={displayedSample.label}
-                  className="mx-auto aspect-square w-full max-w-[min(560px,calc(92vw-8rem),calc(92vh-12rem))] rounded-2xl bg-[#1a1625] object-contain ring-1 ring-white/10"
-                />
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={expandedSample.url}
+                alt={expandedSample.label}
+                className="mx-auto aspect-square w-full max-w-[min(560px,calc(92vw-8rem),calc(92vh-12rem))] rounded-2xl bg-[#1a1625] object-contain ring-1 ring-white/10"
+              />
+            </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-3">
-                <p className="text-xs text-[#8D8472]" aria-live="polite">
-                  {displayedSampleIndex >= 0 ? displayedSampleIndex + 1 : "—"} of{" "}
-                  {samples.length}
-                  {samples.length > 1 ? " · Use ← → to compare" : null}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedSampleId(displayedSample.id);
-                    closeExpandedPreview();
-                  }}
-                  className={cn(
-                    "rounded-xl px-4 py-2 text-sm font-semibold transition",
-                    selectedSampleId === displayedSample.id
-                      ? "border border-[var(--brand-accent)] bg-[var(--brand-accent)]/15 text-[var(--brand-accent)]"
-                      : "bg-[var(--brand-accent)] text-[#1a1408] hover:brightness-105"
-                  )}
-                >
-                  {selectedSampleId === displayedSample.id
-                    ? "Selected"
-                    : "Select this icon"}
-                </button>
-              </div>
-            </>
-          ) : null}
-        </DialogContent>
-      </Dialog>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-3">
+              <p className="text-xs text-[#8D8472]" aria-live="polite">
+                {expandedSampleIndex + 1} of {samples.length}
+                {samples.length > 1 ? " · Use ← → to compare" : null}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedSampleId(expandedSample.id);
+                  closeExpandedPreview();
+                }}
+                className={cn(
+                  "rounded-xl px-4 py-2 text-sm font-semibold transition",
+                  selectedSampleId === expandedSample.id
+                    ? "border border-[var(--brand-accent)] bg-[var(--brand-accent)]/15 text-[var(--brand-accent)]"
+                    : "bg-[var(--brand-accent)] text-[#1a1408] hover:brightness-105"
+                )}
+              >
+                {selectedSampleId === expandedSample.id
+                  ? "Selected"
+                  : "Select this icon"}
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      ) : null}
 
       {history && history.length > 0 && (
         <div className="border-t border-white/10 pt-4">

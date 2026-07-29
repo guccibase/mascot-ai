@@ -9,6 +9,7 @@ import { sanitizeSvg } from "@/lib/sanitize-svg";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { GeneratedStudio } from "@/components/generated-studio";
+import { OWNED_STUDIO_CAPABILITIES } from "@/lib/studio-capabilities";
 import { TokenEstimate } from "@/components/create/token-estimate";
 import { ReferenceImageUpload } from "@/components/reference-image-upload";
 import { Button } from "@/components/ui/button";
@@ -184,6 +185,10 @@ export function RemixClient({
       sourceListingId:
         source.kind === "listing"
           ? (source.listingId as import("../../../../convex/_generated/dataModel").Id<"marketplaceListings">)
+          : undefined,
+      sourceMascotId:
+        source.kind === "mascot"
+          ? (source.mascotId as import("../../../../convex/_generated/dataModel").Id<"mascots">)
           : undefined,
     });
   }, [look, productContext, personality, model, setMeta, source]);
@@ -377,10 +382,12 @@ export function RemixClient({
           look={look.trim()}
           model={model ?? undefined}
           mascotId={mascotId}
+          capabilities={OWNED_STUDIO_CAPABILITIES}
           onMascotChange={(next) => {
             setResult(next);
             void persistSafe(next);
           }}
+          fullPage
         />
         <SiteFooter />
       </div>
