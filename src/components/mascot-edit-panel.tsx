@@ -1,11 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Loader2, Send, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { ReferenceImageUpload } from "@/components/reference-image-upload";
-import { DEFAULT_MASCOT_MODEL } from "@/lib/mascot-model-options";
+import {
+  DEFAULT_MASCOT_MODEL,
+  MASCOT_MODEL_OPTIONS,
+  asMascotModelId,
+  mascotModelOption,
+} from "@/lib/mascot-model-options";
 import { isReferenceId } from "@/lib/reference-image-client";
 import {
   MAX_REFINE_HISTORY_MESSAGES,
@@ -15,7 +20,10 @@ import {
   maxRefinePayloadChars,
   splitRefineGestures,
 } from "@/lib/refine-pack";
-import { estimateTokens, formatTokens } from "@/lib/token-pricing";
+import {
+  estimateRefineReservation,
+  formatTokens,
+} from "@/lib/token-pricing";
 import { useAffordability } from "@/lib/use-affordability";
 import type {
   GeneratedMascot,
@@ -145,6 +153,12 @@ export function MascotEditPanel({
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [history, setHistory] = useState<RefineMessage[]>([]);
+  const [editModel, setEditModel] = useState<MascotModelId>(
+    () => model ?? DEFAULT_MASCOT_MODEL
+  );
+  const [availableIds, setAvailableIds] = useState<Set<MascotModelId> | null>(
+    null
+  );
   const identity = `${mascot.name}\0${mascot.tagline}`;
   const [previousIdentity, setPreviousIdentity] = useState(identity);
 
@@ -152,31 +166,74 @@ export function MascotEditPanel({
     setPreviousIdentity(identity);
     setHistory([]);
     setDraft("");
+    setEditModel(model ?? DEFAULT_MASCOT_MODEL);
   }
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/models");
+        const data = (await res.json()) as {
+          models?: Array<{ id: MascotModelId; available: boolean }>;
+          defaultModel?: MascotModelId | null;
+        };
+        if (cancelled) return;
+        const available = new Set(
+          (data.models ?? [])
+            .filter((m) => m.available)
+            .map((m) => m.id)
+        );
+        setAvailableIds(available);
+        setEditModel((prev) => {
+          if (available.has(prev)) return prev;
+          const fallback =
+            (data.defaultModel && available.has(data.defaultModel)
+              ? data.defaultModel
+              : null) ??
+            [...available][0] ??
+            prev;
+          return fallback;
+        });
+      } catch {
+        // Keep the full catalogue selectable if availability can't be loaded.
+        if (!cancelled) setAvailableIds(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   /**
    * What `/api/generate/refine` will hold before it runs: the route reserves the
    * worst case of the same quote. Checking it here means a customer without
    * tokens sees the paywall instead of typing an edit that can only 402.
-  */
-  const reservation = useMemo(() => {
+   */
+  const quote = useMemo(() => {
     const batches = splitRefineGestures(mascot.gestures).length;
-    return estimateTokens(
+    return estimateRefineReservation(
       {
-        kind: "refine",
         batches,
         payloadChars: maxRefinePayloadChars(mascot),
-        referenceImages: isReferenceId(referenceId) ? batches : 0,
+        hasReference: isReferenceId(referenceId),
       },
-      model ?? DEFAULT_MASCOT_MODEL
-    ).max;
-  }, [mascot, model, referenceId]);
+      editModel
+    );
+  }, [mascot, editModel, referenceId]);
 
   const {
     blocked: unaffordable,
     needsPlan,
+    shortfall,
     loading: balanceLoading,
-  } = useAffordability(reservation);
+  } = useAffordability(quote.editCost);
+
+  const belowMin =
+    !needsPlan &&
+    !balanceLoading &&
+    unaffordable &&
+    quote.editCost - shortfall < quote.minCost;
 
   const send = async () => {
     const message = draft.trim();
@@ -198,7 +255,7 @@ export function MascotEditPanel({
     try {
       trackEvent("generate_started", {
         action: "refine",
-        model: model ?? "auto",
+        model: editModel,
       });
       const res = await fetch("/api/generate/refine", {
         method: "POST",
@@ -206,7 +263,7 @@ export function MascotEditPanel({
         body: JSON.stringify({
           mascot,
           look,
-          model,
+          model: editModel,
           enabledParts: [...enabledParts],
           message,
           history: history.slice(-MAX_REFINE_HISTORY_MESSAGES),
@@ -241,7 +298,7 @@ export function MascotEditPanel({
       );
       trackEvent("generate_completed", {
         action: "refine",
-        model: model ?? "auto",
+        model: editModel,
       });
       toast.success("Mascot updated");
     } catch (err) {
@@ -257,6 +314,10 @@ export function MascotEditPanel({
     }
   };
 
+  const modelOptions = MASCOT_MODEL_OPTIONS.filter((opt) =>
+    availableIds === null ? true : availableIds.has(opt.id)
+  );
+
   return (
     <div
       className="mt-2 flex flex-col gap-5 border-t pt-5"
@@ -265,6 +326,47 @@ export function MascotEditPanel({
       {onMascotChange && (
         <div>
           <h3 className="gs-eyebrow mb-2">Ask AI</h3>
+
+          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+            <label className="sr-only" htmlFor="ask-ai-model">
+              Model for this edit
+            </label>
+            <select
+              id="ask-ai-model"
+              value={editModel}
+              disabled={busy || mutationBusy || modelOptions.length === 0}
+              onChange={(e) => {
+                const next = asMascotModelId(e.target.value);
+                if (next) {
+                  setEditModel(next);
+                  trackEvent("model_selected", {
+                    model: next,
+                    provider: mascotModelOption(next).provider,
+                  });
+                }
+              }}
+              className="gs-range w-full min-w-0 flex-1 rounded-xl border px-3 py-2.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 sm:max-w-[16rem]"
+              style={{
+                height: "auto",
+                background: "rgba(255,255,255,.04)",
+                borderColor: `${accent}40`,
+                color: "#F5EDE0",
+              }}
+            >
+              {modelOptions.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <span
+              className="tabular-nums text-xs"
+              style={{ color: "#C6BCA7" }}
+              title="Typical tokens for this edit on the selected model"
+            >
+              ~{formatTokens(quote.typical)} tokens
+            </span>
+          </div>
 
           {onReferenceIdChange && !unaffordable && (
             <ReferenceImageUpload
@@ -325,47 +427,51 @@ export function MascotEditPanel({
               <span>
                 {needsPlan
                   ? "AI edits run on plan tokens. Choose a plan to keep editing — your mascot stays saved."
-                  : `Not enough tokens for an edit (needs about ${formatTokens(
-                      reservation
-                    )}). Top up to continue.`}
+                  : belowMin
+                    ? `Not enough tokens for an edit on this model (needs about ${formatTokens(
+                        quote.minCost
+                      )}). Pick a lighter model or top up to continue.`
+                    : `Not enough tokens for this edit (needs about ${formatTokens(
+                        quote.editCost
+                      )}). Pick a lighter model or top up to continue.`}
               </span>
             </Link>
           ) : (
-          <form
-            className="flex gap-2"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void send();
-            }}
-          >
-            <input
-              value={draft}
-              disabled={busy || mutationBusy}
-              onChange={(e) => setDraft(e.target.value)}
-              maxLength={MAX_REFINE_MESSAGE_CHARS}
-              placeholder="Change, add, or remove something…"
-              aria-label="Describe the mascot change"
-              className="gs-range min-w-0 flex-1 rounded-xl border px-3 py-2.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-2"
-              style={{
-                height: "auto",
-                background: "rgba(255,255,255,.04)",
-                borderColor: `${accent}40`,
-                color: "#F5EDE0",
+            <form
+              className="flex gap-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void send();
               }}
-            />
-            <button
-              type="submit"
-              className="gs-btn focus-visible:outline-2 focus-visible:outline-offset-2"
-              disabled={busy || mutationBusy || !draft.trim()}
-              aria-label={busy ? "Updating mascot" : "Ask AI to update mascot"}
             >
-              {busy ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Send className="size-4" />
-              )}
-            </button>
-          </form>
+              <input
+                value={draft}
+                disabled={busy || mutationBusy}
+                onChange={(e) => setDraft(e.target.value)}
+                maxLength={MAX_REFINE_MESSAGE_CHARS}
+                placeholder="Change, add, or remove something…"
+                aria-label="Describe the mascot change"
+                className="gs-range min-w-0 flex-1 rounded-xl border px-3 py-2.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-2"
+                style={{
+                  height: "auto",
+                  background: "rgba(255,255,255,.04)",
+                  borderColor: `${accent}40`,
+                  color: "#F5EDE0",
+                }}
+              />
+              <button
+                type="submit"
+                className="gs-btn focus-visible:outline-2 focus-visible:outline-offset-2"
+                disabled={busy || mutationBusy || !draft.trim()}
+                aria-label={busy ? "Updating mascot" : "Ask AI to update mascot"}
+              >
+                {busy ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Send className="size-4" />
+                )}
+              </button>
+            </form>
           )}
         </div>
       )}

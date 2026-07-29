@@ -17,6 +17,12 @@ export { USD_PER_TOKEN };
 export const APP_ASSET_MARGIN_MULTIPLIER = 2;
 
 /**
+ * Gross-margin multiplier on provider COGS for Ask AI (`refine`) only.
+ * Same 50% margin convention as app-assets: `(S - C) / S = 0.5` when S = 2C.
+ */
+export const REFINE_MARGIN_MULTIPLIER = 2;
+
+/**
  * Conservative USD COGS per gpt-image-2 reference **edit** at 1024×1024 high
  * quality (text + image input + image output). Sourced from OpenAI image
  * pricing examples (~$0.211 high square output) plus edit reference headroom.
@@ -334,10 +340,52 @@ export function estimateTokens(
     max += pack.max;
   }
 
+  const margin =
+    action.kind === "refine" ? REFINE_MARGIN_MULTIPLIER : 1;
+
   return {
-    typical: Math.ceil(typical),
-    max: Math.ceil(max),
+    typical: Math.ceil(typical * margin),
+    max: Math.ceil(max * margin),
     calls: phases.length,
+  };
+}
+
+/**
+ * Ask AI quotes for the selected model: smallest 1-batch hold vs this edit's
+ * full-pack reservation (both already include refine margin).
+ */
+export function estimateRefineReservation(
+  args: {
+    batches: number;
+    payloadChars: number;
+    hasReference: boolean;
+  },
+  model: MascotModelId
+): { minCost: number; editCost: number; typical: number } {
+  const batches = Math.max(1, Math.floor(args.batches));
+  const payloadChars = Math.max(0, args.payloadChars);
+  const min = estimateTokens(
+    {
+      kind: "refine",
+      batches: 1,
+      payloadChars,
+      referenceImages: args.hasReference ? 1 : 0,
+    },
+    model
+  );
+  const edit = estimateTokens(
+    {
+      kind: "refine",
+      batches,
+      payloadChars,
+      referenceImages: args.hasReference ? batches : 0,
+    },
+    model
+  );
+  return {
+    minCost: min.max,
+    editCost: edit.max,
+    typical: edit.typical,
   };
 }
 

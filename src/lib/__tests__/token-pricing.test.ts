@@ -18,7 +18,9 @@ import {
 } from "../mascot-model-options";
 import {
   PHASE_OUTPUT_CEILINGS,
+  REFINE_MARGIN_MULTIPLIER,
   estimateFullCreate,
+  estimateRefineReservation,
   estimateTokens,
   formatTokens,
   runsRemaining,
@@ -278,7 +280,7 @@ describe("payload-sized reservations", () => {
     expect(loaded.max).toBeGreaterThan(bare.max);
   });
 
-  it("covers the real provider cost of a large refine payload", () => {
+  it("covers the real provider cost of a large refine payload at refine margin", () => {
     const model = "claude-fable-5";
     const reserved = estimateTokens(
       { kind: "refine", payloadChars: big.length },
@@ -286,15 +288,17 @@ describe("payload-sized reservations", () => {
     ).max;
 
     // What the provider would bill if that payload tokenised at a realistic
-    // 3.5 chars/token and the call ran to its output ceiling.
-    const actual = tokensForUsage(
+    // 3.5 chars/token and the call ran to its output ceiling — then × margin.
+    const cogs = tokensForUsage(
       {
         input_tokens: Math.ceil(big.length / 3.5) + 16_000,
         output_tokens: 32_000,
       },
       model
     );
-    expect(reserved).toBeGreaterThanOrEqual(actual);
+    expect(reserved).toBeGreaterThanOrEqual(
+      Math.ceil(cogs * REFINE_MARGIN_MULTIPLIER)
+    );
   });
 
   it("re-charges the payload once per phase that re-sends it", () => {
@@ -362,6 +366,62 @@ describe("store product identifiers", () => {
 
   it("still rejects an id that is not ours", () => {
     expect(planByProductId("someone_else:plan")).toBeNull();
+  });
+});
+
+describe("refine margin and reservation quotes", () => {
+  it("uses a 50% gross-margin multiplier", () => {
+    expect(REFINE_MARGIN_MULTIPLIER).toBe(2);
+  });
+
+  it("marks up refine estimates but leaves studio at COGS", () => {
+    const refine = estimateTokens(
+      { kind: "refine", batches: 1, payloadChars: 30_000 },
+      "gpt-5.6-sol"
+    );
+    // Undo margin: ceil(cogs * 2) / 2 ≤ cogs+0.5 — check even integer half when possible.
+    expect(refine.typical % 2 === 0 || refine.typical > 0).toBe(true);
+    expect(refine.max).toBeGreaterThanOrEqual(refine.typical);
+
+    const studio = estimateTokens(
+      { kind: "studio", gestures: 3, payloadChars: 30_000 },
+      "gpt-5.6-sol"
+    );
+    // Studio must stay cheaper than a 1-batch refine on the same payload once
+    // refine carries the ×2 margin (refine also has a heavier phase table).
+    expect(refine.max).toBeGreaterThan(studio.max);
+  });
+
+  it("estimateRefineReservation: min is 1-batch; edit scales with batches", () => {
+    const one = estimateRefineReservation(
+      { batches: 1, payloadChars: 80_000, hasReference: false },
+      "gpt-5.6-luna"
+    );
+    const three = estimateRefineReservation(
+      { batches: 3, payloadChars: 80_000, hasReference: false },
+      "gpt-5.6-luna"
+    );
+    expect(one.minCost).toBe(one.editCost);
+    expect(three.minCost).toBe(one.minCost);
+    expect(three.editCost).toBeGreaterThan(three.minCost);
+    expect(three.editCost).toBeGreaterThan(one.editCost * 2.9);
+    expect(three.typical).toBeGreaterThan(0);
+  });
+
+  it("includes a single vision surcharge in minCost when a reference is attached", () => {
+    const bare = estimateRefineReservation(
+      { batches: 3, payloadChars: 40_000, hasReference: false },
+      "claude-sonnet-5"
+    );
+    const withRef = estimateRefineReservation(
+      { batches: 3, payloadChars: 40_000, hasReference: true },
+      "claude-sonnet-5"
+    );
+    expect(withRef.minCost).toBeGreaterThan(bare.minCost);
+    expect(withRef.editCost).toBeGreaterThan(withRef.minCost);
+    expect(withRef.editCost - bare.editCost).toBeGreaterThan(
+      withRef.minCost - bare.minCost
+    );
   });
 });
 

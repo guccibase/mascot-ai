@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ConvexError } from "convex/values";
 import { authedConvexClient } from "@/lib/convex-server";
 import {
+  REFINE_MARGIN_MULTIPLIER,
   estimateTokens,
   fallbackTokens,
   tokensForUsage,
@@ -130,12 +131,17 @@ export async function openMeter(
 
   let charged = 0;
   let settled: TokenMeta | null = null;
+  const refineMargin =
+    action.kind === "refine" ? REFINE_MARGIN_MULTIPLIER : 1;
 
   const meter: Meter = {
     record(usage, actualApiModel) {
-      charged += tokensForUsage(usage, model, actualApiModel);
+      const cogs = tokensForUsage(usage, model, actualApiModel);
+      charged +=
+        refineMargin === 1 ? cogs : Math.ceil(cogs * refineMargin);
     },
     recordFallback(fallbackAction) {
+      // fallbackTokens → estimateTokens; refine estimates already include margin.
       charged += fallbackTokens(fallbackAction, model);
     },
     async settle() {
