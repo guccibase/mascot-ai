@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { boundedText, rateLimit, readJsonBody } from "@/lib/api-guard";
 import { resolveMascotModel, runMascotModel } from "@/lib/mascot-model";
-import { openMeter } from "@/lib/metering";
+import { openMeter, tokenMetaFields } from "@/lib/metering";
 import { parseJsonObject } from "@/lib/parse-json";
 import { isReferenceId } from "@/lib/reference-image-client";
 import { loadReferenceImage } from "@/lib/reference-image";
@@ -137,10 +137,10 @@ export async function POST(req: Request) {
       maxOutputTokens: 20000,
       reasoningEffort: "low",
     });
-    meter.record(run.usage, run.model);
-
     const parsed = parseJsonObject(run.text);
     if (!isSamples(parsed)) {
+      // No usable samples — do not bill the model call.
+      meter.forgive();
       return NextResponse.json(
         { error: "Model returned incomplete samples", model: run.model },
         { status: 502 }
@@ -158,12 +158,15 @@ export async function POST(req: Request) {
       .filter((s) => s.svg.length > 0);
 
     if (samples.length === 0) {
+      meter.forgive();
       return NextResponse.json(
         { error: "Model returned no usable sample SVGs", model: run.model },
         { status: 502 }
       );
     }
 
+    // Bill only after usable samples exist.
+    meter.record(run.usage, run.model);
     const tokens = await meter.settle();
 
     return NextResponse.json({
@@ -171,11 +174,11 @@ export async function POST(req: Request) {
       _meta: {
         model: run.model,
         elapsedMs: Date.now() - started,
-        tokens: tokens.tokens,
-        balance: tokens.balance,
+        ...tokenMetaFields(tokens),
       },
     });
   } catch (err) {
+    meter.forgive();
     const message = err instanceof Error ? err.message : "Sample generation failed";
     console.error("samples error:", message);
     return NextResponse.json({ error: message }, { status: 500 });

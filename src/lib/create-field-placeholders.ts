@@ -229,16 +229,6 @@ export const CREATE_BRIEF_PRESETS: CreateBriefPreset[] = [
     personality: "Warm host, remembers regulars, never rushes the pour",
   },
   {
-    slug: "lumen",
-    name: "Lumen",
-    description:
-      "A hexagonal hanging lantern who keeps reading sessions glowing past midnight.",
-    look:
-      "Tall hexagonal lantern prism, diamond eyes, brass stadium bands, candle glow, hanging ring, bookmark accessory.",
-    productContext: "Night reading and bedtime books app",
-    personality: "Quiet librarian energy, patient, celebrates finished chapters",
-  },
-  {
     slug: "shade",
     name: "Shade",
     description:

@@ -3,9 +3,8 @@ import { internal } from "./_generated/api";
 
 const crons = cronJobs();
 
-// Holds are taken up front and only released on settle. A request that dies
-// mid-flight would otherwise leave a customer's tokens locked away for good,
-// so they are swept on a cadence well inside the 5 minute hold TTL.
+// Deferred holds earmark capacity (not wallet debit). Abandoned rows are swept
+// after TTL + settle grace (~10m + 30m) so late settle can still capture.
 crons.interval(
   "release expired token reservations",
   { minutes: 2 },

@@ -4,17 +4,49 @@ import {
   optionByApiModel,
   type MascotModelOption,
 } from "@/lib/mascot-model-options";
-import { MAX_REFINE_GESTURES } from "@/lib/refine-pack";
+import { MAX_STUDIO_GESTURES } from "@/lib/refine-pack";
 import type { MascotModelId } from "@/lib/types";
-import { USD_PER_TOKEN } from "../../convex/lib/plans";
+import {
+  MAX_TOKEN_RESERVATION,
+  USD_PER_TOKEN,
+} from "../../convex/lib/plans";
 
-export { USD_PER_TOKEN };
+export { MAX_TOKEN_RESERVATION, USD_PER_TOKEN };
+
+/** Max gestures/poses selectable on create or remix before opening the studio. */
+export const MAX_CREATE_GESTURES = 10;
 
 /**
  * Gross-margin multiplier on provider/infra COGS for app-asset actions.
  * `(S - C) / S = 0.5` when S = 2C.
  */
 export const APP_ASSET_MARGIN_MULTIPLIER = 2;
+
+/**
+ * Per-call markup on Ask AI refine. Kept at `1` so edits use the same COGS→token
+ * math as create/studio — plan/top-up prices already carry margin. A refine-only
+ * ×2 made simple edits cost more than building a mascot on light models and
+ * broke the weekly “refine anytime” promise on a 240K grant.
+ */
+export const REFINE_MARGIN_MULTIPLIER = 1;
+
+/**
+ * Reserve / UI hold for refine: typical × buffer, capped by absolute max.
+ * Worst-case 32K-output holds made Fable “simple edits” exceed a weekly grant
+ * even when a normal run fits comfortably.
+ */
+export const REFINE_RESERVE_BUFFER = 1.5;
+
+/**
+ * Apply an action margin to already-computed COGS billing tokens.
+ * Integer COGS × integer margin stays exact (no second ceil inflation).
+ */
+export function billUsageTokens(cogsTokens: number, margin: number): number {
+  const cogs = Math.max(0, Math.floor(cogsTokens));
+  const m = Number.isFinite(margin) && margin > 0 ? margin : 1;
+  if (m === 1) return cogs;
+  return Math.ceil(cogs * m);
+}
 
 /**
  * Conservative USD COGS per gpt-image-2 reference **edit** at 1024×1024 high
@@ -49,27 +81,18 @@ export function estimateImageEditTokens(count: number): {
 export const estimateImageGenTokens = estimateImageEditTokens;
 
 /**
- * Infra COGS per composited icon preview (exact mascot pixels + background).
- * No image-model spend — character fidelity is guaranteed by compositing.
+ * Sample previews are high-quality gpt-image reference edits.
+ * Aliases keep older imports/tests aligned with IMAGE_EDIT COGS.
  */
-export const APP_ASSET_SAMPLE_USD_PER_IMAGE = 0.0008;
-export const APP_ASSET_SAMPLE_USD_PER_IMAGE_MAX = 0.0012;
+export const APP_ASSET_SAMPLE_USD_PER_IMAGE = IMAGE_EDIT_USD_PER_IMAGE;
+export const APP_ASSET_SAMPLE_USD_PER_IMAGE_MAX = IMAGE_EDIT_USD_PER_IMAGE_MAX;
 
+/** Three creative icon masters billed as image edits @ ≥50% gross margin. */
 export function estimateAppAssetSampleTokens(count: number): {
   typical: number;
   max: number;
 } {
-  const n = Math.max(1, Math.min(3, Math.floor(count)));
-  return {
-    typical: Math.ceil(
-      ((n * APP_ASSET_SAMPLE_USD_PER_IMAGE) / USD_PER_TOKEN) *
-        APP_ASSET_MARGIN_MULTIPLIER
-    ),
-    max: Math.ceil(
-      ((n * APP_ASSET_SAMPLE_USD_PER_IMAGE_MAX) / USD_PER_TOKEN) *
-        APP_ASSET_MARGIN_MULTIPLIER
-    ),
-  };
+  return estimateImageEditTokens(count);
 }
 
 /** Infra COGS for pack assembly (resize + storage uploads); no LLM. */
@@ -195,7 +218,7 @@ const PHASES = {
     outputMax: 6_000,
     carriesPayload: true,
   },
-  /** Three 1024px icon previews (exact mascot composite, no image model). */
+  /** Three 1024px AI icon masters (reference edit; billed via image COGS). */
   appAssetSamples: {
     input: 0,
     outputTypical: 0,
@@ -261,17 +284,21 @@ function phasesFor(action: MeteredAction): PhaseEstimate[] {
     case "gesture":
       return [PHASES.addGesture];
     case "refine": {
+      // Worst case: one pose per batch up to the studio ceiling.
       const batches = Math.max(
         1,
         Math.min(
-          MAX_REFINE_GESTURES,
+          MAX_STUDIO_GESTURES,
           Math.floor(action.batches ?? 1)
         )
       );
       return Array.from({ length: batches }, () => PHASES.refine);
     }
     case "studio": {
-      const gestures = Math.max(1, Math.min(6, Math.floor(action.gestures)));
+      const gestures = Math.max(
+        1,
+        Math.min(MAX_CREATE_GESTURES, Math.floor(action.gestures))
+      );
       return [
         PHASES.bible,
         PHASES.idle,
@@ -279,7 +306,10 @@ function phasesFor(action: MeteredAction): PhaseEstimate[] {
       ];
     }
     case "remix": {
-      const poses = Math.max(1, Math.min(6, Math.floor(action.poses)));
+      const poses = Math.max(
+        1,
+        Math.min(MAX_CREATE_GESTURES, Math.floor(action.poses))
+      );
       return [
         PHASES.remixIdentity,
         ...Array.from({ length: poses }, () => PHASES.remixPose),
@@ -334,10 +364,60 @@ export function estimateTokens(
     max += pack.max;
   }
 
+  const margin =
+    action.kind === "refine" ? REFINE_MARGIN_MULTIPLIER : 1;
+
   return {
-    typical: Math.ceil(typical),
-    max: Math.ceil(max),
+    typical: Math.ceil(typical * margin),
+    max: Math.ceil(max * margin),
     calls: phases.length,
+  };
+}
+
+/** Practical refine hold used by Ask AI UI and `openMeter` reserve. */
+export function refineHoldTokens(estimate: TokenEstimate): number {
+  const typical = Math.max(0, estimate.typical);
+  const max = Math.max(typical, estimate.max);
+  const buffered = Math.ceil(typical * REFINE_RESERVE_BUFFER);
+  return Math.min(max, Math.max(typical, buffered));
+}
+
+/**
+ * Ask AI quotes for the selected model: smallest 1-batch hold vs this edit's
+ * full-pack hold (practical typical×buffer, not absolute output ceilings).
+ */
+export function estimateRefineReservation(
+  args: {
+    batches: number;
+    payloadChars: number;
+    hasReference: boolean;
+  },
+  model: MascotModelId
+): { minCost: number; editCost: number; typical: number } {
+  const batches = Math.max(1, Math.floor(args.batches));
+  const payloadChars = Math.max(0, args.payloadChars);
+  const min = estimateTokens(
+    {
+      kind: "refine",
+      batches: 1,
+      payloadChars,
+      referenceImages: args.hasReference ? 1 : 0,
+    },
+    model
+  );
+  const edit = estimateTokens(
+    {
+      kind: "refine",
+      batches,
+      payloadChars,
+      referenceImages: args.hasReference ? batches : 0,
+    },
+    model
+  );
+  return {
+    minCost: refineHoldTokens(min),
+    editCost: refineHoldTokens(edit),
+    typical: edit.typical,
   };
 }
 

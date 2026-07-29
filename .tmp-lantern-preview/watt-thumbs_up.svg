@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 520" width="100%" role="img" aria-labelledby="ln-title-thumbs_up ln-description-thumbs_up" class="ln-svg ln-g-thumbs_up " style="--g:0.45;cursor:pointer"><title id="ln-title-thumbs_up">Watt — Thumbs up</title><desc id="ln-description-thumbs_up">A real thumbs-up — fist with a short fat thumb, clear approval.</desc><style>
+  .ln-svg{display:block;user-select:none;-webkit-user-select:none;--gf:1}
+  .ln-g-alarm{--gf:1.75}
+  .ln-g-celebrate{--gf:1.4}
+  .ln-g-success{--gf:1.35}
+  .ln-g-flying{--gf:1.5}
+  .ln-g-proud{--gf:1.3}
+  .ln-g-love{--gf:1.25}
+  .ln-g-grumpy{--gf:.7}
+  .ln-g-sad{--gf:.6}
+  .ln-g-crying{--gf:.5}
+  .ln-g-sleepy{--gf:.42}
+  .ln-g-empty{--gf:.55}
+  .ln-float{animation:ln-float 3.7s ease-in-out infinite}
+  .ln-g-sleepy .ln-float{animation-duration:6s}
+  .ln-g-alarm .ln-float{animation:none}
+  .ln-g-celebrate .ln-float{animation-duration:1.85s}
+  .ln-g-dancing .ln-float{animation-duration:1.4s}
+  .ln-g-running .ln-float{animation:ln-runBounce .28s ease-in-out infinite}
+  .ln-g-flying .ln-float{animation:ln-soar 1.6s ease-in-out infinite}
+  .ln-shadowO{animation:ln-shadowO 3.7s ease-in-out infinite}
+  .ln-g-running .ln-shadowO{animation:ln-runShadow .28s ease-in-out infinite}
+  .ln-g-flying .ln-shadowO{opacity:.1;animation:none;transform:scaleX(.72)}
+  .ln-glow{animation:ln-glow 3.1s ease-in-out infinite}
+  .ln-g-alarm .ln-glow{animation-duration:.85s}
+  .ln-wave-on .ln-glow{animation-duration:1.5s}
+  .ln-pop{animation:ln-pop .28s ease-out}
+  .ln-pupils{transition:transform .12s ease-out}
+  .ln-ring{animation:ln-ring 1.15s ease-out infinite}
+  .ln-scan{animation:ln-scan 2.4s ease-in-out infinite}
+  .ln-zzz{animation:ln-zzz 3.2s ease-in-out infinite}
+  .ln-rise{animation:ln-rise 2.5s ease-out infinite}
+  .ln-fall{animation:ln-fall 2.8s linear infinite}
+  .ln-twinkle{animation:ln-twinkle 1.4s ease-in-out infinite}
+  .ln-tear{animation:ln-tear 2.8s ease-in infinite}
+  .ln-eq{animation:ln-eq 1s ease-in-out infinite}
+  .ln-type{animation:ln-type .52s steps(2) infinite}
+  .ln-dot{animation:ln-dot 1.2s ease-in-out infinite}
+  .ln-smoke{animation:ln-smoke 1.9s ease-out infinite}
+  .ln-streak{animation:ln-streak .7s linear infinite}
+  .ln-whoosh{animation:ln-whoosh .28s linear infinite}
+  .ln-dust{animation:ln-dust .48s ease-out infinite}
+  .ln-svg[data-paused] *{animation-play-state:paused!important}
+  @keyframes ln-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+  @keyframes ln-soar{0%,100%{transform:translateY(0)}50%{transform:translateY(-22px)}}
+  @keyframes ln-runBounce{0%,100%{transform:translate(10px,4px)}25%{transform:translate(-4px,-14px)}50%{transform:translate(12px,2px)}75%{transform:translate(-2px,-16px)}}
+  @keyframes ln-runShadow{0%,100%{opacity:.28;transform:translateX(-16px) scaleX(1.25)}50%{opacity:.12;transform:translateX(10px) scaleX(.65)}}
+  @keyframes ln-shadowO{0%,100%{opacity:.22}50%{opacity:.12}}
+  @keyframes ln-whoosh{0%{transform:translateX(18px);opacity:0}28%{opacity:.95}100%{transform:translateX(-56px);opacity:0}}
+  @keyframes ln-dust{0%{transform:translate(0,0) scale(1);opacity:0}18%{opacity:.75}100%{transform:translate(-40px,8px) scale(.6);opacity:0}}
+  @keyframes ln-glow{0%,100%{opacity:calc(var(--g,.45)*var(--gf,1)*.5)}50%{opacity:calc(var(--g,.45)*var(--gf,1))}}
+  @keyframes ln-pop{from{opacity:0}to{opacity:1}}
+  @keyframes ln-ring{0%,74%,100%{opacity:0}18%{opacity:.95}55%{opacity:0}}
+  @keyframes ln-scan{0%,100%{opacity:.1;transform:translateY(-2px)}50%{opacity:.5;transform:translateY(74px)}}
+  @keyframes ln-zzz{0%{opacity:0;transform:translate(0,8px)}25%{opacity:.95}72%{opacity:.5}100%{opacity:0;transform:translate(12px,-26px)}}
+  @keyframes ln-rise{0%{opacity:.42;transform:translateY(10px)}24%{opacity:1}100%{opacity:0;transform:translateY(-42px)}}
+  @keyframes ln-fall{0%{opacity:.3;transform:translateY(-20px)}12%{opacity:1}84%{opacity:.9}100%{opacity:.2;transform:translateY(145px)}}
+  @keyframes ln-twinkle{0%,100%{opacity:.25}50%{opacity:1}}
+  @keyframes ln-tear{0%{opacity:0;transform:translateY(0)}16%{opacity:1}82%{opacity:.85}100%{opacity:0;transform:translateY(46px)}}
+  @keyframes ln-eq{0%,100%{opacity:.3}50%{opacity:1}}
+  @keyframes ln-type{0%,100%{opacity:1}50%{opacity:.2}}
+  @keyframes ln-dot{0%,100%{opacity:.25}50%{opacity:1}}
+  @keyframes ln-smoke{0%{opacity:0;transform:translate(0,0) scale(.7)}20%{opacity:.55}100%{opacity:0;transform:translate(0,48px) scale(1.3)}}
+  @keyframes ln-streak{0%{opacity:0;transform:translate(0,0)}28%{opacity:.85}100%{opacity:0;transform:translate(0,36px)}}
+  @media (prefers-reduced-motion:reduce){.ln-svg *{animation:none!important;transition:none!important}}
+</style><defs><radialGradient id="ln-glow-thumbs_up" cx="50%" cy="46%" r="58%"><stop offset="0" stop-color="#fef7dc" stop-opacity=".95"></stop><stop offset="1" stop-color="#fef7dc" stop-opacity="0"></stop></radialGradient><linearGradient id="ln-body-thumbs_up" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4e1a8"></stop><stop offset="1" stop-color="#F4D890"></stop></linearGradient><linearGradient id="ln-screen-thumbs_up" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#544638"></stop><stop offset="1" stop-color="#3A2818"></stop></linearGradient></defs><ellipse data-ms-part="shadow" class="ln-shadowO" cx="210" cy="498" rx="88" ry="9" fill="#000" opacity=".2"></ellipse><g class="ln-float" transform="translate(0,0)"><g transform="translate(210,470)"><animateTransform attributeName="transform" type="translate" additive="sum" begin="ln-hit.click" dur="0.6s" fill="remove" values="0 0;0 7;0 -12;0 3;0 0" keyTimes="0;0.24;0.54;0.8;1"></animateTransform><animateTransform attributeName="transform" type="scale" additive="sum" begin="ln-hit.click" dur="0.6s" fill="remove" values="1 1;1.05 .93;.97 1.05;1.02 .98;1 1" keyTimes="0;0.24;0.54;0.8;1"></animateTransform><g transform="rotate(0)"><g transform="translate(-210,-470)"><g id="ln-hit"><ellipse data-ms-part="halo" class="ln-glow ms-glow-halo" cx="210" cy="280" rx="140" ry="124" fill="url(#ln-glow-thumbs_up)"></ellipse><g data-ms-part="base"><path d="M170,382 C166,390 164,410 168,452 C176,458 244,458 252,452 C256,410 254,390 250,382 Z" fill="#E87840"></path><path d="M172,398 Q210,394 248,398" fill="none" stroke="#b2a16e" stroke-width="3.5" stroke-linecap="round" opacity=".55"></path><path d="M172,412 Q210,408 248,412" fill="none" stroke="#b2a16e" stroke-width="3.5" stroke-linecap="round" opacity=".55"></path><path d="M172,426 Q210,422 248,426" fill="none" stroke="#b2a16e" stroke-width="3.5" stroke-linecap="round" opacity=".55"></path><path d="M172,440 Q210,436 248,440" fill="none" stroke="#b2a16e" stroke-width="3.5" stroke-linecap="round" opacity=".55"></path><ellipse cx="210" cy="456" rx="40" ry="11" fill="#b2a16e"></ellipse><ellipse cx="196" cy="392" rx="14" ry="5" fill="#ffffff" opacity=".22"></ellipse></g><g data-ms-part="glass"><path d="M210,96 C284,96 334,164 334,236 C334,304 288,356 258,386
+          L162,386 C132,356 86,304 86,236 C86,164 136,96 210,96 Z" fill="url(#ln-body-thumbs_up)" stroke="#cd6c3b" stroke-width="5.5"></path><path d="M210,118 C266,118 306,170 306,232 C306,286 270,332 246,358
+          L174,358 C150,332 114,286 114,232 C114,170 154,118 210,118 Z" fill="#FFF6D8" opacity=".2"></path><path d="M130,178 Q168,128 220,118" fill="none" stroke="#ffffff" stroke-width="16" stroke-linecap="round" opacity=".4"></path><ellipse cx="158" cy="196" rx="30" ry="44" fill="#ffffff" opacity=".3"></ellipse><ellipse cx="210" cy="248" rx="72" ry="92" fill="#FFF6D8" opacity=".16"></ellipse></g><g data-ms-part="flame"><path d="M210,298 Q210,318 210,330" stroke="#E87840" stroke-width="3.5" stroke-linecap="round" opacity=".45"></path><path class="ln-twinkle" d="M176,336 Q210,308 244,336" fill="none" stroke="#E87840" stroke-width="5" stroke-linecap="round"></path><path d="M186,348 Q210,322 234,348" fill="none" stroke="#FFD166" stroke-width="3.5" stroke-linecap="round" opacity=".9"></path><path d="M196,356 Q210,340 224,356" fill="none" stroke="#FFF6E0" stroke-width="2.8" stroke-linecap="round" opacity=".85"></path></g><g data-ms-part="bands"><ellipse cx="210" cy="384" rx="48" ry="12" fill="#E87840"></ellipse><path d="M166,374 Q210,362 254,374" fill="none" stroke="#b2a16e" stroke-width="4" stroke-linecap="round" opacity=".4"></path></g><g data-ms-part="hang"><ellipse cx="210" cy="92" rx="12" ry="10" fill="#E87840"></ellipse><circle cx="206" cy="88" r="2.8" fill="#ffffff" opacity=".7"></circle></g><g data-ms-part="accessory" transform="translate(322,128)"><path class="ln-twinkle" d="M0,-12 Q3,-3 12,0 Q3,3 0,12 Q-3,3 -12,0 Q-3,-3 0,-12 Z" fill="#E87840"></path><circle cx="0" cy="0" r="4" fill="#FFF6D8"></circle></g><g data-ms-part="blush" fill="#f3ae92" opacity=".45" transform="translate(0,0)"><ellipse cx="156" cy="268" rx="10" ry="7"></ellipse><ellipse cx="264" cy="268" rx="10" ry="7"></ellipse></g><g class="ln-pop ms-eyes" data-ms-part="eyes" transform="translate(0,8)"><g data-ms-part="brows"></g><g transform="translate(0,0)"><path d="M-14,4 Q0,-11 14,4" transform="translate(180,228)" fill="none" stroke="#a29366" stroke-width="7.5" stroke-linecap="round"></path><path d="M-14,4 Q0,-11 14,4" transform="translate(240,228)" fill="none" stroke="#a29366" stroke-width="7.5" stroke-linecap="round"></path></g><g transform="translate(0,0)"><path class="ln-pop" d="M183,248 Q210,278 237,248 Q210,258 183,248 Z" fill="#a29366"></path></g></g><g data-ms-part="props" class="ln-pop"></g><g data-ms-part="arms"><g transform="translate(118,300)"><animateTransform attributeName="transform" type="rotate" additive="sum" values="-2;2;-2" dur="3.5s" repeatCount="indefinite"></animateTransform><path d="M0,0 Q-14,28 -20,56" fill="none" stroke="#F4D890" stroke-width="38" stroke-linecap="round"></path><path d="M0,0 Q-14,28 -20,56" fill="none" stroke="#f4e1a8" stroke-width="12" stroke-linecap="round" opacity=".28"></path><g transform="translate(-22.69069117598525,63.5339352927587)"><g transform="rotate(180)"><g><g><ellipse cx="0" cy="6" rx="18" ry="15" fill="#F4D890"></ellipse><ellipse cx="-11" cy="-6" rx="8" ry="11" fill="#F4D890"></ellipse><ellipse cx="0" cy="-8" rx="8.5" ry="12" fill="#F4D890"></ellipse><ellipse cx="11" cy="-6" rx="8" ry="11" fill="#F4D890"></ellipse><ellipse cx="-2" cy="4" rx="6" ry="4.5" fill="#E87840" opacity=".3"></ellipse></g></g></g></g></g><g transform="translate(302,300)"><animateTransform attributeName="transform" type="rotate" additive="sum" values="2;-2;2" dur="3.8s" repeatCount="indefinite"></animateTransform><path d="M0,0 Q36,-30 28,-70" fill="none" stroke="#F4D890" stroke-width="38" stroke-linecap="round"></path><path d="M0,0 Q36,-30 28,-70" fill="none" stroke="#f4e1a8" stroke-width="12" stroke-linecap="round" opacity=".28"></path><g transform="translate(28,-70)"><g><g><g transform="rotate(-12) scale(1.15)"><rect x="-20" y="-13" width="41" height="28" rx="13" fill="#F4D890"></rect><path d="M13,-8 Q21,-23 15,-34" fill="none" stroke="#F4D890" stroke-width="14.5" stroke-linecap="round"></path></g></g></g></g></g></g></g></g></g></g></g></svg>

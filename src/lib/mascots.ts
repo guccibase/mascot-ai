@@ -19,7 +19,6 @@ export type MascotSlug =
   | "relay"
   | "orbit"
   | "brew"
-  | "lumen"
   | "shade"
   | "watt"
   | "arc"
@@ -262,17 +261,6 @@ export const MASCOTS: MascotMeta[] = [
       "Espresso chassis with steam plume, cup-handle ears, latte-art chest, and every Core / Moods / Action / Feedback pose.",
   },
   {
-    slug: "lumen",
-    name: "Lumen",
-    tagline: "Hex lantern who keeps the page glowing past midnight",
-    product: "Night Reading App",
-    accent: "#D4AF37",
-    stage: "#0E1A28",
-    poseCount: 37,
-    blurb:
-      "Hexagonal hanging lantern with diamond eyes, brass bands, candle glow, and a bookmark accessory across the full 37-pose set.",
-  },
-  {
     slug: "shade",
     name: "Shade",
     tagline: "Soft mushroom lamp who dims the day into sleep",
@@ -351,6 +339,32 @@ export const MASCOTS: MascotMeta[] = [
   },
 ];
 
+/** Public marketing examples — home, footer, sitemap, onboarding, ungated studios. */
+export const PUBLIC_EXAMPLE_SLUGS = [
+  "lyra",
+  "sol",
+  "bud",
+  "fanous",
+] as const satisfies readonly MascotSlug[];
+
+export type PublicExampleSlug = (typeof PUBLIC_EXAMPLE_SLUGS)[number];
+
+export type PublicExampleMeta = MascotMeta & { slug: PublicExampleSlug };
+
+const PUBLIC_EXAMPLE_SLUG_SET = new Set<string>(PUBLIC_EXAMPLE_SLUGS);
+
+export function isPublicExampleSlug(slug: string): slug is PublicExampleSlug {
+  return PUBLIC_EXAMPLE_SLUG_SET.has(slug);
+}
+
+export const PUBLIC_EXAMPLES: PublicExampleMeta[] = MASCOTS.filter(
+  (m): m is PublicExampleMeta => isPublicExampleSlug(m.slug)
+);
+
+/** Catalog entries reserved for admin (Library → Generated + gated /studio). */
+export const ADMIN_GENERATED_EXAMPLES: MascotMeta[] = MASCOTS.filter(
+  (m) => !isPublicExampleSlug(m.slug)
+);
 
 export function getMascot(slug: string): MascotMeta | undefined {
   return MASCOTS.find((m) => m.slug === slug);

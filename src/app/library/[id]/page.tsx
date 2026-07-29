@@ -5,9 +5,12 @@ import { use, useEffect, useRef, useState } from "react";
 import { useQuery } from "convex/react";
 import { Loader2 } from "lucide-react";
 import { GeneratedStudio } from "@/components/generated-studio";
+import { SiteFooter } from "@/components/site-footer";
+import { SiteHeader } from "@/components/site-header";
 import { StudioPageSkeleton } from "@/components/skeletons";
 import { useMascotPersistence } from "@/hooks/use-mascot-persistence";
 import { toGeneratedMascot } from "@/lib/mascot-pack";
+import { ownedStudioCapabilitiesForSource } from "@/lib/studio-capabilities";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import type { GeneratedMascot, MascotModelId } from "@/lib/types";
@@ -66,7 +69,7 @@ export default function LibraryMascotPage({ params }: Props) {
   }, [saved, mascotId]);
 
   if (saved === undefined || (saved !== null && !pack && !hydrateFailed)) {
-    return <StudioPageSkeleton />;
+    return <StudioPageSkeleton variant="site-header" />;
   }
 
   if (saved === null || !pack || hydrateFailed) {
@@ -81,22 +84,23 @@ export default function LibraryMascotPage({ params }: Props) {
   }
 
   return (
-    <div className="relative min-h-screen bg-[#0a0e18]">
-      <div className="absolute left-4 top-4 z-50 flex gap-2 sm:left-6 sm:top-6">
+    <div className="relative min-h-screen bg-[var(--brand-bg)] text-[var(--brand-ink)]">
+      <SiteHeader />
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-5 py-3 sm:px-8">
         <Link
           href="/library"
-          className="rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-xs font-semibold text-white/85 backdrop-blur hover:bg-black/55"
+          className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10"
         >
           ← Library
         </Link>
         <Link
           href={`/library/${mascotId}/remix`}
-          className="rounded-full border border-[var(--brand-accent)]/40 bg-[var(--brand-accent)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--brand-accent)] backdrop-blur hover:bg-[var(--brand-accent)]/20"
+          className="rounded-full border border-[var(--brand-accent)]/40 bg-[var(--brand-accent)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--brand-accent)] hover:bg-[var(--brand-accent)]/20"
         >
           Remix
         </Link>
         {saving && (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-xs text-white/70 backdrop-blur">
+          <span className="inline-flex items-center gap-1.5 text-xs text-[var(--brand-muted)]">
             <Loader2 className="size-3 animate-spin" />
             Saving…
           </span>
@@ -107,12 +111,14 @@ export default function LibraryMascotPage({ params }: Props) {
         look={saved.look}
         model={(saved.model as MascotModelId | undefined) ?? undefined}
         mascotId={mascotId}
+        capabilities={ownedStudioCapabilitiesForSource(saved.source)}
         onMascotChange={(next) => {
           setPack(next);
           persistSafe(next);
         }}
         fullPage
       />
+      <SiteFooter />
     </div>
   );
 }

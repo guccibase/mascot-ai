@@ -1,3 +1,4 @@
+import { normalizeInstrumentDefault } from "@/lib/studio-utils";
 import type { GeneratedMascot, StudioInstrument } from "@/lib/types";
 
 /** True when the pack's SVG can respond to a live signal / delivery slider. */
@@ -42,11 +43,10 @@ export function toGeneratedMascot(pack: {
   const live = packHasLiveSignal(pack.gestures);
   const instrument: StudioInstrument = {
     ...pack.instrument,
-    defaultValue:
-      typeof pack.instrument.defaultValue === "number" &&
-      Number.isFinite(pack.instrument.defaultValue)
-        ? pack.instrument.defaultValue
-        : 50,
+    defaultValue: normalizeInstrumentDefault(
+      pack.instrument.defaultValue,
+      50
+    ),
     ramp: [ramp[0]!, ramp[1]!, ramp[2]!, ramp[3]!, ramp[4]!],
     // Explicit hide wins; otherwise hide when the SVG can't answer the slider.
     hidden: pack.instrument.hidden === true || !live,

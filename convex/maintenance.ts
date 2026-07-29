@@ -1,6 +1,7 @@
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
 import { internalMutation } from "./_generated/server";
-import { releaseReservation } from "./lib/tokens";
+import { releaseReservation, syncOpenHoldTotal } from "./lib/tokens";
 
 /** Bounded per run so a mutation never risks a transaction timeout. */
 const SWEEP_BATCH = 100;
@@ -8,16 +9,13 @@ const SWEEP_BATCH = 100;
 /**
  * How long a processed webhook id is worth remembering. RevenueCat gives up
  * retrying long before this, so anything older can no longer be a duplicate.
+ * Token settle receipts (`token_settle:*`) share this table and retention.
  */
 const EVENT_RETENTION_MS = 14 * 24 * 60 * 60 * 1000;
 
 /**
- * Return holds abandoned by a crashed or timed-out request.
- *
- * `reserve` also sweeps, but only for the caller. Without this a user whose
- * settle failed on their last generation would have those tokens locked away
- * until they happened to start another one, and reading a balance is a query,
- * so it can never heal itself.
+ * Hard-delete abandoned holds (after deferred settle grace) and refresh
+ * denormalized `openHoldTotal` so capacity frees when TTL elapses.
  */
 export const sweepExpiredReservations = internalMutation({
   args: {},
@@ -30,14 +28,22 @@ export const sweepExpiredReservations = internalMutation({
       .take(SWEEP_BATCH);
 
     let released = 0;
+    const touchedUsers = new Set<Id<"users">>();
+
     for (const reservation of stale) {
       const user = await ctx.db.get(reservation.userId);
       if (!user) {
         await ctx.db.delete(reservation._id);
+        released++;
         continue;
       }
-      await releaseReservation(ctx, user, reservation, now);
-      released++;
+      const deleted = await releaseReservation(ctx, user, reservation, now);
+      if (deleted) released++;
+      touchedUsers.add(user._id);
+    }
+
+    for (const userId of touchedUsers) {
+      await syncOpenHoldTotal(ctx, userId, now);
     }
 
     if (released > 0) {
@@ -47,7 +53,7 @@ export const sweepExpiredReservations = internalMutation({
   },
 });
 
-/** Drop webhook ids that are past any possible retry. */
+/** Drop webhook / settle ids that are past any possible retry. */
 export const pruneBillingEvents = internalMutation({
   args: {},
   returns: v.object({ deleted: v.number() }),

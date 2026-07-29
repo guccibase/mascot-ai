@@ -16,6 +16,7 @@ import {
 } from "../token-pricing";
 import { USD_PER_TOKEN } from "../../../convex/lib/plans";
 import { composeAppIconPreview, parseHexColor } from "../app-assets/icon-compose";
+import { buildIconPrompt } from "../app-assets/icon-prompt";
 import sharp from "sharp";
 
 describe("app asset catalog", () => {
@@ -74,7 +75,7 @@ describe("app asset catalog", () => {
 });
 
 describe("app asset token pricing", () => {
-  it("charges 2× COGS for composited samples (50% gross margin)", () => {
+  it("charges 2× image-edit COGS for AI icon samples (50% gross margin)", () => {
     const one = estimateAppAssetSampleTokens(1);
     const rawCogsTokens = APP_ASSET_SAMPLE_USD_PER_IMAGE / USD_PER_TOKEN;
     expect(one.typical).toBe(
@@ -82,6 +83,8 @@ describe("app asset token pricing", () => {
     );
     const margin = (one.typical - rawCogsTokens) / one.typical;
     expect(margin).toBeGreaterThanOrEqual(0.5 - 1e-9);
+    // Must price real gpt-image edits, not the old composite infra fee.
+    expect(one.typical).toBeGreaterThan(10_000);
   });
 
   it("scales sample quotes with image count", () => {
@@ -108,6 +111,47 @@ describe("app asset token pricing", () => {
       "gpt-5.6-sol"
     );
     expect(pack.typical).toBe(estimateAppAssetPackTokens(20).typical);
+  });
+});
+
+describe("buildIconPrompt", () => {
+  it("asks for designed icon art, not a screenshot paste", () => {
+    const prompt = buildIconPrompt({
+      mascotName: "Pip",
+      tagline: "Cheerful helper",
+      product: "Habit tracker",
+      accent: "#F5B34F",
+      kinds: ["app_icon", "favicon"],
+      variantIndex: 0,
+      styleDescription: "soft pastel dawn",
+    });
+    expect(prompt).toMatch(/NOT a screenshot/i);
+    expect(prompt).toMatch(/identity only/i);
+    expect(prompt).toMatch(/Pip/);
+    expect(prompt).toMatch(/soft pastel dawn/);
+    expect(prompt).toMatch(/Variant A/);
+  });
+
+  it("varies creative direction across the three options", () => {
+    const a = buildIconPrompt({
+      mascotName: "Pip",
+      kinds: ["app_icon"],
+      variantIndex: 0,
+    });
+    const b = buildIconPrompt({
+      mascotName: "Pip",
+      kinds: ["app_icon"],
+      variantIndex: 1,
+    });
+    const c = buildIconPrompt({
+      mascotName: "Pip",
+      kinds: ["app_icon"],
+      variantIndex: 2,
+    });
+    expect(a).toMatch(/Variant A/);
+    expect(b).toMatch(/Variant B/);
+    expect(c).toMatch(/Variant C/);
+    expect(new Set([a, b, c]).size).toBe(3);
   });
 });
 

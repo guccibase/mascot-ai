@@ -1,3 +1,4 @@
+import { normalizeInstrumentDefault } from "@/lib/studio-utils";
 import type {
   GeneratedMascot,
   MascotPart,
@@ -58,8 +59,7 @@ function coerceInstrument(raw: unknown): StudioInstrument | null {
     lowLabel: typeof i.lowLabel === "string" ? i.lowLabel : "Low",
     midLabel: typeof i.midLabel === "string" ? i.midLabel : "Mid",
     highLabel: typeof i.highLabel === "string" ? i.highLabel : "High",
-    defaultValue:
-      typeof i.defaultValue === "number" ? i.defaultValue : 68,
+    defaultValue: normalizeInstrumentDefault(i.defaultValue),
     ramp: i.ramp as StudioInstrument["ramp"],
   };
 }

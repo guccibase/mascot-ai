@@ -6,7 +6,7 @@ import { restoreSharedCss } from "../src/lib/example-poses/types.ts";
 import { buildPosePack } from "../src/lib/example-poses/build-pack.ts";
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
-const slugs = ["lumen", "shade", "watt", "arc"];
+const slugs = ["shade", "watt", "arc"];
 
 for (const slug of slugs) {
   const pack = buildPosePack(slug);

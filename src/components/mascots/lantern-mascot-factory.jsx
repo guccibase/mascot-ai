@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 /*
  * LANTERN FAMILY FACTORY — Fanous-craft lamps with distinct chassis per app.
 
- * Lumen=hex hanging lantern · Shade=mushroom table lamp · Watt=Edison bulb · Arc=anglepoise desk lamp
+ * Shade=mushroom table lamp · Watt=Edison bulb · Arc=anglepoise desk lamp
  * Shared gesture / arm / studio engine. Each variant swaps body, hang, base, eyes, and accessory.
  * Studio shell mirrors GeneratedStudio (stage left, controls right, elements under stage).
  */
@@ -30,32 +30,15 @@ const rgba = (c, a) => {
 
 /* ---------- per-lantern themes + identity ---------- */
 const LANTERN_VARIANTS = {
-  lumen: {
-    slug: "lumen", name: "Lumen",
-    tagline: "Hex lantern who keeps the page glowing past midnight",
-    product: "Night Reading App", brand: "#D4AF37", defaultTheme: "midnight",
-    chassis: "hex", eyeStyle: "diamond",
-    elementLabels: {
-      hang: "Hanging ring", bands: "Brass bands", arms: "Arms", glass: "Glass panes",
-      base: "Foot rings", flame: "Candle glow", brows: "Brows", blush: "Blush", eyes: "Eyes",
-      halo: "Halo glow", shadow: "Shadow", props: "Pose props", accessory: "Bookmark",
-      thrusters: "Lift glow",
-    },
-    themes: {
-      midnight: { name: "Midnight Page", body: "#1C3340", panel: "#0F1C24", led: "#F5C74C", accent: "#D4AF37", stage: "#0E1A28" },
-      ink: { name: "Ink Library", body: "#243048", panel: "#141C2C", led: "#FFE8A8", accent: "#C9A45C", stage: "#121828" },
-      parchment: { name: "Parchment Glow", body: "#5A3A28", panel: "#2A1A12", led: "#FFE4B0", accent: "#E0A850", stage: "#241810" },
-      moss: { name: "Moss Margin", body: "#1E3A32", panel: "#10241C", led: "#E8F0A0", accent: "#C8A858", stage: "#12201A" },
-      rose: { name: "Rose Chapter", body: "#4A2840", panel: "#24101C", led: "#FFD8B0", accent: "#E0A868", stage: "#1E1420" },
-    },
-  },
   shade: {
     slug: "shade", name: "Shade",
     tagline: "Soft mushroom lamp who dims the day into sleep",
     product: "Sleep Wind-down App", brand: "#9B8CDB", defaultTheme: "dusk",
     chassis: "mushroom", eyeStyle: "oval",
+    /* Mitten arms read as odd extras on a soft table lamp — omit like Arc. */
+    omitElements: ["arms"],
     elementLabels: {
-      hang: "Shade knob", bands: "Shade trim", arms: "Arms", glass: "Shade glow",
+      hang: "Shade knob", bands: "Shade trim", glass: "Shade glow",
       base: "Lamp base", flame: "Warm core", brows: "Brows", blush: "Blush", eyes: "Eyes",
       halo: "Halo glow", shadow: "Shadow", props: "Pose props", accessory: "Moon charm",
       thrusters: "Lift glow",
@@ -92,8 +75,10 @@ const LANTERN_VARIANTS = {
     tagline: "Desk lamp who bends every study session into focus",
     product: "Study Focus App", brand: "#5B8FD9", defaultTheme: "steel",
     chassis: "desk", eyeStyle: "hud",
+    /* Desk lamp already has a spring arm — mitten hands read as odd extras. */
+    omitElements: ["arms"],
     elementLabels: {
-      hang: "Shade tip", bands: "Arm joints", arms: "Arms", glass: "Shade face",
+      hang: "Shade tip", bands: "Arm joints", glass: "Shade face",
       base: "Weighted base", flame: "Task beam", brows: "Brows", blush: "Blush", eyes: "Eyes",
       halo: "Halo glow", shadow: "Shadow", props: "Pose props", accessory: "Sticky note",
       thrusters: "Lift glow",
@@ -458,7 +443,7 @@ const ELEMENT_CATEGORIES = ["Body", "Face", "Stage"];
 const ALL_PARTS = Object.fromEntries(ELEMENTS.map((e) => [e.key, true]));
 const allParts = (on) => Object.fromEntries(ELEMENTS.map((e) => [e.key, on]));
 const elementsFor = (cfg) =>
-  ELEMENTS.map((el) => ({
+  ELEMENTS.filter((el) => !(cfg.omitElements || []).includes(el.key)).map((el) => ({
     ...el,
     label: cfg.elementLabels?.[el.key] || el.label,
   }));
@@ -467,11 +452,11 @@ const EYE_L_X = 180, EYE_R_X = 240, EYE_Y = 228;
 const HEART_D = "M0,8 C-10,0 -11,-7 -4.5,-9 C-1.5,-10 0,-6.5 0,-4.5 C0,-6.5 1.5,-10 4.5,-9 C11,-7 10,0 0,8 Z";
 
 /* ---------- face ---------- */
-/* eyeStyle: diamond (hex) · oval (mushroom) · round (bulb) · hud (desk)
+/* eyeStyle: oval (mushroom) · round (bulb) · hud (desk)
    gazeY: negative shifts pupils up (flight / skyward look). */
 function Eye({ kind, x, p, track, eyeRef, style = "round", gazeY = 0, hitId = "ln-hit" }) {
-  // lantern aliases: oval→soft rounds, round→bean ovals; diamond & hud stay native
-  const styleMap = { oval: "soft", round: "bean", soft: "soft", visor: "visor", bean: "bean", hud: "hud", diamond: "diamond" };
+  // lantern aliases: oval→soft rounds, round→bean ovals; hud stays native
+  const styleMap = { oval: "soft", round: "bean", soft: "soft", visor: "visor", bean: "bean", hud: "hud" };
   style = styleMap[style] || style;
   const at = `translate(${x},${EYE_Y})`;
   const pupilAt = gazeY ? `translate(0,${gazeY})` : undefined;
@@ -485,14 +470,6 @@ function Eye({ kind, x, p, track, eyeRef, style = "round", gazeY = 0, hitId = "l
         <g transform={at}>
           <rect x="-11" y="-2" width="22" height="12" rx="2" fill={p.led} />
           <path d="M-12,-4 L12,-4" stroke={p.dim} strokeWidth="3.5" strokeLinecap="round" />
-        </g>
-      );
-    }
-    if (style === "diamond") {
-      return (
-        <g transform={at}>
-          <path d="M0,-5 L11,3 L0,9 L-11,3 Z" fill={p.led} />
-          <path d="M-12,-2 L12,-2" stroke={p.dim} strokeWidth="3.5" strokeLinecap="round" />
         </g>
       );
     }
@@ -574,20 +551,6 @@ function Eye({ kind, x, p, track, eyeRef, style = "round", gazeY = 0, hitId = "l
             <g ref={track ? eyeRef : undefined} className="ln-pupils" transform={pupilAt}>
               <rect x="-4" y="-5" width="7" height="7" rx="3" fill={p.screen} opacity=".75" />
               <circle cx="3" cy="3" r="1.6" fill="#ffffff" opacity=".85" />
-            </g>
-          </>
-        );
-      })()}
-      {style === "diamond" && (() => {
-        /* Soft lozenge — Fanous curves, still reads as diamond vs ovals */
-        const s = uneven ? (x < 210 ? 0.85 : 1.15) : wide ? 1.2 : 1;
-        return (
-          <>
-            <path transform={`scale(${s})`} fill={p.led}
-              d="M0,-17 Q8,-8 14,0 Q8,8 0,17 Q-8,8 -14,0 Q-8,-8 0,-17 Z" />
-            <g ref={track ? eyeRef : undefined} className="ln-pupils" transform={pupilAt}>
-              <ellipse cx="-2.5" cy="-3" rx="4" ry="5" fill="#ffffff" opacity=".88" />
-              <circle cx="3" cy="3" r="1.7" fill={p.screen} opacity=".55" />
             </g>
           </>
         );
@@ -735,10 +698,6 @@ function HandShape({ chassis, p, kind = "mitt", side = "L" }) {
         <ellipse cx="-11" cy="-6" rx="8" ry="11" fill={fill} />
         <ellipse cx="0" cy="-8" rx="8.5" ry="12" fill={fill} />
         <ellipse cx="11" cy="-6" rx="8" ry="11" fill={fill} />
-        {chassis === "hex" && (
-          <path d="M-6,2 H6" stroke={p.accent} strokeWidth="2.2"
-            strokeLinecap="round" opacity=".45" />
-        )}
         {chassis === "bulb" && (
           <ellipse cx="-2" cy="4" rx="6" ry="4.5" fill={p.accent} opacity=".3" />
         )}
@@ -761,7 +720,7 @@ function tipBeyond(d, pad = 8) {
 }
 
 function Arm({
-  d, shoulder, p, anim, animKey, morph, chassis = "hex",
+  d, shoulder, p, anim, animKey, morph, chassis = "mushroom",
   hand = "mitt", side = "L", fingerAt = null,
 }) {
   const isThumb = hand === "thumb" || hand === "thumbDown";
@@ -811,17 +770,17 @@ function Arm({
   );
 }
 
-/** Warm lift glow / updraft under the base for flying — light, not rocket nozzles. */
-function Thrusters({ p, uid = "ln" }) {
+/** Warm lift glow under the base for flying. Soft=moonlight puffs (Shade); else light updraft. */
+function Thrusters({ p, uid = "ln", soft = false }) {
   const bloomId = `${uid}-lift-bloom`;
   const puffId = `${uid}-lift-puff`;
   return (
     <g>
       <defs>
         <radialGradient id={bloomId} cx="50%" cy="20%" r="70%">
-          <stop offset="0" stopColor={p.led} stopOpacity=".7" />
-          <stop offset=".45" stopColor={p.accent} stopOpacity=".45" />
-          <stop offset="1" stopColor={FLAME.outer} stopOpacity="0" />
+          <stop offset="0" stopColor={p.led} stopOpacity={soft ? ".55" : ".7"} />
+          <stop offset=".45" stopColor={p.accent} stopOpacity={soft ? ".32" : ".45"} />
+          <stop offset="1" stopColor={soft ? p.led : FLAME.outer} stopOpacity="0" />
         </radialGradient>
         <radialGradient id={puffId} cx="50%" cy="30%" r="70%">
           <stop offset="0" stopColor={p.led} stopOpacity=".55" />
@@ -835,7 +794,8 @@ function Thrusters({ p, uid = "ln" }) {
         <circle key={i} className="ln-smoke" cx={x} cy={y} r={r} fill={`url(#${puffId})`}
           style={{ animationDelay: delay }} />
       ))}
-      {[[172, 430, "0s"], [248, 430, "0.1s"]].map(([x, y, begin], i) => (
+      {/* Sleep lamp: soft moon-puffs only — no rocket cones */}
+      {!soft && [[172, 430, "0s"], [248, 430, "0.1s"]].map(([x, y, begin], i) => (
         <g key={i} transform={`translate(${x},${y})`}>
           <animateTransform attributeName="transform" type="scale" additive="sum"
             values="1 1;1.2 1.65;0.9 1.1;1 1" dur="0.22s" begin={begin}
@@ -846,17 +806,25 @@ function Thrusters({ p, uid = "ln" }) {
           <path d="M-5,0 Q-3,18 0,38 Q3,18 5,0 Z" fill={FLAME.core} opacity=".9" />
         </g>
       ))}
+      {soft && [[180, 452, 22, "0s"], [240, 456, 20, "0.35s"], [210, 470, 26, "0.7s"]].map(
+        ([x, y, r, delay], i) => (
+          <circle key={`m${i}`} className="ln-smoke" cx={x} cy={y} r={r}
+            fill={p.accent} opacity=".35" style={{ animationDelay: delay }} />
+        )
+      )}
     </g>
   );
 }
 
 const Star4 = ({ x, y, s = 1, fill, cls, delay }) => (
-  <path className={cls} transform={`translate(${x},${y}) scale(${s})`} fill={fill}
-    style={delay ? { animationDelay: delay } : undefined}
-    d="M0,-8 L2.2,-2.2 L8,0 L2.2,2.2 L0,8 L-2.2,2.2 L-8,0 L-2.2,-2.2 Z" />
+  <g transform={`translate(${x},${y}) scale(${s})`}>
+    <path className={cls} fill={fill}
+      style={delay ? { animationDelay: delay } : undefined}
+      d="M0,-8 L2.2,-2.2 L8,0 L2.2,2.2 L0,8 L-2.2,2.2 L-8,0 L-2.2,-2.2 Z" />
+  </g>
 );
 
-function Props({ g, p }) {
+function Props({ g, p, soft = false }) {
   const accent = p.accent;
   switch (g.prop) {
     case "think":
@@ -935,23 +903,33 @@ function Props({ g, p }) {
     case "tears":
       return (
         <g>
-          <path className="ln-tear" transform="translate(166,246)" fill={p.accent} opacity=".9"
-            d="M0,-11 Q7,-2 7,3 A7,7 0 1,1 -7,3 Q-7,-2 0,-11 Z" />
-          <path className="ln-tear" transform="translate(254,246)" fill={p.accent} opacity=".9"
-            d="M0,-11 Q7,-2 7,3 A7,7 0 1,1 -7,3 Q-7,-2 0,-11 Z" style={{ animationDelay: ".4s" }} />
+          <g transform="translate(166,246)">
+            <path className="ln-tear" fill={p.accent} opacity=".9"
+              d="M0,-11 Q7,-2 7,3 A7,7 0 1,1 -7,3 Q-7,-2 0,-11 Z" />
+          </g>
+          <g transform="translate(254,246)">
+            <path className="ln-tear" fill={p.accent} opacity=".9"
+              d="M0,-11 Q7,-2 7,3 A7,7 0 1,1 -7,3 Q-7,-2 0,-11 Z" style={{ animationDelay: ".4s" }} />
+          </g>
         </g>
       );
     case "steam":
       return (
         <g fill={p.bodyLight} opacity=".5">
-          <circle className="ln-rise" cx="308" cy="176" r="9" />
-          <circle className="ln-rise" cx="322" cy="162" r="6.5" style={{ animationDelay: ".5s" }} />
+          <g transform="translate(308,176)">
+            <circle className="ln-rise" r="9" />
+          </g>
+          <g transform="translate(322,162)">
+            <circle className="ln-rise" r="6.5" style={{ animationDelay: ".5s" }} />
+          </g>
         </g>
       );
     case "zzz":
       return (
-        <path className="ln-zzz" d="M292,120 L310,120 L292,138 L310,138" fill="none"
-          stroke={p.led} strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
+        <g transform="translate(301,129)">
+          <path className="ln-zzz" d="M-9,-9 L9,-9 L-9,9 L9,9" fill="none"
+            stroke={p.led} strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
+        </g>
       );
     case "badge":
       return (
@@ -965,7 +943,9 @@ function Props({ g, p }) {
       return (
         <g>
           <text x="316" y="150" fontSize="28" fill={accent} fontWeight="700" fontFamily="monospace">!</text>
-          <ellipse className="ln-tear" cx="158" cy="196" rx="5" ry="8" fill={accent} opacity=".8" />
+          <g transform="translate(158,196)">
+            <ellipse className="ln-tear" cx="0" cy="0" rx="5" ry="8" fill={accent} opacity=".8" />
+          </g>
         </g>
       );
     case "spark":
@@ -1002,14 +982,18 @@ function Props({ g, p }) {
     case "notes":
       return (
         <g fill={accent}>
-          <g className="ln-rise" transform="translate(320,150)">
-            <ellipse cx="0" cy="0" rx="5.5" ry="4.2" transform="rotate(-18)" />
-            <path d="M4,-1 L4,-19 Q11,-17 13,-11" fill="none" stroke={accent} strokeWidth="3"
-              strokeLinecap="round" />
+          <g transform="translate(320,150)">
+            <g className="ln-rise">
+              <ellipse cx="0" cy="0" rx="5.5" ry="4.2" transform="rotate(-18)" />
+              <path d="M4,-1 L4,-19 Q11,-17 13,-11" fill="none" stroke={accent} strokeWidth="3"
+                strokeLinecap="round" />
+            </g>
           </g>
-          <g className="ln-rise" transform="translate(96,138)" style={{ animationDelay: ".7s" }}>
-            <ellipse cx="0" cy="0" rx="4.5" ry="3.4" transform="rotate(-18)" />
-            <path d="M3.5,-1 L3.5,-15" fill="none" stroke={p.led} strokeWidth="2.6" strokeLinecap="round" />
+          <g transform="translate(96,138)">
+            <g className="ln-rise" style={{ animationDelay: ".7s" }}>
+              <ellipse cx="0" cy="0" rx="4.5" ry="3.4" transform="rotate(-18)" />
+              <path d="M3.5,-1 L3.5,-15" fill="none" stroke={p.led} strokeWidth="2.6" strokeLinecap="round" />
+            </g>
           </g>
         </g>
       );
@@ -1089,18 +1073,21 @@ function Props({ g, p }) {
     case "rocket":
       return (
         <g>
-          {/* vertical speed lines falling away under the launch */}
-          <g fill="none" stroke={accent} strokeLinecap="round">
-            <path className="ln-streak" d="M118,300 L118,360" strokeWidth="5" opacity=".75" />
-            <path className="ln-streak" d="M156,310 L156,372" strokeWidth="4" opacity=".6"
-              style={{ animationDelay: ".16s" }} />
-            <path className="ln-streak" d="M264,310 L264,372" strokeWidth="4" opacity=".6"
-              style={{ animationDelay: ".28s" }} />
-            <path className="ln-streak" d="M302,300 L302,360" strokeWidth="5" opacity=".75"
-              style={{ animationDelay: ".4s" }} />
-          </g>
+          {/* Sleep lamp: stars only — no harsh speed streaks */}
+          {!soft && (
+            <g fill="none" stroke={accent} strokeLinecap="round">
+              <path className="ln-streak" d="M118,300 L118,360" strokeWidth="5" opacity=".75" />
+              <path className="ln-streak" d="M156,310 L156,372" strokeWidth="4" opacity=".6"
+                style={{ animationDelay: ".16s" }} />
+              <path className="ln-streak" d="M264,310 L264,372" strokeWidth="4" opacity=".6"
+                style={{ animationDelay: ".28s" }} />
+              <path className="ln-streak" d="M302,300 L302,360" strokeWidth="5" opacity=".75"
+                style={{ animationDelay: ".4s" }} />
+            </g>
+          )}
           <Star4 x={150} y={120} fill={p.led} cls="ln-twinkle" s={1.1} />
           <Star4 x={270} y={110} fill={accent} cls="ln-twinkle" delay=".45s" />
+          {soft && <Star4 x={210} y={96} fill={p.led} cls="ln-twinkle" s={0.75} delay=".2s" />}
         </g>
       );
     case "highFive":
@@ -1192,17 +1179,6 @@ function Band({ x, y, w, h, p }) {
 }
 
 function Hang({ chassis, p }) {
-  if (chassis === "hex") {
-    return (
-      <g data-ms-part="hang">
-        <path d="M210,58 L210,86" stroke={p.accent} strokeWidth="7" strokeLinecap="round" />
-        <circle cx="210" cy="48" r="14" fill="none" stroke={p.accent} strokeWidth="8" />
-        <circle cx="210" cy="48" r="4.5" fill={p.bodyLight} />
-        <circle cx="210" cy="86" r="13" fill={p.accent} />
-        <circle cx="205" cy="81" r="3.4" fill="#ffffff" opacity=".75" />
-      </g>
-    );
-  }
   if (chassis === "mushroom") {
     return (
       <g data-ms-part="hang">
@@ -1228,18 +1204,15 @@ function Hang({ chassis, p }) {
 }
 
 function Bands({ chassis, p }) {
-  if (chassis === "hex") {
-    return (
-      <g data-ms-part="bands">
-        <Band x={98} y={172} w={224} h={22} p={p} />
-        <Band x={125} y={378} w={170} h={18} p={p} />
-      </g>
-    );
-  }
   if (chassis === "mushroom") {
     return (
       <g data-ms-part="bands">
-        <Band x={118} y={214} w={184} h={14} p={p} />
+        {/* Narrow stem-mouth trim — center only so it never shears the arm sockets */}
+        <path d="M172,264 Q210,278 248,264" fill="none" stroke={p.accent}
+          strokeWidth="11" strokeLinecap="round" />
+        <path d="M184,263 Q210,272 236,263" fill="none" stroke="#ffffff"
+          strokeWidth="2.8" strokeLinecap="round" opacity=".3" />
+        {/* Stem collar */}
         <ellipse cx="210" cy="318" rx="26" ry="12" fill={p.accent} />
         <ellipse cx="204" cy="314" rx="9" ry="3.5" fill="#ffffff" opacity=".28" />
       </g>
@@ -1292,35 +1265,16 @@ function FlameInner({ chassis, p, gid }) {
   if (chassis === "mushroom") {
     return (
       <g data-ms-part="flame">
-        <ellipse cx="210" cy="228" rx="48" ry="34" fill={`url(#${gid})`} opacity=".55" />
-        <circle cx="210" cy="232" r="16" fill={p.accent} opacity=".38" />
+        {/* Soft night glow behind the face window — no bright coin on the eyes */}
+        <ellipse cx="210" cy="222" rx="52" ry="40" fill={`url(#${gid})`} opacity=".45" />
+        <ellipse cx="210" cy="230" rx="28" ry="20" fill={p.led} opacity=".22" />
       </g>
     );
   }
-  return (
-    <g data-ms-part="flame">
-      <ellipse cx="210" cy="262" rx="34" ry="42" fill={`url(#${gid})`} opacity=".5" />
-      <path d="M210,228 C222,244 226,264 210,290 C194,264 198,244 210,228 Z"
-        fill={FLAME.outer} opacity=".95" />
-      <path d="M210,240 C218,252 220,266 210,282 C200,266 202,252 210,240 Z"
-        fill={FLAME.mid} opacity=".95" />
-      <path d="M210,250 C214,258 215,266 210,274 C205,266 206,258 210,250 Z"
-        fill={FLAME.core} opacity=".95" />
-    </g>
-  );
+  return null;
 }
 
 function Base({ chassis, p }) {
-  if (chassis === "hex") {
-    return (
-      <g data-ms-part="base">
-        {/* Fanous flared foot trumpet */}
-        <path d="M128,396 L292,396 L316,444 L104,444 Z" fill={p.body} />
-        <path d="M136,400 L146,400 L132,438 L122,438 Z" fill="#ffffff" opacity=".1" />
-        <Band x={101} y={436} w={218} h={24} p={p} />
-      </g>
-    );
-  }
   if (chassis === "mushroom") {
     return (
       <g data-ms-part="base">
@@ -1357,29 +1311,8 @@ function Base({ chassis, p }) {
 }
 
 function GlassBody({ chassis, p, bodyGrad, glassGrad }) {
-  if (chassis === "hex") {
-    /* Lumen — Fanous barrel + soft dome (not a hard hexagon) */
-    return (
-      <g data-ms-part="glass">
-        {/* marker: lumen-barrel */}
-        <path d="M108,190 L312,190 C318,262 336,270 336,322 C336,350 300,354 294,386 L126,386 C120,354 84,350 84,322 C84,270 102,262 108,190 Z"
-          fill={`url(#${bodyGrad})`} />
-        <ellipse cx="152" cy="252" rx="44" ry="70" fill="#ffffff" opacity=".12" />
-        {/* ogee dome */}
-        <path d="M116,172 C116,138 200,94 210,90 C220,94 304,138 304,172 Z"
-          fill={`url(#${bodyGrad})`} />
-        <ellipse cx="168" cy="138" rx="40" ry="24" fill="#ffffff" opacity=".14" />
-        {/* super-rounded glass face */}
-        <rect x="120" y="208" width="180" height="144" rx="70"
-          fill={p.face} stroke={p.faceEdge} strokeWidth="6" />
-        <ellipse cx="156" cy="236" rx="28" ry="18" fill="#ffffff" opacity=".2"
-          transform="rotate(-14 156 236)" />
-        <rect x="120" y="208" width="180" height="28" rx="14" fill="#000000" opacity=".08" />
-      </g>
-    );
-  }
   if (chassis === "mushroom") {
-    /* Shade — continuous soft mushroom, no hard corners */
+    /* Shade — soft mushroom lamp; clear night-window face, no bar across eyes */
     return (
       <g data-ms-part="glass">
         {/* marker: shade-cap */}
@@ -1389,10 +1322,12 @@ function GlassBody({ chassis, p, bodyGrad, glassGrad }) {
         <path d="M118,200 Q210,156 302,200" fill="none" stroke="#ffffff" strokeWidth="12"
           strokeLinecap="round" opacity=".16" />
         <ellipse cx="210" cy="198" rx="86" ry="58" fill={`url(#${glassGrad})`} opacity=".5" />
-        {/* soft face oval under the hood */}
-        <ellipse cx="210" cy="214" rx="72" ry="48" fill={p.face} stroke={p.faceEdge} strokeWidth="5" />
-        <ellipse cx="178" cy="198" rx="18" ry="12" fill="#ffffff" opacity=".18"
-          transform="rotate(-12 178 198)" />
+        {/* Soft night-window — rim stays light so it never reads as a face-cutting bar */}
+        <ellipse cx="210" cy="220" rx="70" ry="54" fill={p.face} />
+        <ellipse cx="210" cy="220" rx="70" ry="54" fill="none" stroke={p.faceEdge}
+          strokeWidth="3.5" opacity=".75" />
+        <ellipse cx="178" cy="200" rx="18" ry="12" fill="#ffffff" opacity=".2"
+          transform="rotate(-12 178 200)" />
         {/* soft stem */}
         <path d="M188,258 C182,300 186,380 192,428 C198,438 222,438 228,428
           C234,380 238,300 232,258 C222,268 198,268 188,258 Z"
@@ -1451,22 +1386,12 @@ function GlassBody({ chassis, p, bodyGrad, glassGrad }) {
 }
 
 function Accessory({ chassis, p }) {
-  if (chassis === "hex") {
-    return (
-      <g data-ms-part="accessory" transform="translate(118,348)">
-        <path d="M-8,-36 C-8,-40 8,-40 8,-36 L8,18 C4,12 0,10 0,10 C0,10 -4,12 -8,18 Z"
-          fill={p.accent} />
-        <rect x="-5" y="-30" width="10" height="4" rx="2" fill={p.led} opacity=".8" />
-        <path d="M-3,-18 H3 M-3,-10 H3 M-3,-2 H1" stroke={p.led} strokeWidth="1.8"
-          strokeLinecap="round" opacity=".7" />
-      </g>
-    );
-  }
   if (chassis === "mushroom") {
     return (
-      <g data-ms-part="accessory" transform="translate(312,142)">
-        <path d="M0,-14 A16 16 0 1 0 0,14 A10 10 0 1 1 0,-14 Z" fill={p.led} stroke={p.accent} strokeWidth="3.5" />
-        <circle cx="4" cy="-2" r="2.5" fill={p.accent} opacity=".55" />
+      <g data-ms-part="accessory" transform="translate(294,168)">
+        {/* Moon charm seated on the hood shoulder — clear of the peak knob */}
+        <path d="M0,-12 A14 14 0 1 0 0,12 A9 9 0 1 1 0,-12 Z" fill={p.led} stroke={p.accent} strokeWidth="3.2" />
+        <circle cx="3.5" cy="-1.5" r="2.2" fill={p.accent} opacity=".55" />
       </g>
     );
   }
@@ -1489,15 +1414,16 @@ function Accessory({ chassis, p }) {
 
 function shouldersFor(chassis) {
   /* Fanous tuck: shoulders sit inside the silhouette */
-  if (chassis === "mushroom") return [[128, 250], [292, 250]];
+  /* Shade: under the hood flanks — clear of the narrow stem-mouth trim */
+  if (chassis === "mushroom") return [[142, 238], [278, 238]];
   if (chassis === "bulb") return [[118, 300], [302, 300]];
   if (chassis === "desk") return [[132, 200], [288, 200]];
-  return [[118, 320], [302, 320]];
+  return [[164, 248], [256, 248]];
 }
 
 
 function LanternSVG({ variant, p, glow, paused, waving, gesture, svgRef, eyeRef, parts = ALL_PARTS }) {
-  const chassis = variant?.chassis || "hex";
+  const chassis = variant?.chassis || "mushroom";
   const eyeStyle = variant?.eyeStyle || "round";
   const g = byKey(gesture);
   const isWaving = (waving && !!g.track) || !!g.wave;
@@ -1540,28 +1466,30 @@ function LanternSVG({ variant, p, glow, paused, waving, gesture, svgRef, eyeRef,
   const armMorphL = runMorphL || clapMorphL;
   const armMorphR = runMorphR || clapMorphR;
 
+  /* Shade flying: fists go out-and-up so they don't punch through the face window */
+  const shadeFlyL = "M0,0 Q-46,-34 -58,-76";
+  const armPathL = chassis === "mushroom" && g.boost ? shadeFlyL : g.armL;
+  const armPathR = chassis === "mushroom" && g.boost ? mir(shadeFlyL) : g.armR;
+
   const flying = !!g.boost;
   /* Face features ride high on the panel so he reads as looking up, not at the viewer. */
   /* Seat the face on each chassis' soft glass (Fanous face sits ~y228–294). */
   const faceLift = skyward
     ? -14
     : chassis === "mushroom"
-      ? -18
+      ? -6 /* seat eyes in the night-window, clear of hood-lip trim */
       : chassis === "desk"
         ? -36
-        : chassis === "bulb"
-          ? 8
-          : 18;
+        : 8; /* bulb */
   const mouthY = skyward ? -12 : 0;
   /* Pupils park at the top of each eye when launching skyward. */
   const gazeY = g.gazeY ?? (skyward ? -6 : 0);
   const uid = `${variant?.slug || chassis}-${g.key}`;
   const hitId = `ln-hit-${uid}`;
   /* Local blush Y inside the faceLift group (rides with eyes/mouth). */
-  const blushCy = chassis === "mushroom" ? 250
+  const blushCy = chassis === "mushroom" ? 248
     : chassis === "desk" ? 246
-      : chassis === "bulb" ? 260
-        : 278;
+      : 260; /* bulb */
 
   return (
     <svg
@@ -1598,7 +1526,8 @@ function LanternSVG({ variant, p, glow, paused, waving, gesture, svgRef, eyeRef,
           rx={flying ? 68 : 88} ry="9" fill="#000" opacity=".2" />
       )}
 
-      <g className="ln-float" transform={`translate(0,${lift})`}>
+      <g transform={`translate(0,${lift})`}>
+        <g className="ln-float">
         <g transform="translate(210,470)">
           {g.shake && (
             <animateTransform attributeName="transform" type="translate" additive="sum"
@@ -1624,7 +1553,9 @@ function LanternSVG({ variant, p, glow, paused, waving, gesture, svgRef, eyeRef,
 
                 {/* lift glow sits behind the base while flying */}
                 {flying && parts.thrusters && (
-                  <g data-ms-part="thrusters"><Thrusters p={p} uid={uid} /></g>
+                  <g data-ms-part="thrusters">
+                    <Thrusters p={p} uid={uid} soft={chassis === "mushroom"} />
+                  </g>
                 )}
 
                 {parts.base && <Base chassis={chassis} p={p} />}
@@ -1666,18 +1597,19 @@ function LanternSVG({ variant, p, glow, paused, waving, gesture, svgRef, eyeRef,
 
                 {parts.props && (
                   <g data-ms-part="props" key={`p-${g.key}`} className="ln-pop">
-                    <Props g={g} p={p} />
+                    <Props g={g} p={p} soft={chassis === "mushroom"} />
                   </g>
                 )}
 
-                {/* Arms on top so raised mitts/thumbs never hide under glass */}
-                {parts.arms && (
+                {/* Arms on top so raised mitts/thumbs never hide under glass.
+                    Desk (Arc) and mushroom (Shade) skip mittens — lamp body is the limb. */}
+                {parts.arms && chassis !== "desk" && chassis !== "mushroom" && (
                   <g data-ms-part="arms">
-                    <Arm d={g.armL} shoulder={shouldersFor(chassis)[0]} p={p} anim={armLAnim}
+                    <Arm d={armPathL} shoulder={shouldersFor(chassis)[0]} p={p} anim={armLAnim}
                       morph={armMorphL} animKey={`l-${g.key}-${isWaving}`} chassis={chassis}
                       hand={g.handL || "mitt"} side="L"
                       fingerAt={g.handL === "thumb" || g.handL === "thumbDown" ? g.fingerAt : null} />
-                    <Arm d={g.armR} shoulder={shouldersFor(chassis)[1]} p={p} anim={armRAnim}
+                    <Arm d={armPathR} shoulder={shouldersFor(chassis)[1]} p={p} anim={armRAnim}
                       morph={armMorphR} animKey={`r-${g.key}-${isWaving}`} chassis={chassis}
                       hand={g.handR || "mitt"} side="R"
                       fingerAt={g.handR === "thumb" || g.handR === "thumbDown" ? g.fingerAt : null} />
@@ -1686,6 +1618,7 @@ function LanternSVG({ variant, p, glow, paused, waving, gesture, svgRef, eyeRef,
               </g>
             </g>
           </g>
+        </g>
         </g>
       </g>
     </svg>

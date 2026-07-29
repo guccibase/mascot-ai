@@ -104,12 +104,19 @@ export default defineSchema({
     topupTokens: v.optional(v.number()),
     /** When the plan allowance next refills. */
     tokenCycleEnd: v.optional(v.number()),
+    /**
+     * Sum of open deferred hold amounts (capacity earmarked, not yet charged).
+     * Maintained by reserve/settle/expiry mutations so balance queries need no
+     * clock for hold math (avoids client `now` skew hiding open holds).
+     */
+    openHoldTotal: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_clerk", ["clerkId"])
     .index("by_token", ["tokenIdentifier"])
-    .index("by_email", ["email"]),
+    .index("by_email", ["email"])
+    .index("by_created", ["createdAt"]),
 
   /** Immutable audit trail for every balance change. */
   tokenLedger: defineTable({
@@ -130,7 +137,10 @@ export default defineSchema({
     model: v.optional(v.string()),
     eventId: v.optional(v.string()),
     createdAt: v.number(),
-  }).index("by_user_created", ["userId", "createdAt"]),
+  })
+    .index("by_user_created", ["userId", "createdAt"])
+    /** Idempotent settle / grant lookups by opaque event key. */
+    .index("by_event", ["eventId"]),
 
   /**
    * Open holds taken before a generation runs, settled against real usage
@@ -146,6 +156,11 @@ export default defineSchema({
     model: v.string(),
     createdAt: v.number(),
     expiresAt: v.number(),
+    /**
+     * When true, wallet balances are not reduced at reserve — settle debits
+     * only on success (auth/capture). Missing/false = legacy debit-on-reserve.
+     */
+    deferred: v.optional(v.boolean()),
   })
     .index("by_user_expires", ["userId", "expiresAt"])
     // Lets the cron sweep every user's stale holds, not just the caller's.
@@ -259,7 +274,6 @@ export default defineSchema({
         v.literal("relay"),
         v.literal("orbit"),
         v.literal("brew"),
-        v.literal("lumen"),
         v.literal("shade"),
         v.literal("watt"),
         v.literal("arc"),

@@ -8,10 +8,12 @@ import { Loader2 } from "lucide-react";
 import { StudioPageSkeleton } from "@/components/skeletons";
 import { toast } from "sonner";
 import { GeneratedStudio } from "@/components/generated-studio";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { toGeneratedMascot } from "@/lib/mascot-pack";
 import { formatUsdCents } from "@/lib/marketplace/format";
+import { MARKETPLACE_PREVIEW_CAPABILITIES } from "@/lib/studio-capabilities";
 import { api } from "../../../../convex/_generated/api";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -82,72 +84,63 @@ export default function MarketplaceListingPage({ params }: Props) {
   }
 
   return (
-    <div className="relative min-h-screen bg-[#0a0e18] text-white">
-      <div className="relative z-50">
-        <SiteHeader />
-      </div>
-      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 pb-4 pt-2 sm:flex-row sm:items-end sm:justify-between sm:px-8">
-        <div className="min-w-0">
+    <div className="relative min-h-screen bg-[var(--brand-bg)] text-[var(--brand-ink)]">
+      <SiteHeader />
+      {/* Toolbar only — GeneratedStudio owns the title (avoids double headers). */}
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-5 py-3 sm:px-8">
+        <Link
+          href="/marketplace"
+          className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10"
+        >
+          ← Marketplace
+        </Link>
+        {unlock ? (
           <Link
-            href="/marketplace"
-            className="text-xs font-semibold text-white/60 hover:text-white"
+            href={`/marketplace/${slug}/remix?orderId=${unlock.orderId}`}
+            className="inline-flex h-8 items-center justify-center rounded-full bg-[var(--brand-accent)] px-3 text-xs font-semibold text-[#12141c] hover:bg-[var(--brand-accent)]/90"
           >
-            ← Marketplace
+            Continue remix
           </Link>
-          <h1 className="mt-2 font-[family-name:var(--font-display)] text-3xl tracking-tight sm:text-4xl">
-            {listing.name}
-          </h1>
-          <p className="mt-1 max-w-xl text-sm text-white/65">
-            {listing.description || listing.tagline}
-          </p>
-          {listing.status === "reserved" && (
-            <p className="mt-2 text-xs text-amber-300/90">
-              Someone has a buy-to-own checkout in progress. Remix is still
-              available; exclusive buy may reopen if they abandon it.
-            </p>
-          )}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {unlock ? (
-            <Link
-              href={`/marketplace/${slug}/remix?orderId=${unlock.orderId}`}
-              className="inline-flex h-9 items-center justify-center rounded-md bg-[var(--brand-accent)] px-4 text-sm font-semibold text-[#12141c] hover:bg-[var(--brand-accent)]/90"
-            >
-              Continue remix
-            </Link>
-          ) : (
-            <Button
-              disabled={busy !== null}
-              onClick={() => void startCheckout("remix")}
-              className="bg-[var(--brand-accent)] text-[#12141c] hover:bg-[var(--brand-accent)]/90"
-            >
-              {busy === "remix" ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                `Remix ${formatUsdCents(listing.remixPriceCents)}`
-              )}
-            </Button>
-          )}
+        ) : (
           <Button
-            variant="outline"
-            disabled={busy !== null || listing.status !== "available"}
-            onClick={() => void startCheckout("buy_to_own")}
-            className="border-white/20 bg-white/5 text-white hover:bg-white/10"
+            size="sm"
+            disabled={busy !== null}
+            onClick={() => void startCheckout("remix")}
+            className="h-8 rounded-full bg-[var(--brand-accent)] px-3 text-xs font-semibold text-[#12141c] hover:bg-[var(--brand-accent)]/90"
           >
-            {busy === "buy" ? (
-              <Loader2 className="size-4 animate-spin" />
+            {busy === "remix" ? (
+              <Loader2 className="size-3.5 animate-spin" />
             ) : (
-              `Buy & own ${formatUsdCents(listing.buyToOwnPriceCents)}`
+              `Remix ${formatUsdCents(listing.remixPriceCents)}`
             )}
           </Button>
-        </div>
+        )}
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={busy !== null || listing.status !== "available"}
+          onClick={() => void startCheckout("buy_to_own")}
+          className="h-8 rounded-full border-white/20 bg-white/5 px-3 text-xs font-semibold text-white hover:bg-white/10"
+        >
+          {busy === "buy" ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            `Buy & own ${formatUsdCents(listing.buyToOwnPriceCents)}`
+          )}
+        </Button>
+        {listing.status === "reserved" && (
+          <p className="basis-full text-xs text-amber-300/90">
+            Someone has a buy-to-own checkout in progress. Remix is still
+            available; exclusive buy may reopen if they abandon it.
+          </p>
+        )}
       </div>
-
       <GeneratedStudio
         mascot={pack}
         fullPage
-        capabilities={{ export: false, edit: false, appAssets: false }}
+        capabilities={MARKETPLACE_PREVIEW_CAPABILITIES}
       />
+      <SiteFooter />
     </div>
   );
 }

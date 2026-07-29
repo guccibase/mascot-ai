@@ -395,9 +395,11 @@ function Mouth({ kind, p }) {
 
 /* ---------- props: light doing the talking ---------- */
 const Star4 = ({ x, y, s = 1, fill, cls, delay }) => (
-  <path className={cls} transform={`translate(${x},${y}) scale(${s})`} fill={fill}
-    style={delay ? { animationDelay: delay } : undefined}
-    d="M0,-9 L2.4,-2.4 L9,0 L2.4,2.4 L0,9 L-2.4,2.4 L-9,0 L-2.4,-2.4 Z" />
+  <g transform={`translate(${x},${y}) scale(${s})`}>
+    <path className={cls} fill={fill}
+      style={delay ? { animationDelay: delay } : undefined}
+      d="M0,-9 L2.4,-2.4 L9,0 L2.4,2.4 L0,9 L-2.4,2.4 L-9,0 L-2.4,-2.4 Z" />
+  </g>
 );
 const Crescent = ({ p, x, y, s = 0.85 }) => (
   <path d="M24,6 A15,15 0 1,0 24,34 A11.5,11.5 0 1,1 24,6 Z" fill={p.top} opacity=".92"
@@ -517,9 +519,11 @@ function Props({ g, p }) {
     case "drip":
       /* a drop of light, not a tear */
       return (
-        <path className="sd-drip" transform="translate(152,306)" fill={p.core} opacity=".95"
-          stroke={p.top} strokeWidth="2.5"
-          d="M0,-12 Q8.5,-2 8.5,4 A8.5,8.5 0 1,1 -8.5,4 Q-8.5,-2 0,-12 Z" />
+        <g transform="translate(152,306)">
+          <path className="sd-drip" fill={p.core} opacity=".95"
+            stroke={p.top} strokeWidth="2.5"
+            d="M0,-12 Q8.5,-2 8.5,4 A8.5,8.5 0 1,1 -8.5,4 Q-8.5,-2 0,-12 Z" />
+        </g>
       );
     case "orbit":
       return (
@@ -534,10 +538,13 @@ function Props({ g, p }) {
     case "hearts":
       return (
         <g>
-          <path className="sd-rise" d={HEART_D} fill={p.base}
-            transform="translate(306,178) scale(1.25)" />
-          <path className="sd-rise" d={HEART_D} fill={p.top} opacity=".85"
-            transform="translate(118,158) scale(0.8)" style={{ animationDelay: ".9s" }} />
+          <g transform="translate(306,178) scale(1.25)">
+            <path className="sd-rise" d={HEART_D} fill={p.base} />
+          </g>
+          <g transform="translate(118,158) scale(0.8)">
+            <path className="sd-rise" d={HEART_D} fill={p.top} opacity=".85"
+              style={{ animationDelay: ".9s" }} />
+          </g>
         </g>
       );
     default:

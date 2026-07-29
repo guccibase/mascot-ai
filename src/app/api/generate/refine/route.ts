@@ -6,7 +6,7 @@ import {
   runMascotModel,
 } from "@/lib/mascot-model";
 import { ensurePartAttributes, extractPartsFromMascot } from "@/lib/mascot-parts";
-import { openMeter } from "@/lib/metering";
+import { openMeter, tokenMetaFields } from "@/lib/metering";
 import { parseJsonObject } from "@/lib/parse-json";
 import {
   MAX_REFINE_HISTORY_MESSAGE_CHARS,
@@ -15,8 +15,8 @@ import {
 } from "@/lib/refine-limits";
 import {
   compactMascotForRefine,
-  MAX_REFINE_GESTURES,
   MAX_REFINE_SVG_CHARS_PER_BATCH,
+  MAX_STUDIO_GESTURES,
   mergeRefinedGestureBatches,
   splitRefineGestures,
 } from "@/lib/refine-pack";
@@ -44,34 +44,55 @@ const MODEL_DEADLINE_MS = 285_000;
 
 class IncompleteRefineError extends Error {}
 
-function isMascot(value: unknown): value is GeneratedMascot {
-  if (!value || typeof value !== "object") return false;
+/** Specific reason the pack cannot be refined, or null when valid. */
+function mascotRejectReason(value: unknown): string | null {
+  if (!value || typeof value !== "object") return "Mascot pack is missing";
   const v = value as GeneratedMascot;
   const gestures = Array.isArray(v.gestures) ? v.gestures : [];
   const keys = gestures.map((gesture) => gesture?.key);
-  return (
-    typeof v.name === "string" &&
-    typeof v.tagline === "string" &&
-    typeof v.accent === "string" &&
-    Boolean(v.themes) &&
-    typeof v.themes === "object" &&
-    !Array.isArray(v.themes) &&
-    Object.keys(v.themes).length > 0 &&
-    Boolean(v.instrument) &&
-    typeof v.instrument === "object" &&
-    !Array.isArray(v.instrument) &&
-    Array.isArray(v.parts) &&
-    gestures.length > 0 &&
-    gestures.length <= MAX_REFINE_GESTURES &&
-    gestures.every(
+
+  if (typeof v.name !== "string" || !v.name.trim()) {
+    return "Mascot pack needs a name";
+  }
+  if (typeof v.tagline !== "string") return "Mascot pack needs a tagline";
+  if (typeof v.accent !== "string") return "Mascot pack needs an accent color";
+  if (!v.themes || typeof v.themes !== "object" || Array.isArray(v.themes)) {
+    return "Mascot pack needs themes";
+  }
+  if (Object.keys(v.themes).length === 0) {
+    return "Mascot pack needs at least one theme";
+  }
+  if (
+    !v.instrument ||
+    typeof v.instrument !== "object" ||
+    Array.isArray(v.instrument)
+  ) {
+    return "Mascot pack needs an instrument";
+  }
+  if (!Array.isArray(v.parts)) return "Mascot pack needs a parts list";
+  if (gestures.length === 0) return "Mascot pack needs at least one gesture";
+  if (gestures.length > MAX_STUDIO_GESTURES) {
+    return `Mascot packs are limited to ${MAX_STUDIO_GESTURES} gestures`;
+  }
+  if (
+    !gestures.every(
       (gesture) =>
         typeof gesture?.key === "string" &&
         gesture.key.trim().length > 0 &&
         typeof gesture.svg === "string" &&
         gesture.svg.includes("<svg")
-    ) &&
-    new Set(keys).size === keys.length
-  );
+    )
+  ) {
+    return "Every gesture needs a unique key and SVG markup";
+  }
+  if (new Set(keys).size !== keys.length) {
+    return "Gesture keys must be unique";
+  }
+  return null;
+}
+
+function isMascot(value: unknown): value is GeneratedMascot {
+  return mascotRejectReason(value) === null;
 }
 
 export async function POST(req: Request) {
@@ -103,7 +124,9 @@ export async function POST(req: Request) {
   if (!isMascot(body.mascot)) {
     return NextResponse.json(
       {
-        error: `Valid mascot pack required (1 to ${MAX_REFINE_GESTURES} uniquely keyed gestures)`,
+        error:
+          mascotRejectReason(body.mascot) ??
+          "Valid mascot pack required",
       },
       { status: 400 }
     );
@@ -170,10 +193,15 @@ export async function POST(req: Request) {
   const { meter } = metered;
   const remainingMs = Math.max(1, deadlineAt - Date.now());
   const deadlineSignal = AbortSignal.timeout(remainingMs);
-  const modelSignal = AbortSignal.any([req.signal, deadlineSignal]);
+  const batchAbort = new AbortController();
+  const modelSignal = AbortSignal.any([
+    req.signal,
+    deadlineSignal,
+    batchAbort.signal,
+  ]);
 
   try {
-    const modelRuns = await Promise.allSettled(
+    const successfulRuns = await Promise.all(
       gestureBatches.map((batch, batchIndex) =>
         runMascotModel({
           model,
@@ -233,38 +261,12 @@ export async function POST(req: Request) {
           maxOutputTokens: 32_000,
           reasoningEffort: "low",
           signal: modelSignal,
+        }).catch((err) => {
+          if (!batchAbort.signal.aborted) batchAbort.abort();
+          throw err;
         })
       )
     );
-
-    let modelFailure: unknown;
-    for (const result of modelRuns) {
-      if (result.status === "fulfilled") {
-        if (result.value.usage) {
-          meter.record(result.value.usage, result.value.model);
-        } else {
-          meter.recordFallback({
-            kind: "refine",
-            batches: 1,
-            payloadChars,
-            referenceImages: referenceImage ? 1 : 0,
-          });
-        }
-      } else {
-        if (result.reason instanceof MascotModelResponseError) {
-          meter.record(result.reason.usage, result.reason.model);
-        }
-        modelFailure ??= result.reason;
-      }
-    }
-    if (modelFailure) throw modelFailure;
-
-    const successfulRuns = modelRuns.map((result) => {
-      if (result.status !== "fulfilled") {
-        throw new IncompleteRefineError("Refine batch failed");
-      }
-      return result.value;
-    });
 
     const parsedBatches = successfulRuns.map((run) => {
       let parsed: {
@@ -349,6 +351,21 @@ export async function POST(req: Request) {
       }
     }
 
+    // Bill only after a usable pack is assembled. Refine is atomic for the
+    // customer: no applied edit ⇒ full refund via settle(charged=0).
+    for (const run of successfulRuns) {
+      if (run.usage) {
+        meter.record(run.usage, run.model);
+      } else {
+        meter.recordFallback({
+          kind: "refine",
+          batches: 1,
+          payloadChars,
+          referenceImages: referenceImage ? 1 : 0,
+        });
+      }
+    }
+
     const tokens = await meter.settle();
 
     return NextResponse.json({
@@ -359,11 +376,14 @@ export async function POST(req: Request) {
       _meta: {
         model: successfulRuns[0]!.model,
         elapsedMs: Date.now() - started,
-        tokens: tokens.tokens,
-        balance: tokens.balance,
+        ...tokenMetaFields(tokens),
       },
     });
   } catch (err) {
+    // Always forgive before settle in finally — never charge for an edit that
+    // did not produce an applied pack (the previous bug: partial batch usage
+    // was billed on 502/504/500).
+    meter.forgive();
     console.error("refine error:", err);
     const timedOut = deadlineSignal.aborted;
     const incomplete =
@@ -397,7 +417,7 @@ export async function POST(req: Request) {
       { status: publicError.status }
     );
   } finally {
-    // Idempotent if try already settled; ensures holds release on failure.
+    // Idempotent if try already settled; on failure settles charged=0 (refund).
     await meter.settle();
   }
 }

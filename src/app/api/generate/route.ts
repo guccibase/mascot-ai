@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { boundedText, rateLimit, readJsonBody } from "@/lib/api-guard";
 import { resolveMascotModel, runMascotModel } from "@/lib/mascot-model";
-import { openMeter } from "@/lib/metering";
+import { openMeter, tokenMetaFields } from "@/lib/metering";
+import { MAX_CREATE_GESTURES } from "@/lib/token-pricing";
 import { parseJsonObject } from "@/lib/parse-json";
 import { isReferenceId } from "@/lib/reference-image-client";
 import { loadReferenceImage } from "@/lib/reference-image";
@@ -28,6 +29,30 @@ export const maxDuration = 180;
 const MAX_BODY_BYTES = 200_000;
 
 const SVG_INSTRUCTIONS = SVG_GESTURE_INSTRUCTIONS;
+
+/** Bound parallel secondary-gesture calls so a 10-pose create does not stampede the provider. */
+const STUDIO_GESTURE_CONCURRENCY = 4;
+
+async function mapPool<T, R>(
+  items: readonly T[],
+  concurrency: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  if (items.length === 0) return [];
+  const results = new Array<R>(items.length);
+  let next = 0;
+  const workers = Array.from(
+    { length: Math.min(concurrency, items.length) },
+    async () => {
+      while (next < items.length) {
+        const index = next++;
+        results[index] = await fn(items[index]!);
+      }
+    }
+  );
+  await Promise.all(workers);
+  return results;
+}
 
 type BiblePack = {
   name: string;
@@ -122,9 +147,14 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
-  if (gestures.length < 1 || gestures.length > 6) {
+  if (
+    gestures.length < 1 ||
+    gestures.length > MAX_CREATE_GESTURES
+  ) {
     return NextResponse.json(
-      { error: "Select between 1 and 6 gestures" },
+      {
+        error: `Select between 1 and ${MAX_CREATE_GESTURES} gestures`,
+      },
       { status: 400 }
     );
   }
@@ -174,7 +204,7 @@ export async function POST(req: Request) {
         `Lock a CHARACTER BIBLE for a NEW mascot. JSON only, no svg fields.`,
         `Schema:`,
         `{"name","tagline","product","accent","glowLabel","metaphor","silhouette",`,
-        `"instrument":{"label","description","lowLabel","midLabel","highLabel","defaultValue","ramp":[5 hex]},`,
+        `"instrument":{"label","description","lowLabel","midLabel","highLabel","defaultValue":55-80,"ramp":[5 hex]},`,
         `"themes":{"primary":{"name","top","mid","base","core","stage","features"},"night":{…},"dune":{…}}}`,
         ``,
         references,
@@ -196,7 +226,7 @@ export async function POST(req: Request) {
         `Chosen sample SVG (LOCK this silhouette / face / motif):`,
         selectedSample.svg,
         `Gestures to support: ${gestures.map((g) => g.key).join(", ")}`,
-        `Invent a product INSTRUMENT in the anatomy (Lyra delivery-tail pattern). Themes should fit the sample. JSON only.`,
+        `Invent a product INSTRUMENT in the anatomy (Lyra delivery-tail pattern). instrument.defaultValue MUST be an integer 55–80 (never 0–15). Themes should fit the sample. JSON only.`,
       ]
         .filter(Boolean)
         .join("\n\n"),
@@ -204,12 +234,12 @@ export async function POST(req: Request) {
       maxOutputTokens: 8000,
       reasoningEffort: "low",
     });
-    meter.record(bibleRun.usage, bibleRun.model);
-
     let bible: BiblePack;
     try {
       const parsed = parseJsonObject(bibleRun.text);
       if (!isBible(parsed)) {
+        // No usable pack yet — do not bill the bible call.
+        meter.forgive();
         return NextResponse.json(
           {
             error: "Failed to lock character bible",
@@ -223,11 +253,13 @@ export async function POST(req: Request) {
     } catch (err) {
       const detail = err instanceof Error ? err.message : "bad bible JSON";
       console.error("bible parse failed:", detail, "len=", bibleRun.text.length);
+      meter.forgive();
       return NextResponse.json(
         { error: `Character bible JSON broken: ${detail}`, model: bibleRun.model },
         { status: 502 }
       );
     }
+    meter.record(bibleRun.usage, bibleRun.model);
 
     const primary = bible.themes.primary;
 
@@ -271,7 +303,6 @@ export async function POST(req: Request) {
       maxOutputTokens: 16000,
       reasoningEffort: "low",
     });
-    meter.record(idleRun.usage, idleRun.model);
 
     let idleParsed: GeneratedGesture;
     try {
@@ -288,6 +319,7 @@ export async function POST(req: Request) {
       );
       throw new Error(`Failed SVG for gesture "${idleReq.key}": ${detail}`);
     }
+    meter.record(idleRun.usage, idleRun.model);
 
     const idleGesture: GeneratedGesture = {
       key: idleReq.key,
@@ -301,9 +333,11 @@ export async function POST(req: Request) {
       svg: idleParsed.svg,
     };
 
-    /* Phase 3: remaining gestures in parallel; tolerate per-gesture failures */
-    const settled = await Promise.all(
-      otherReqs.map(async (g) => {
+    /* Phase 3: remaining gestures (bounded concurrency); tolerate per-gesture failures */
+    const settled = await mapPool(
+      otherReqs,
+      STUDIO_GESTURE_CONCURRENCY,
+      async (g) => {
         try {
           const run = await runMascotModel({
             model,
@@ -329,9 +363,9 @@ export async function POST(req: Request) {
             maxOutputTokens: 14000,
             reasoningEffort: "low",
           });
-          meter.record(run.usage, run.model);
 
           const coerced = coerceGesture(parseJsonObject(run.text), g);
+          meter.record(run.usage, run.model);
           return {
             ok: true as const,
             gesture: {
@@ -351,7 +385,7 @@ export async function POST(req: Request) {
           console.error(`gesture "${g.key}" failed:`, detail);
           return { ok: false as const, key: g.key, detail };
         }
-      })
+      }
     );
 
     const otherGestures: GeneratedGesture[] = [];
@@ -404,8 +438,7 @@ export async function POST(req: Request) {
         craft: "fanous-lyra",
         sampleId: selectedSample.id,
         elapsedMs: Date.now() - started,
-        tokens: tokens.tokens,
-        balance: tokens.balance,
+        ...tokenMetaFields(tokens),
         warnings: warnings.length ? warnings : undefined,
         skippedGestures: otherReqs
           .filter((g) => !ordered.some((o) => o.key === g.key))
@@ -413,6 +446,8 @@ export async function POST(req: Request) {
       },
     });
   } catch (err) {
+    // Failed create never applies a pack — full refund (matches refine/gesture).
+    meter.forgive();
     const message = err instanceof Error ? err.message : "Generation failed";
     console.error("generate error:", message);
     return NextResponse.json({ error: message }, { status: 500 });

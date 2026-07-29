@@ -9,8 +9,10 @@ import {
   ModelPickerSkeleton,
   SampleConceptsSkeleton,
 } from "@/components/skeletons";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { GeneratedStudio } from "@/components/generated-studio";
+import { OWNED_STUDIO_CAPABILITIES } from "@/lib/studio-capabilities";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,7 +33,13 @@ import {
   trackGenerationFailure,
   type GenerateAction,
 } from "@/lib/analytics";
-import { estimateFullCreate, formatTokens } from "@/lib/token-pricing";
+import {
+  estimateFullCreate,
+  estimateTokens,
+  formatTokens,
+  MAX_CREATE_GESTURES,
+} from "@/lib/token-pricing";
+import { useAffordability } from "@/lib/use-affordability";
 import { sanitizeSvg } from "@/lib/sanitize-svg";
 import type {
   GeneratedMascot,
@@ -239,6 +247,64 @@ export default function CreatePage() {
   );
 
   const pickedSample = samples.find((s) => s.id === pickedId) ?? null;
+  const atGestureCap = allGestures.length >= MAX_CREATE_GESTURES;
+
+  const briefPayloadChars = useMemo(
+    () =>
+      name.trim().length +
+      description.trim().length +
+      look.trim().length +
+      productContext.trim().length +
+      personality.trim().length,
+    [name, description, look, productContext, personality]
+  );
+
+  const samplesReservation = useMemo(() => {
+    if (!model) return 0;
+    return estimateTokens(
+      {
+        kind: "samples",
+        payloadChars: briefPayloadChars,
+        referenceImages: referenceId ? 1 : 0,
+      },
+      model
+    ).max;
+  }, [model, briefPayloadChars, referenceId]);
+
+  const studioReservation = useMemo(() => {
+    if (!model) return 0;
+    const payloadChars =
+      (pickedSample?.svg.length ?? 0) +
+      name.trim().length +
+      description.trim().length +
+      look.trim().length;
+    return estimateTokens(
+      {
+        kind: "studio",
+        gestures: Math.max(1, allGestures.length),
+        payloadChars,
+        referenceImages: referenceId ? 2 : 0,
+      },
+      model
+    ).max;
+  }, [
+    model,
+    pickedSample?.svg.length,
+    name,
+    description,
+    look,
+    allGestures.length,
+    referenceId,
+  ]);
+
+  const samplesAfford = useAffordability(
+    samplesReservation,
+    Boolean(model) && (step === "brief" || step === "samples")
+  );
+  const studioAfford = useAffordability(
+    studioReservation,
+    Boolean(model) && step === "samples"
+  );
 
   /** Billing failures get a direct route to checkout instead of a dead toast. */
   const reportGenerationError = (
@@ -264,8 +330,15 @@ export default function CreatePage() {
   const toggle = (key: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
+      if (next.has(key)) {
+        next.delete(key);
+        return next;
+      }
+      if (prev.size + customGestures.length >= MAX_CREATE_GESTURES) {
+        toast.error(`Keep it to ${MAX_CREATE_GESTURES} gestures max`);
+        return prev;
+      }
+      next.add(key);
       return next;
     });
   };
@@ -284,6 +357,10 @@ export default function CreatePage() {
       customGestures.some((g) => g.key === key)
     ) {
       toast.error("That gesture already exists");
+      return;
+    }
+    if (selected.size + customGestures.length >= MAX_CREATE_GESTURES) {
+      toast.error(`Keep it to ${MAX_CREATE_GESTURES} gestures max`);
       return;
     }
     setCustomGestures((prev) => [
@@ -313,8 +390,22 @@ export default function CreatePage() {
       toast.error("Pick at least one gesture");
       return;
     }
-    if (allGestures.length > 6) {
-      toast.error("Keep it to 6 gestures max");
+    if (allGestures.length > MAX_CREATE_GESTURES) {
+      toast.error(`Keep it to ${MAX_CREATE_GESTURES} gestures max`);
+      return;
+    }
+    if (samplesAfford.loading) return;
+    if (samplesAfford.blocked) {
+      reportGenerationError(
+        new Error(
+          samplesAfford.needsPlan
+            ? "Choose a plan to start generating mascots"
+            : `Not enough tokens (short by ${formatTokens(samplesAfford.shortfall)})`
+        ),
+        "Not enough tokens",
+        "samples",
+        samplesAfford.needsPlan ? "NO_SUBSCRIPTION" : "INSUFFICIENT_TOKENS"
+      );
       return;
     }
 
@@ -368,6 +459,20 @@ export default function CreatePage() {
     }
     if (!pickedSample) {
       toast.error("Select one of the three looks");
+      return;
+    }
+    if (studioAfford.loading) return;
+    if (studioAfford.blocked) {
+      reportGenerationError(
+        new Error(
+          studioAfford.needsPlan
+            ? "Choose a plan to start generating mascots"
+            : `Not enough tokens (short by ${formatTokens(studioAfford.shortfall)})`
+        ),
+        "Not enough tokens",
+        "studio",
+        studioAfford.needsPlan ? "NO_SUBSCRIPTION" : "INSUFFICIENT_TOKENS"
+      );
       return;
     }
 
@@ -437,54 +542,57 @@ export default function CreatePage() {
 
   if (step === "studio" && result) {
     return (
-      <div className="relative min-h-screen bg-[#0a0e18]">
-        <div className="absolute left-4 top-4 z-50 flex gap-2 sm:left-6 sm:top-6">
+      <div className="relative min-h-screen bg-[var(--brand-bg)] text-[var(--brand-ink)]">
+        <SiteHeader />
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-5 py-3 sm:px-8">
           <Link
             href="/library"
-            className="rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-xs font-semibold text-white/85 backdrop-blur hover:bg-black/55"
+            className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10"
           >
             ← Library
           </Link>
           {mascotId && (
             <Link
               href={`/library/${mascotId}`}
-              className="rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-xs font-semibold text-white/85 backdrop-blur hover:bg-black/55"
+              className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10"
             >
               Open saved
             </Link>
           )}
-          {saving && (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-xs text-white/70 backdrop-blur">
-              <Loader2 className="size-3 animate-spin" />
-              Saving…
-            </span>
-          )}
           <button
             type="button"
             onClick={() => void restartFromStudio("samples")}
-            className="rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-xs font-semibold text-white/85 backdrop-blur hover:bg-black/55"
+            className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10"
           >
             Change look
           </button>
           <button
             type="button"
             onClick={() => void restartFromStudio("brief")}
-            className="rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-xs font-semibold text-white/85 backdrop-blur hover:bg-black/55"
+            className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10"
           >
             Edit brief
           </button>
+          {saving && (
+            <span className="inline-flex items-center gap-1.5 text-xs text-[var(--brand-muted)]">
+              <Loader2 className="size-3 animate-spin" />
+              Saving…
+            </span>
+          )}
         </div>
         <GeneratedStudio
           mascot={result}
           look={look}
           model={model ?? undefined}
           mascotId={mascotId}
+          capabilities={OWNED_STUDIO_CAPABILITIES}
           onMascotChange={(next) => {
             setResult(next);
             persistSafe(next);
           }}
           fullPage
         />
+        <SiteFooter />
       </div>
     );
   }
@@ -506,7 +614,7 @@ export default function CreatePage() {
             <p className="mt-3 max-w-xl text-base leading-relaxed text-[var(--brand-muted)]">
               {step === "brief"
                 ? "Tell us who they are and how they should look. We’ll show three static concepts, then build a full studio from your pick."
-                : "Three static concepts. Choose one and we’ll animate it to the same craft bar as Fanous and Lyra."}
+                : "Three static concepts. Choose one and we’ll create a full studio from your pick."}
             </p>
           </div>
 
@@ -566,7 +674,12 @@ export default function CreatePage() {
                   size="lg"
                   className="bg-[var(--brand-accent)] text-[#12141c] hover:bg-[var(--brand-accent)]/90"
                   onClick={buildStudio}
-                  disabled={studioLoading || !pickedSample}
+                  disabled={
+                    studioLoading ||
+                    !pickedSample ||
+                    studioAfford.loading ||
+                    studioAfford.blocked
+                  }
                 >
                   {studioLoading ? (
                     <>
@@ -592,7 +705,12 @@ export default function CreatePage() {
                 <Button
                   type="button"
                   variant="ghost"
-                  disabled={samplesLoading || studioLoading}
+                  disabled={
+                    samplesLoading ||
+                    studioLoading ||
+                    samplesAfford.loading ||
+                    samplesAfford.blocked
+                  }
                   onClick={requestSamples}
                 >
                   {samplesLoading ? (
@@ -607,6 +725,7 @@ export default function CreatePage() {
                 scope="studio"
                 hasReference={Boolean(referenceId)}
                 availableModels={availableModelIds}
+                busy={samplesLoading || studioLoading}
                 className="max-w-md"
               />
             </section>
@@ -860,7 +979,13 @@ export default function CreatePage() {
                   size="lg"
                   className="w-full bg-[var(--brand-accent)] text-[#12141c] hover:bg-[var(--brand-accent)]/90"
                   onClick={requestSamples}
-                  disabled={samplesLoading || modelsLoading || !model}
+                  disabled={
+                    samplesLoading ||
+                    modelsLoading ||
+                    !model ||
+                    samplesAfford.loading ||
+                    samplesAfford.blocked
+                  }
                 >
                   {samplesLoading ? (
                     <>
@@ -888,11 +1013,12 @@ export default function CreatePage() {
                       Gestures
                     </h2>
                     <p className="text-sm text-[var(--brand-muted)]">
-                      Used after you pick a look
+                      Used after you pick a look. You can add more anytime in
+                      the studio once it&apos;s built.
                     </p>
                   </div>
                   <Badge variant="outline" className="border-white/15">
-                    {allGestures.length}/6
+                    {allGestures.length}/{MAX_CREATE_GESTURES}
                   </Badge>
                 </div>
 
@@ -908,13 +1034,14 @@ export default function CreatePage() {
                           <button
                             key={g.key}
                             type="button"
-                            disabled={samplesLoading}
+                            disabled={samplesLoading || (!on && atGestureCap)}
                             onClick={() => toggle(g.key)}
                             className={cn(
                               "rounded-full border px-3 py-1.5 text-xs font-medium transition",
                               on
                                 ? "border-transparent bg-[var(--brand-accent)] text-[#12141c]"
-                                : "border-white/15 bg-white/[0.03] text-white/75 hover:border-white/30"
+                                : "border-white/15 bg-white/[0.03] text-white/75 hover:border-white/30",
+                              !on && atGestureCap && "opacity-40"
                             )}
                             title={g.tip}
                           >
@@ -959,7 +1086,7 @@ export default function CreatePage() {
                       placeholder="Label"
                       value={customLabel}
                       onChange={(e) => setCustomLabel(e.target.value)}
-                      disabled={samplesLoading}
+                      disabled={samplesLoading || atGestureCap}
                       className="border-white/15 bg-black/20"
                     />
                     <Button
@@ -967,7 +1094,7 @@ export default function CreatePage() {
                       variant="outline"
                       className="border-white/15 bg-transparent"
                       onClick={addCustom}
-                      disabled={samplesLoading}
+                      disabled={samplesLoading || atGestureCap}
                     >
                       <Plus className="size-4" />
                     </Button>
@@ -976,7 +1103,7 @@ export default function CreatePage() {
                     placeholder="Optional tip, what the pose means"
                     value={customTip}
                     onChange={(e) => setCustomTip(e.target.value)}
-                    disabled={samplesLoading}
+                    disabled={samplesLoading || atGestureCap}
                     className="border-white/15 bg-black/20"
                   />
                 </div>
@@ -988,6 +1115,7 @@ export default function CreatePage() {
                   scope="full"
                   hasReference={Boolean(referenceId)}
                   availableModels={availableModelIds}
+                  busy={samplesLoading || studioLoading}
                 />
               </div>
             </section>

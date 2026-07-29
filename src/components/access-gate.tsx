@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useConvexAuth, useQuery } from "convex/react";
 import { PageShellSkeleton } from "@/components/skeletons";
+import { isAccessGateBalancePending } from "@/lib/access-gate-loading";
 import { useTokenBalance } from "@/lib/use-token-balance";
 import { api } from "../../convex/_generated/api";
 
@@ -76,11 +77,22 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
     gated && (onPaidPath || (onOnboardingPath && onboardingDone));
 
   const balance = useTokenBalance(needsBalance);
+  // balanceClock() ticks every minute; a fresh undefined must not remount paid
+  // flows (create/remix) that can run longer than 60s.
+  const balanceReadyRef = useRef(false);
+  if (balance !== undefined) {
+    balanceReadyRef.current = true;
+  }
 
   const loading =
     authPending ||
     (gated &&
-      (me === undefined || (needsBalance && balance === undefined)));
+      (me === undefined ||
+        isAccessGateBalancePending(
+          needsBalance,
+          balance,
+          balanceReadyRef.current
+        )));
 
   // `me === null` means the Convex row has not synced yet; EnsureConvexUser is
   // still retrying, so hold the current route rather than bouncing anywhere.

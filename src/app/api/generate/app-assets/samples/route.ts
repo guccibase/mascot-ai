@@ -1,25 +1,25 @@
 import { NextResponse } from "next/server";
 import { boundedText, rateLimit, readJsonBody } from "@/lib/api-guard";
 import { isAppAssetKind, type AppAssetKind } from "@/lib/app-assets/catalog";
-import { composeAppIconPreview } from "@/lib/app-assets/icon-compose";
 import { svgToSquarePng } from "@/lib/app-assets/raster";
 import { uploadConvexBlob } from "@/lib/convex-upload";
 import { authedConvexClient } from "@/lib/convex-server";
-import { openMeter } from "@/lib/metering";
+import { openMeter, tokenMetaFields } from "@/lib/metering";
 import { resolveMascotModel } from "@/lib/mascot-model";
+import { buildIconPrompt } from "@/lib/app-assets/icon-prompt";
+import { generateAppIconImage } from "@/lib/openai-image";
 import { sanitizeSvg } from "@/lib/sanitize-svg";
 import type { AppAssetSamplesRequest } from "@/lib/types";
 import { api } from "../../../../../../convex/_generated/api";
 import type { Id } from "../../../../../../convex/_generated/dataModel";
 
 export const runtime = "nodejs";
-/** Deterministic composite + uploads — no long image-model wait. */
-export const maxDuration = 60;
+/** Three parallel high-quality image edits + uploads. */
+export const maxDuration = 120;
 
 const MAX_BODY_BYTES = 16_000;
 const SAMPLE_LABELS = ["Option A", "Option B", "Option C"] as const;
 const SAMPLE_IDS = ["a", "b", "c"] as const;
-const PREVIEW_ENGINE = "mascot-composite";
 
 function generationServerSecret(): string | undefined {
   return process.env.GENERATION_SERVER_SECRET;
@@ -85,20 +85,51 @@ export async function POST(req: Request) {
   const { meter } = metered;
 
   const started = Date.now();
+  let imageModelUsed = process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-2";
 
   try {
-    const mascotPng = await svgToSquarePng(sanitizeSvg(idle.svg), 1024);
+    const idleSvg = sanitizeSvg(idle.svg);
+    if (!idleSvg) {
+      return NextResponse.json(
+        { error: "Mascot idle pose SVG is empty or invalid" },
+        { status: 400 }
+      );
+    }
+
+    let referencePng: Buffer;
+    try {
+      referencePng = await svgToSquarePng(idleSvg, 1024);
+    } catch (rasterErr) {
+      console.error("app-asset svg raster failed:", rasterErr);
+      return NextResponse.json(
+        {
+          error:
+            "Could not prepare your mascot for icon previews. Try regenerating the idle pose in the studio, then try again.",
+        },
+        { status: 422 }
+      );
+    }
+
     const accent = mascot.pack.accent || "#D4A843";
 
     const generated = await Promise.all(
       SAMPLE_IDS.map(async (id, i) => {
-        const buffer = await composeAppIconPreview({
-          mascotPng,
+        const prompt = buildIconPrompt({
+          mascotName: mascot.name,
+          tagline: mascot.tagline,
+          product: mascot.pack.product,
           accent,
+          styleDescription,
+          kinds,
           variantIndex: i,
         });
-        meter.recordFallback({ kind: "appAssetSamples", images: 1 });
-        const storageId = await uploadConvexBlob(client, buffer, "image/png");
+        const image = await generateAppIconImage({
+          prompt,
+          referencePng,
+          size: "1024x1024",
+        });
+        imageModelUsed = image.model;
+        const storageId = await uploadConvexBlob(client, image.buffer, "image/png");
         return {
           id,
           label: SAMPLE_LABELS[i]!,
@@ -111,11 +142,14 @@ export async function POST(req: Request) {
       mascotId: body.mascotId as Id<"mascots">,
       kinds,
       styleDescription,
-      imageModel: PREVIEW_ENGINE,
+      imageModel: imageModelUsed,
       samples: generated,
       packId: body.packId as Id<"mascotAppAssetPacks"> | undefined,
       serverSecret: generationServerSecret(),
     });
+
+    // Charge only after samples are persisted and usable.
+    meter.recordFallback({ kind: "appAssetSamples", images: generated.length });
 
     const detail = await client.query(api.mascotAppAssets.getPack, { packId });
     const tokens = await meter.settle();
@@ -124,13 +158,13 @@ export async function POST(req: Request) {
       packId,
       samples: detail?.sampleOptions ?? [],
       _meta: {
-        model: PREVIEW_ENGINE,
+        model: imageModelUsed,
         elapsedMs: Date.now() - started,
-        tokens: tokens.tokens,
-        balance: tokens.balance,
+        ...tokenMetaFields(tokens),
       },
     });
   } catch (err) {
+    meter.forgive();
     const message = err instanceof Error ? err.message : "App icon sample generation failed";
     console.error("app-asset samples error:", message);
     return NextResponse.json({ error: message }, { status: 500 });

@@ -6,6 +6,7 @@
  * logic (no DOM) so the same pass runs in route handlers and in the browser.
  */
 
+import { repairSvgStructure } from "@/lib/svg/repair";
 import { tokenize } from "@/lib/svg/tokenize";
 
 const ALLOWED_TAGS = new Set([
@@ -220,7 +221,8 @@ export function sanitizeSvg(input: string): string {
   }
 
   const out = pieces.join("").trim();
-  return out.includes("<svg") ? out : "";
+  if (!out.includes("<svg")) return "";
+  return repairSvgStructure(out);
 }
 
 /** Sanitize and throw a descriptive error when the SVG is unusable. */

@@ -2,7 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { Download, ImageIcon, Loader2, Package, RefreshCw, Trash2 } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  ImageIcon,
+  Loader2,
+  Maximize2,
+  Package,
+  RefreshCw,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { zipSync } from "fflate";
 import {
@@ -10,6 +20,18 @@ import {
   packOutputFileCount,
   type AppAssetKind,
 } from "@/lib/app-assets/catalog";
+import {
+  resolvePackLoadStrategy,
+  shouldMountIconPreviewDialog,
+  snapshotFromActivePack,
+} from "@/lib/app-assets/pack-panel-state";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { trackEvent } from "@/lib/analytics";
 import { estimateTokens, formatTokens } from "@/lib/token-pricing";
 import type { AppAssetKindId, MascotModelId } from "@/lib/types";
@@ -53,6 +75,12 @@ export function AppAssetsPanel({ mascotId, mascotName, model }: Props) {
   const [deletingPackId, setDeletingPackId] = useState<Id<"mascotAppAssetPacks"> | null>(
     null
   );
+  const [expandedSampleId, setExpandedSampleId] = useState<string | null>(null);
+  /** Bumps when loading a pack so the same pack can be re-opened after clear. */
+  const [packLoadToken, setPackLoadToken] = useState(0);
+  /** Expand button that opened the modal — restore focus on close. */
+  const expandTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const lastHydratedPackId = useRef<Id<"mascotAppAssetPacks"> | null>(null);
 
   const removePack = useMutation(api.mascotAppAssets.removePack);
 
@@ -78,8 +106,68 @@ export function AppAssetsPanel({ mascotId, mascotName, model }: Props) {
     [billingModel, fileCount]
   );
   const totalQuote = samplesQuote.typical + packQuote.typical;
+  const spendable = balance?.available ?? balance?.total;
+  // Gate on reservation max — same worst-case the API reserves.
   const affordable =
-    balance?.total == null || balance.total >= samplesQuote.typical;
+    spendable == null || spendable >= samplesQuote.max;
+
+  const expandedSampleIndex = expandedSampleId
+    ? samples.findIndex((sample) => sample.id === expandedSampleId)
+    : -1;
+  const expandedSample =
+    expandedSampleIndex >= 0 ? samples[expandedSampleIndex] ?? null : null;
+
+  const stepExpandedSample = (delta: number) => {
+    if (samples.length <= 1) return;
+    setExpandedSampleId((current) => {
+      const idx = current
+        ? samples.findIndex((sample) => sample.id === current)
+        : -1;
+      if (idx < 0) return current;
+      const next = (idx + delta + samples.length) % samples.length;
+      return samples[next]?.id ?? null;
+    });
+  };
+
+  const openExpandedPreview = (
+    sampleId: string,
+    trigger: HTMLButtonElement | null = null
+  ) => {
+    expandTriggerRef.current = trigger;
+    setExpandedSampleId(sampleId);
+  };
+
+  const closeExpandedPreview = () => {
+    const trigger = expandTriggerRef.current;
+    expandTriggerRef.current = null;
+    setExpandedSampleId(null);
+    // Restore focus after the dialog unmounts so it cannot leave the page inert.
+    queueMicrotask(() => trigger?.focus());
+  };
+
+  useEffect(() => {
+    if (expandedSampleId && expandedSampleIndex < 0) {
+      setExpandedSampleId(null);
+    }
+  }, [expandedSampleId, expandedSampleIndex]);
+
+  useEffect(() => {
+    if (!expandedSampleId) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        stepExpandedSample(-1);
+      }
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        stepExpandedSample(1);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [expandedSampleId, samples]);
 
   const toggleKind = (id: AppAssetKind) => {
     setKinds((prev) => {
@@ -94,29 +182,45 @@ export function AppAssetsPanel({ mascotId, mascotName, model }: Props) {
     });
   };
 
+  const applyPackSnapshot = (pack: NonNullable<typeof activePack>) => {
+    const snap = snapshotFromActivePack(pack);
+    lastHydratedPackId.current = pack._id;
+    setSamples(snap.samples);
+    setSelectedSampleId(snap.selectedSampleId);
+    setFiles(snap.files);
+    setStyleDescription(snap.styleDescription);
+    setKinds(new Set(snap.kinds));
+  };
+
   const loadPack = (id: Id<"mascotAppAssetPacks">) => {
-    setPackId(id);
+    setExpandedSampleId(null);
+    const strategy = resolvePackLoadStrategy({
+      targetPackId: id,
+      activePackId: activePack?._id,
+    });
+    if (strategy === "sync" && activePack) {
+      // Same pack already in memory — re-apply without clearing (no empty flash).
+      setPackId(id);
+      applyPackSnapshot(activePack);
+      return;
+    }
+    // Different pack (or cache miss): clear, then hydrate when query resolves.
+    // packLoadToken forces rehydrate even if packId is unchanged after a miss.
+    lastHydratedPackId.current = null;
     setSelectedSampleId(null);
     setSamples([]);
     setFiles([]);
+    setPackId(id);
+    setPackLoadToken((n) => n + 1);
   };
-
-  const lastHydratedPackId = useRef<Id<"mascotAppAssetPacks"> | null>(null);
-
-  useEffect(() => {
-    lastHydratedPackId.current = null;
-  }, [packId]);
 
   useEffect(() => {
     if (!activePack || activePack._id !== packId) return;
     if (lastHydratedPackId.current === packId) return;
-    lastHydratedPackId.current = packId;
-    setSamples(activePack.sampleOptions);
-    setSelectedSampleId(activePack.selectedSampleId ?? null);
-    setFiles(activePack.files);
-    setStyleDescription(activePack.styleDescription ?? "");
-    setKinds(new Set(activePack.kinds));
-  }, [activePack, packId]);
+    applyPackSnapshot(activePack);
+    // applyPackSnapshot closes over latest setters; re-run when pack/token changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional hydrate gate
+  }, [activePack, packId, packLoadToken]);
 
   const deletePack = async (id: Id<"mascotAppAssetPacks">) => {
     if (!window.confirm("Delete this asset pack and its files?")) return;
@@ -128,6 +232,7 @@ export function AppAssetsPanel({ mascotId, mascotName, model }: Props) {
         setSamples([]);
         setSelectedSampleId(null);
         setFiles([]);
+        setExpandedSampleId(null);
         lastHydratedPackId.current = null;
       }
       toast.success("Asset pack deleted");
@@ -195,6 +300,7 @@ export function AppAssetsPanel({ mascotId, mascotName, model }: Props) {
       setSamples(data.samples ?? []);
       setSelectedSampleId(null);
       setFiles([]);
+      setExpandedSampleId(null);
       trackEvent("generate_completed", {
         action: "appAssetSamples",
         model: billingModel,
@@ -210,7 +316,8 @@ export function AppAssetsPanel({ mascotId, mascotName, model }: Props) {
 
   const generatePack = async () => {
     if (!packId || !selectedSampleId) return;
-    if (balance?.total != null && balance.total < packQuote.typical) {
+    const packSpendable = balance?.available ?? balance?.total;
+    if (packSpendable != null && packSpendable < packQuote.max) {
       toast.error("Not enough tokens to build the asset pack");
       return;
     }
@@ -315,9 +422,9 @@ export function AppAssetsPanel({ mascotId, mascotName, model }: Props) {
       <div>
         <p className="gs-eyebrow mb-1">App assets</p>
         <p className="text-sm leading-relaxed text-[#8D8472]">
-          Generate store-ready icons from your exact mascot artwork. We place your
-          character on 3 polished backgrounds; after you pick one, we resize into
-          every size in your pack.
+          Generate three creative store-ready icon options from your mascot — designed
+          icon art, not screenshots. Pick a favorite, then we resize it into every
+          size in your pack.
         </p>
       </div>
 
@@ -365,7 +472,7 @@ export function AppAssetsPanel({ mascotId, mascotName, model }: Props) {
           rows={2}
           value={styleDescription}
           onChange={(e) => setStyleDescription(e.target.value)}
-          placeholder="Optional notes for your records (previews use your mascot artwork and brand colors)"
+          placeholder="Optional direction for the icon look (e.g. neon night vibe, soft pastel, bold flat)"
           className="w-full resize-none rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-white/35 focus:border-[var(--brand-accent)]/50 focus:outline-none"
         />
       </div>
@@ -418,30 +525,52 @@ export function AppAssetsPanel({ mascotId, mascotName, model }: Props) {
 
       {samples.length > 0 && (
         <div>
-          <p className="gs-eyebrow mb-3">Choose your icon</p>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="mb-3 flex items-baseline justify-between gap-3">
+            <p className="gs-eyebrow">Choose your icon</p>
+            <p className="text-xs text-[#8D8472]">Tap Expand to inspect</p>
+          </div>
+          <div className="space-y-4">
             {samples.map((sample) => (
-              <button
+              <div
                 key={sample.id}
-                type="button"
-                onClick={() => setSelectedSampleId(sample.id)}
                 className={cn(
-                  "overflow-hidden rounded-2xl border-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-accent)]",
+                  "relative overflow-hidden rounded-2xl border-2 transition",
                   selectedSampleId === sample.id
                     ? "border-[var(--brand-accent)] shadow-[0_0_0_1px_var(--brand-accent)]"
                     : "border-white/10 hover:border-white/25"
                 )}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={sample.url}
-                  alt={sample.label}
-                  className="aspect-square w-full bg-[#1a1625] object-cover"
-                />
-                <span className="block py-2 text-center text-xs font-medium text-[#C6BCA7]">
-                  {sample.label}
-                </span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedSampleId(sample.id)}
+                  className="block w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--brand-accent)]"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={sample.url}
+                    alt={sample.label}
+                    className="aspect-square w-full bg-[#1a1625] object-cover"
+                    onDoubleClick={(event) => {
+                      event.preventDefault();
+                      openExpandedPreview(sample.id);
+                    }}
+                  />
+                  <span className="block border-t border-white/10 bg-black/30 py-2.5 text-center text-sm font-medium text-[#C6BCA7]">
+                    {sample.label}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Expand ${sample.label}`}
+                  onClick={(event) =>
+                    openExpandedPreview(sample.id, event.currentTarget)
+                  }
+                  className="absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-black/75 px-2.5 py-2 text-xs font-medium text-white backdrop-blur-sm transition hover:bg-black/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-accent)]"
+                >
+                  <Maximize2 className="size-3.5" />
+                  Expand
+                </button>
+              </div>
             ))}
           </div>
           <button
@@ -502,6 +631,83 @@ export function AppAssetsPanel({ mascotId, mascotName, model }: Props) {
           </ul>
         </div>
       )}
+
+      {/* Mount only while open so a stuck close animation cannot leave the page inert. */}
+      {shouldMountIconPreviewDialog(expandedSampleId) && expandedSample ? (
+        <Dialog
+          open
+          onOpenChange={(open) => {
+            if (!open) closeExpandedPreview();
+          }}
+        >
+          <DialogContent
+            showCloseButton
+            overlayClassName="bg-black/80 supports-backdrop-filter:backdrop-blur-sm"
+            className="flex max-h-[min(92vh,920px)] w-[min(92vw,720px)] max-w-[720px] flex-col gap-4 overflow-hidden border-white/10 bg-[#121722] p-4 text-[#F5EDE0] sm:max-w-[720px] sm:p-5 [&_[data-slot=dialog-close]]:text-[#F5EDE0] [&_[data-slot=dialog-close]]:hover:bg-white/10"
+          >
+            <DialogHeader className="pr-8">
+              <DialogTitle aria-live="polite">{expandedSample.label}</DialogTitle>
+              <DialogDescription className="text-[#8D8472]">
+                Inspect the icon at full size, then select it for your pack.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="relative flex min-h-0 flex-1 items-center justify-center gap-2 px-12 sm:px-14">
+              {samples.length > 1 ? (
+                <>
+                  <button
+                    type="button"
+                    aria-label="Previous icon option"
+                    onClick={() => stepExpandedSample(-1)}
+                    className="absolute left-0 z-10 inline-flex size-10 items-center justify-center rounded-xl border border-white/15 bg-black/50 text-white transition hover:bg-black/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-accent)]"
+                  >
+                    <ChevronLeft className="size-5" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Next icon option"
+                    onClick={() => stepExpandedSample(1)}
+                    className="absolute right-0 z-10 inline-flex size-10 items-center justify-center rounded-xl border border-white/15 bg-black/50 text-white transition hover:bg-black/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-accent)]"
+                  >
+                    <ChevronRight className="size-5" />
+                  </button>
+                </>
+              ) : null}
+
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={expandedSample.url}
+                alt={expandedSample.label}
+                className="mx-auto aspect-square w-full max-w-[min(560px,calc(92vw-8rem),calc(92vh-12rem))] rounded-2xl bg-[#1a1625] object-contain ring-1 ring-white/10"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-3">
+              <p className="text-xs text-[#8D8472]" aria-live="polite">
+                {expandedSampleIndex + 1} of {samples.length}
+                {samples.length > 1 ? " · Use ← → to compare" : null}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedSampleId(expandedSample.id);
+                  closeExpandedPreview();
+                }}
+                className={cn(
+                  "rounded-xl px-4 py-2 text-sm font-semibold transition",
+                  selectedSampleId === expandedSample.id
+                    ? "border border-[var(--brand-accent)] bg-[var(--brand-accent)]/15 text-[var(--brand-accent)]"
+                    : "bg-[var(--brand-accent)] text-[#1a1408] hover:brightness-105"
+                )}
+              >
+                {selectedSampleId === expandedSample.id
+                  ? "Selected"
+                  : "Select this icon"}
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      ) : null}
 
       {history && history.length > 0 && (
         <div className="border-t border-white/10 pt-4">

@@ -1,3 +1,5 @@
+import { isPublicExampleSlug } from "./mascots";
+
 /** Bump when step order or required screens change. */
 export const ONBOARDING_FLOW_VERSION = 2;
 
@@ -60,6 +62,14 @@ export function resolveDraftStep(
   return step;
 }
 
+/** Only public example slugs may be stored as onboarding favorites. */
+export function sanitizeOnboardingFavorite(
+  favorite: string | null | undefined
+): string | null {
+  if (!favorite || !isPublicExampleSlug(favorite)) return null;
+  return favorite;
+}
+
 export function parseOnboardingDraft(raw: string): OnboardingDraft | null {
   try {
     const parsed = JSON.parse(raw) as Partial<StoredOnboardingDraft>;
@@ -72,7 +82,9 @@ export function parseOnboardingDraft(raw: string): OnboardingDraft | null {
       referral: typeof parsed.referral === "string" ? parsed.referral : null,
       paidBefore:
         typeof parsed.paidBefore === "string" ? parsed.paidBefore : null,
-      favorite: typeof parsed.favorite === "string" ? parsed.favorite : null,
+      favorite: sanitizeOnboardingFavorite(
+        typeof parsed.favorite === "string" ? parsed.favorite : null
+      ),
     };
   } catch {
     return null;

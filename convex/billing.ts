@@ -9,6 +9,10 @@ import {
   topupByProductId,
   type Plan,
 } from "./lib/plans";
+import {
+  isStaleBillingEvent,
+  shouldIgnoreSandboxBilling,
+} from "./lib/billingPolicy";
 import { resolveSubscriptionExpiry } from "./lib/billingExpiry";
 import { recordLedger } from "./lib/tokens";
 
@@ -246,18 +250,24 @@ async function route(
 
   // Sandbox and test purchases must never mint spendable tokens. Claim the
   // event so RevenueCat stops retrying, but grant nothing.
-  const sandbox = (args.environment ?? "").toUpperCase() === "SANDBOX";
-  if (sandbox && process.env.ALLOW_SANDBOX_BILLING !== "true") {
+  if (
+    shouldIgnoreSandboxBilling(
+      args.environment,
+      process.env.ALLOW_SANDBOX_BILLING === "true"
+    )
+  ) {
     return { handled: true, reason: "sandbox_ignored" };
   }
 
   // Drop a replay that predates what has already been applied, so a retried
   // EXPIRATION cannot wipe an allowance a later RENEWAL already paid for.
-  const lastEventAt = user.entitlement?.lastEventAt;
   if (
-    ORDERED_TYPES.has(args.type) &&
-    lastEventAt !== undefined &&
-    eventAt < lastEventAt
+    isStaleBillingEvent(
+      eventAt,
+      user.entitlement?.lastEventAt,
+      ORDERED_TYPES,
+      args.type
+    )
   ) {
     return { handled: true, reason: "stale_event" };
   }
@@ -501,8 +511,12 @@ export const applySubscriberSnapshot = internalMutation({
     } | null = null;
 
     for (const sub of args.subscriptions) {
-      const sandbox = (sub.environment ?? "").toUpperCase() === "SANDBOX";
-      if (sandbox && process.env.ALLOW_SANDBOX_BILLING !== "true") {
+      if (
+        shouldIgnoreSandboxBilling(
+          sub.environment,
+          process.env.ALLOW_SANDBOX_BILLING === "true"
+        )
+      ) {
         continue;
       }
       const plan = planByProductId(sub.productId);
@@ -546,8 +560,12 @@ export const applySubscriberSnapshot = internalMutation({
     }
 
     for (const topup of args.topups) {
-      const sandbox = (topup.environment ?? "").toUpperCase() === "SANDBOX";
-      if (sandbox && process.env.ALLOW_SANDBOX_BILLING !== "true") {
+      if (
+        shouldIgnoreSandboxBilling(
+          topup.environment,
+          process.env.ALLOW_SANDBOX_BILLING === "true"
+        )
+      ) {
         continue;
       }
       const pack = topupByProductId(topup.productId);

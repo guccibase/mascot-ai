@@ -4,8 +4,21 @@ import {
   normalizeBriefContext,
   parseBriefSurpriseResult,
 } from "@/lib/brief-surprise";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 describe("brief-surprise", () => {
+  it("guards json_object mode by ensuring input contains the word json", () => {
+    // OpenAI rejects json_object unless input messages contain "json".
+    const source = readFileSync(
+      join(__dirname, "../brief-surprise.ts"),
+      "utf8"
+    );
+    expect(source).toMatch(/json_object/);
+    expect(source).toMatch(/\\bjson\\b\/i\.test\(args\.input\)/);
+    expect(source).toContain("Return a single JSON object.");
+  });
+
   it("prefers gpt-5.4-nano and never includes studio models", () => {
     const models = cheapSurpriseModels();
     expect(models[0]).toBe("gpt-5.4-nano");

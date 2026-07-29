@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import type { MascotSlug } from "@/lib/mascots";
+import { EXAMPLE_PREVIEW_CAPABILITIES } from "@/lib/studio-capabilities";
 import type { GeneratedMascot } from "@/lib/types";
 
 /**
@@ -37,7 +38,7 @@ function ExampleGeneratedStudio({
     <GeneratedStudio
       mascot={initialMascot}
       fullPage
-      capabilities={{ export: false, edit: false, parts: true }}
+      capabilities={EXAMPLE_PREVIEW_CAPABILITIES}
     />
   );
 }
@@ -67,7 +68,6 @@ export function StudioClient({
     case "relay":
     case "orbit":
     case "brew":
-    case "lumen":
     case "shade":
     case "watt":
     case "arc":

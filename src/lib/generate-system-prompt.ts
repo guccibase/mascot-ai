@@ -18,7 +18,7 @@ SVG CONTRACT (every gesture)
 · <g class="ms-signal-fan"> 7 to 9 sibling shapes </g>
 · <g class="ms-eyes"> both eyes </g>
 · Paint ONLY with themes.primary hex literals: top, mid, base, core, features
-· Compact paths, no unused defs; keep each SVG lean
+· Rich production paths (Fanous/Watt bar), no unused defs; readable at 128px
 
 JSON ONLY:
 {

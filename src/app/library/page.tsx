@@ -1,11 +1,12 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { usePaginatedQuery, useMutation } from "convex/react";
+import { usePaginatedQuery, useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
-import { SiteHeader } from "@/components/site-header";
 import { AdminListingsPanel } from "@/components/marketplace/admin-listings-panel";
+import { SiteHeader } from "@/components/site-header";
 import { MascotCardGridSkeleton, MascotCardSkeleton } from "@/components/skeletons";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { sanitizeSvg } from "@/lib/sanitize-svg";
@@ -13,7 +14,17 @@ import { cn } from "@/lib/utils";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 
+/** Lazy + mount-gated so non-admins never download the admin catalog chunk. */
+const AdminGeneratedSection = dynamic(
+  () =>
+    import("@/components/library/admin-generated-section").then(
+      (m) => m.AdminGeneratedSection
+    ),
+  { ssr: false }
+);
+
 export default function LibraryPage() {
+  const isAdmin = useQuery(api.marketplace.isAdmin);
   const { results, status, loadMore } = usePaginatedQuery(
     api.mascots.listMine,
     {},
@@ -46,7 +57,8 @@ export default function LibraryPage() {
                 Saved mascots
               </h1>
               <p className="mt-3 max-w-xl text-[var(--brand-muted)]">
-                Reopen any studio to download, add gestures, or keep editing.
+                Created, remixed, and bought mascots all open the same full studio —
+                download, Ask AI, add gestures, and app assets.
               </p>
             </div>
             <Link
@@ -100,9 +112,16 @@ export default function LibraryPage() {
                     />
                   </div>
                   <div className="space-y-1 border-t border-white/10 p-4">
-                    <h2 className="font-[family-name:var(--font-display)] text-lg">
-                      {m.name}
-                    </h2>
+                    <div className="flex items-start justify-between gap-2">
+                      <h2 className="font-[family-name:var(--font-display)] text-lg">
+                        {m.name}
+                      </h2>
+                      {m.source === "remixed" || m.source === "purchased" ? (
+                        <span className="shrink-0 rounded-full border border-white/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--brand-muted)]">
+                          {m.source === "purchased" ? "Bought" : "Remixed"}
+                        </span>
+                      ) : null}
+                    </div>
                     <p className="line-clamp-2 text-sm text-[var(--brand-muted)]">
                       {m.tagline}
                     </p>
@@ -143,6 +162,7 @@ export default function LibraryPage() {
             </div>
           )}
 
+          {isAdmin ? <AdminGeneratedSection /> : null}
           <AdminListingsPanel />
         </main>
       </div>

@@ -2,8 +2,11 @@ import { NextResponse } from "next/server";
 import { ConvexError } from "convex/values";
 import { authedConvexClient } from "@/lib/convex-server";
 import {
+  REFINE_MARGIN_MULTIPLIER,
+  billUsageTokens,
   estimateTokens,
   fallbackTokens,
+  refineHoldTokens,
   tokensForUsage,
   type MeteredAction,
   type ProviderUsage,
@@ -19,7 +22,17 @@ export type TokenMeta = {
   balance: number;
   /** What the estimate panel quoted, for client-side reconciliation. */
   estimated: number;
+  /** False when Convex settle did not complete (hold may still be open). */
+  committed: boolean;
 };
+
+/** Omit token fields from API meta when settle did not commit. */
+export function tokenMetaFields(
+  meta: TokenMeta
+): { tokens: number; balance: number } | Record<string, never> {
+  if (!meta.committed) return {};
+  return { tokens: meta.tokens, balance: meta.balance };
+}
 
 export type Meter = {
   /**
@@ -29,6 +42,12 @@ export type Meter = {
   record(usage: ProviderUsage | undefined, actualApiModel?: string): void;
   /** Charge a call that succeeded but reported no usage. */
   recordFallback(action: MeteredAction): void;
+  /**
+   * Drop every recorded charge so the next `settle()` fully refunds the hold.
+   * Required for atomic outcomes (e.g. Ask AI refine) where the user gets
+   * nothing usable unless the whole request succeeds.
+   */
+  forgive(): void;
   /** Close the hold. Safe to call twice; the second call is a no-op. */
   settle(): Promise<TokenMeta>;
 };
@@ -49,9 +68,9 @@ function errorData(err: unknown): Record<string, unknown> | null {
 }
 
 /**
- * Reserve the worst-case cost of `action` before running it. The caller must
- * always `settle()`. Do it in a `finally` so a thrown generation still bills
- * for the calls that completed and releases the rest of the hold.
+ * Authorize the worst-case cost of `action` before running it (capacity hold;
+ * wallet debits only on successful settle). The caller must always `settle()`
+ * in a `finally`. Atomic routes call `forgive()` on failure so settle charges 0.
  */
 export async function openMeter(
   action: MeteredAction,
@@ -71,6 +90,9 @@ export async function openMeter(
   }
 
   const estimate = estimateTokens(action, model);
+  // Refine: practical hold (typical×buffer). Other actions: absolute max.
+  const reserveAmount =
+    action.kind === "refine" ? refineHoldTokens(estimate) : estimate.max;
   // Proves these calls came from the server, not from a browser holding the
   // same user's Clerk token. Optional so an unconfigured deployment still runs.
   const serverSecret = process.env.GENERATION_SERVER_SECRET;
@@ -78,7 +100,7 @@ export async function openMeter(
   let reservationId: Id<"tokenReservations">;
   try {
     const reservation = await client.mutation(api.tokens.reserve, {
-      amount: estimate.max,
+      amount: reserveAmount,
       action: action.kind,
       model,
       serverSecret,
@@ -107,6 +129,43 @@ export async function openMeter(
         ),
       };
     }
+    if (code === "RESERVATION_TOO_LARGE") {
+      return {
+        ok: false,
+        response: NextResponse.json(
+          {
+            error:
+              "This edit is too large to price in one run. Try a smaller pack, a lighter model, or a shorter message.",
+            code,
+            required: data?.required,
+            max: data?.max,
+          },
+          { status: 413 }
+        ),
+      };
+    }
+    if (code === "TOO_MANY_HOLDS") {
+      return {
+        ok: false,
+        response: NextResponse.json(
+          {
+            error:
+              "Too many generations in flight. Wait for one to finish, then try again.",
+            code,
+          },
+          { status: 429 }
+        ),
+      };
+    }
+    if (code === "INVALID_AMOUNT") {
+      return {
+        ok: false,
+        response: NextResponse.json(
+          { error: "Invalid token reservation amount", code },
+          { status: 400 }
+        ),
+      };
+    }
     if (code === "UNAUTHENTICATED" || code === "USER_NOT_FOUND") {
       // An auth problem the customer can act on, not a transient backend
       // failure, so it must not be dressed up as one and retried.
@@ -130,13 +189,22 @@ export async function openMeter(
 
   let charged = 0;
   let settled: TokenMeta | null = null;
+  const refineMargin =
+    action.kind === "refine" ? REFINE_MARGIN_MULTIPLIER : 1;
 
   const meter: Meter = {
     record(usage, actualApiModel) {
-      charged += tokensForUsage(usage, model, actualApiModel);
+      charged += billUsageTokens(
+        tokensForUsage(usage, model, actualApiModel),
+        refineMargin
+      );
     },
     recordFallback(fallbackAction) {
+      // fallbackTokens → estimateTokens; refine estimates already include margin.
       charged += fallbackTokens(fallbackAction, model);
+    },
+    forgive() {
+      charged = 0;
     },
     async settle() {
       if (settled) return settled;
@@ -151,18 +219,20 @@ export async function openMeter(
           tokens: result.charged,
           balance: result.balance,
           estimated: estimate.typical,
+          committed: true,
         };
+        return settled;
       } catch (err) {
-        // The hold expires on its own within minutes, so a failed settle costs
-        // the customer nothing permanent. Never fail the response over it.
+        // Do not mark settled — `finally` may retry. Hold still expires on its
+        // own if every settle attempt fails, so the customer is not stuck.
         console.error("token settle failed:", err);
-        settled = {
-          tokens: charged,
+        return {
+          tokens: 0,
           balance: -1,
           estimated: estimate.typical,
+          committed: false,
         };
       }
-      return settled;
     },
   };
 

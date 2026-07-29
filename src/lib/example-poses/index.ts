@@ -30,7 +30,6 @@ const LOADERS: Record<MascotSlug, () => Promise<{ default: unknown }>> = {
   relay: () => import("./relay.json"),
   orbit: () => import("./orbit.json"),
   brew: () => import("./brew.json"),
-  lumen: () => import("./lumen.json"),
   shade: () => import("./shade.json"),
   watt: () => import("./watt.json"),
   arc: () => import("./arc.json"),

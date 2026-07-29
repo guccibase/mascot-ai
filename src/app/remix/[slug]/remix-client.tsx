@@ -6,8 +6,10 @@ import { toast } from "sonner";
 import { Check, Loader2, Sparkles } from "lucide-react";
 import { ModelChipsSkeleton } from "@/components/skeletons";
 import { sanitizeSvg } from "@/lib/sanitize-svg";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { GeneratedStudio } from "@/components/generated-studio";
+import { OWNED_STUDIO_CAPABILITIES } from "@/lib/studio-capabilities";
 import { TokenEstimate } from "@/components/create/token-estimate";
 import { ReferenceImageUpload } from "@/components/reference-image-upload";
 import { Button } from "@/components/ui/button";
@@ -26,6 +28,7 @@ import {
 import { trackEvent } from "@/lib/analytics";
 import type { CreateBriefPreset } from "@/lib/create-field-placeholders";
 import { CREATE_FIELD_PLACEHOLDERS } from "@/lib/create-field-placeholders";
+import { MAX_CREATE_GESTURES } from "@/lib/token-pricing";
 import type {
   GeneratedMascot,
   GestureRequest,
@@ -150,6 +153,7 @@ export function RemixClient({
   );
 
   const remixPoseCount = exampleGestures.length;
+  const atPoseCap = selected.size >= MAX_CREATE_GESTURES;
 
   const payloadChars = useMemo(() => {
     const briefChars =
@@ -184,6 +188,10 @@ export function RemixClient({
         source.kind === "listing"
           ? (source.listingId as import("../../../../convex/_generated/dataModel").Id<"marketplaceListings">)
           : undefined,
+      sourceMascotId:
+        source.kind === "mascot"
+          ? (source.mascotId as import("../../../../convex/_generated/dataModel").Id<"mascots">)
+          : undefined,
     });
   }, [look, productContext, personality, model, setMeta, source]);
 
@@ -216,9 +224,17 @@ export function RemixClient({
   const togglePose = (key: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else if (next.size < 6) next.add(key);
-      else toast.message("Pick up to 6 example poses to remix");
+      if (next.has(key)) {
+        next.delete(key);
+        return next;
+      }
+      if (next.size >= MAX_CREATE_GESTURES) {
+        toast.message(
+          `Pick up to ${MAX_CREATE_GESTURES} example poses to remix`
+        );
+        return prev;
+      }
+      next.add(key);
       return next;
     });
   };
@@ -237,8 +253,8 @@ export function RemixClient({
       toast.error("Pick a model first");
       return;
     }
-    if (!name.trim() || !description.trim() || !look.trim()) {
-      toast.error("Fill in name, description, and look");
+    if (!name.trim()) {
+      toast.error("Enter a name for your remix");
       return;
     }
     if (remixPoseCount < 1) {
@@ -262,8 +278,8 @@ export function RemixClient({
                 remixOrderId: source.remixOrderId,
               }),
           name: name.trim(),
-          description: description.trim(),
-          look: look.trim(),
+          description: description.trim() || undefined,
+          look: look.trim() || undefined,
           productContext: productContext.trim() || undefined,
           personality: personality.trim() || undefined,
           gestures: exampleGestures,
@@ -271,12 +287,26 @@ export function RemixClient({
           referenceId,
         }),
       });
-      const data = (await res.json()) as {
+      let data: {
         mascot?: GeneratedMascot;
         error?: string;
         code?: string;
         _meta?: { warnings?: string[]; skippedGestures?: string[] };
-      };
+      } = {};
+      try {
+        data = (await res.json()) as typeof data;
+      } catch {
+        reportError(
+          new Error(
+            res.status === 504
+              ? "Remix timed out — try again with fewer poses"
+              : "Could not read remix response"
+          ),
+          "Remix failed",
+          "remix"
+        );
+        return;
+      }
 
       if (!res.ok) {
         reportError(
@@ -288,16 +318,36 @@ export function RemixClient({
         return;
       }
 
-      let mascot = data.mascot!;
+      if (!data.mascot) {
+        reportError(
+          new Error("Remix completed but returned no mascot"),
+          "Remix failed",
+          "remix"
+        );
+        return;
+      }
+
+      let mascot = data.mascot;
       const warnings = data._meta?.warnings ?? [];
+      const skipped = data._meta?.skippedGestures ?? [];
       if (warnings.length) console.warn("remix warnings:", warnings);
+      if (skipped.length) {
+        toast.warning(
+          `Some poses were skipped (${skipped.join(", ")}). Your remix has ${mascot.gestures.length} pose(s).`
+        );
+      }
 
       for (const gesture of extraGestures) {
         setProgress(`Adding ${gesture.label}…`);
         const gRes = await fetch("/api/generate/gesture", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mascot, gesture, look: look.trim(), model }),
+          body: JSON.stringify({
+            mascot,
+            gesture,
+            look: look.trim() || undefined,
+            model,
+          }),
         });
         const gData = (await gRes.json()) as {
           mascot?: GeneratedMascot;
@@ -313,14 +363,24 @@ export function RemixClient({
           );
           break;
         }
-        mascot = gData.mascot!;
+        if (!gData.mascot) break;
+        mascot = gData.mascot;
       }
 
-      bindId(null);
-      const id = await persist(mascot);
-      bindId(id);
-
       setResult(mascot);
+
+      try {
+        bindId(null);
+        const id = await persist(mascot);
+        bindId(id);
+      } catch (saveErr) {
+        reportError(
+          saveErr,
+          "Remix ready, but saving to library failed — edits in studio will retry",
+          "remix"
+        );
+      }
+
       setStep("studio");
       trackEvent("generate_completed", { action: "remix", model });
       toast.success(`${mascot.name} is ready in the studio`);
@@ -376,11 +436,14 @@ export function RemixClient({
           look={look.trim()}
           model={model ?? undefined}
           mascotId={mascotId}
+          capabilities={OWNED_STUDIO_CAPABILITIES}
           onMascotChange={(next) => {
             setResult(next);
             void persistSafe(next);
           }}
+          fullPage
         />
+        <SiteFooter />
       </div>
     );
   }
@@ -458,6 +521,10 @@ export function RemixClient({
             {/* Brief */}
             <section className="space-y-4 rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-6">
               <h2 className="font-medium">Your mascot</h2>
+              <p className="text-sm text-[var(--brand-muted)]">
+                Selected poses are your visual reference. Add description or look
+                notes only if you want specific changes.
+              </p>
               <div className="group/field">
                 <Label htmlFor="name">Name</Label>
                 <Input
@@ -470,7 +537,12 @@ export function RemixClient({
                 />
               </div>
               <div className="group/field">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description">
+                  Description{" "}
+                  <span className="font-normal text-[var(--brand-muted)]">
+                    (optional)
+                  </span>
+                </Label>
                 <Textarea
                   id="description"
                   value={description}
@@ -481,7 +553,12 @@ export function RemixClient({
                 />
               </div>
               <div className="group/field">
-                <Label htmlFor="look">Look</Label>
+                <Label htmlFor="look">
+                  Look{" "}
+                  <span className="font-normal text-[var(--brand-muted)]">
+                    (optional)
+                  </span>
+                </Label>
                 <Textarea
                   id="look"
                   value={look}
@@ -526,9 +603,15 @@ export function RemixClient({
             {/* Example poses */}
             <section className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-6">
               <div className="flex flex-wrap items-end justify-between gap-2">
-                <h2 className="font-medium">Example poses to remix</h2>
+                <div>
+                  <h2 className="font-medium">Example poses to remix</h2>
+                  <p className="mt-1 text-sm text-[var(--brand-muted)]">
+                    Pick which animations to carry over. You can add more
+                    anytime in the studio once your remix is saved.
+                  </p>
+                </div>
                 <Badge variant="outline" className="border-white/15">
-                  {selected.size}/6 selected
+                  {selected.size}/{MAX_CREATE_GESTURES} selected
                 </Badge>
               </div>
               {categories.map((cat) => (
@@ -545,13 +628,14 @@ export function RemixClient({
                           <button
                             key={pose.key}
                             type="button"
-                            disabled={remixLoading}
+                            disabled={remixLoading || (!on && atPoseCap)}
                             onClick={() => togglePose(pose.key)}
                             className={cn(
                               "flex gap-3 rounded-xl border p-3 text-left transition",
                               on
                                 ? "border-[var(--brand-accent)]/50 bg-[var(--brand-accent)]/10"
-                                : "border-white/10 hover:border-white/25"
+                                : "border-white/10 hover:border-white/25",
+                              !on && atPoseCap && "opacity-40"
                             )}
                           >
                             <div
@@ -584,8 +668,9 @@ export function RemixClient({
               <section className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-6">
                 <h2 className="font-medium">Extra gestures</h2>
                 <p className="mt-1 text-sm text-[var(--brand-muted)]">
-                  Not in {sourceName}. Generated after remix using your idle
-                  pose as anchor.
+                  Not in {sourceName} — generated right after remix using your
+                  idle pose as anchor. Need more later? Add gestures anytime in
+                  the studio.
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   {GESTURE_CATEGORIES.map((cat) =>

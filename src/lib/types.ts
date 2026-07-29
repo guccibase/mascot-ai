@@ -173,7 +173,6 @@ export type RemixRequest = {
     | "relay"
     | "orbit"
     | "brew"
-    | "lumen"
     | "shade"
     | "watt"
     | "arc"
@@ -188,8 +187,10 @@ export type RemixRequest = {
   listingId?: string;
   remixOrderId?: string;
   name: string;
-  description: string;
-  look: string;
+  /** Optional — source artwork is the visual reference when omitted. */
+  description?: string;
+  /** Optional — source artwork is the visual reference when omitted. */
+  look?: string;
   productContext?: string;
   personality?: string;
   gestures: GestureRequest[];

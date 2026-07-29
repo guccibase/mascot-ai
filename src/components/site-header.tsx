@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useAuth, UserButton } from "@clerk/nextjs";
-import { useConvexAuth } from "convex/react";
-import { Coins } from "lucide-react";
+import { useConvexAuth, useQuery } from "convex/react";
+import { Coins, Shield } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { buttonVariants } from "@/components/ui/button";
 import { formatTokens } from "@/lib/token-pricing";
 import { useTokenBalance } from "@/lib/use-token-balance";
 import { cn } from "@/lib/utils";
+import { api } from "../../convex/_generated/api";
 
 const ghostLink = cn(
   buttonVariants({ variant: "ghost" }),
@@ -47,6 +48,7 @@ export function SiteHeader() {
   // nav, the right default for the public pages. The signed-in routes sit
   // behind AccessGate, which already waits for auth before rendering children.
   const { isSignedIn } = useAuth();
+  const isAdmin = useQuery(api.marketplace.isAdmin, isSignedIn ? {} : "skip");
 
   return (
     // Same container as every page's <main>, so the logo lines up with the
@@ -72,6 +74,16 @@ export function SiteHeader() {
             >
               Library
             </Link>
+            {isAdmin ? (
+              <Link
+                href="/admin"
+                className={ghostLink}
+                title="Admin"
+              >
+                <Shield className="size-4" />
+                <span className="sr-only sm:not-sr-only sm:ml-1.5">Admin</span>
+              </Link>
+            ) : null}
             <Link href="/create" className={accentLink}>
               Create
             </Link>

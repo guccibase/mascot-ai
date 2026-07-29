@@ -31,6 +31,27 @@ export function clamp(n: number, a = 0, b = 100) {
   return Math.max(a, Math.min(b, n));
 }
 
+/**
+ * Instrument resting value is 0–100. Models sometimes return a 0–1 fraction or a
+ * near-zero stub that leaves the stage looking broken; coerce those to the craft
+ * default (68). Intentional low pose signals still use `gesture.signal`.
+ */
+export function normalizeInstrumentDefault(
+  value: unknown,
+  fallback = 68
+): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return fallback;
+  }
+  let n = value;
+  // 0–1 exclusive of 0: treat as a fraction (0.68 → 68). Keep literal 0/1 as-is
+  // until the low-default floor below.
+  if (n > 0 && n <= 1) n *= 100;
+  n = clamp(n);
+  if (n < 15) return fallback;
+  return Math.round(n);
+}
+
 export function easeOut(t: number) {
   return 1 - Math.pow(1 - t, 2.4);
 }
@@ -294,7 +315,14 @@ export function normalizeGeneratedMascot(
     };
   }
 
-  const primary = themes[themeEntries[0]![0]]!;
+  // Studio / theme contract expect themes.primary. Example packs sometimes
+  // name the first swatch differently (amber, dawn, …) — alias it.
+  if (!themes.primary) {
+    const firstKey = themeEntries[0]![0]!;
+    themes.primary = themes[firstKey]!;
+  }
+
+  const primary = themes.primary!;
   const accent = normalizeHex(raw.accent, primary.mid);
   const instrumentHidden = raw.instrument?.hidden === true;
   const instrument: StudioInstrument = {
@@ -306,7 +334,7 @@ export function normalizeGeneratedMascot(
             normalizeHex(c, accent)
           ) as StudioInstrument["ramp"])
         : DEFAULT_RAMP,
-    defaultValue: clamp(raw.instrument?.defaultValue ?? 68),
+    defaultValue: normalizeInstrumentDefault(raw.instrument?.defaultValue),
     // Spreading defaults must not resurrect a Signal slider the pack hid.
     hidden: instrumentHidden ? true : raw.instrument?.hidden,
   };

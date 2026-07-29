@@ -7,6 +7,7 @@ import type { PosePackMeta } from "@/lib/example-poses/types";
 import { getMascot } from "@/lib/mascots";
 import { extractPartsFromMascot } from "@/lib/mascot-parts";
 import { sanitizeSvg } from "@/lib/sanitize-svg";
+import { normalizeInstrumentDefault } from "@/lib/studio-utils";
 import type {
   GeneratedGesture,
   GeneratedMascot,
@@ -296,10 +297,7 @@ function parseInstrument(raw: unknown): StudioInstrument | null | undefined {
     lowLabel: typeof obj.lowLabel === "string" ? obj.lowLabel : "Low",
     midLabel: typeof obj.midLabel === "string" ? obj.midLabel : "Mid",
     highLabel: typeof obj.highLabel === "string" ? obj.highLabel : "High",
-    defaultValue:
-      typeof obj.defaultValue === "number" && Number.isFinite(obj.defaultValue)
-        ? obj.defaultValue
-        : 50,
+    defaultValue: normalizeInstrumentDefault(obj.defaultValue, 50),
     ramp: stops,
   };
 }

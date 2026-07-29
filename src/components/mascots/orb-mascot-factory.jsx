@@ -37,8 +37,9 @@ const SVG_CSS = `
   .ob-gleam{animation:ob-gleam 6.4s ease-in-out infinite}
   .ob-pop{animation:ob-pop .28s ease-out}
   .ob-drift{animation:ob-drift 2.2s ease-out infinite}
+  .ob-tear{animation:ob-tear 2.8s ease-in infinite}
   .ob-rise{animation:ob-rise 2.5s ease-out infinite}
-  .ob-pulse{animation:ob-pulse 1.15s ease-in-out infinite}
+  .ob-pulse{animation:ob-pulse 1.15s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
   .ob-spin{animation:ob-spin 1.2s linear infinite;transform-origin:center}
   .ob-ray{animation:ob-ray 2.4s ease-in-out infinite}
   .ob-tick{animation:ob-tick .55s ease-out infinite}
@@ -53,6 +54,7 @@ const SVG_CSS = `
   @keyframes ob-gleam{0%,28%,100%{transform:translateX(-90px);opacity:0}10%{opacity:.55}20%{transform:translateX(90px);opacity:0}}
   @keyframes ob-pop{from{opacity:0}to{opacity:1}}
   @keyframes ob-drift{0%{opacity:0;transform:translateY(10px)}22%{opacity:1}100%{opacity:0;transform:translateY(-36px)}}
+  @keyframes ob-tear{0%{opacity:0;transform:translateY(0)}16%{opacity:1}82%{opacity:.85}100%{opacity:0;transform:translateY(46px)}}
   @keyframes ob-rise{0%{opacity:0;transform:translateY(12px)}20%{opacity:1}100%{opacity:0;transform:translateY(-44px)}}
   @keyframes ob-pulse{0%,100%{opacity:.35;transform:scale(.88)}50%{opacity:1;transform:scale(1.06)}}
   @keyframes ob-spin{to{transform:rotate(360deg)}}
@@ -248,13 +250,14 @@ const BODY = {
 
 function Star4({ x, y, s = 1, fill, cls, delay }) {
   return (
-    <path
-      className={cls}
-      transform={`translate(${x},${y}) scale(${s})`}
-      fill={fill}
-      style={delay ? { animationDelay: delay } : undefined}
-      d={STAR4}
-    />
+    <g transform={`translate(${x},${y}) scale(${s})`}>
+      <path
+        className={cls}
+        fill={fill}
+        style={delay ? { animationDelay: delay } : undefined}
+        d={STAR4}
+      />
+    </g>
   );
 }
 
@@ -587,8 +590,12 @@ function PoseVisuals({ keyName, p }) {
     case "love":
       return (
         <g>
-          <path className="ob-rise" d={HEART} fill={p.base} transform="translate(306,178) scale(1.25)" />
-          <path className="ob-rise" d={HEART} fill={p.top} opacity=".85" transform="translate(118,158) scale(0.8)" style={{ animationDelay: ".9s" }} />
+          <g transform="translate(306,178) scale(1.25)">
+            <path className="ob-rise" d={HEART} fill={p.base} />
+          </g>
+          <g transform="translate(118,158) scale(0.8)">
+            <path className="ob-rise" d={HEART} fill={p.top} opacity=".85" style={{ animationDelay: ".9s" }} />
+          </g>
         </g>
       );
     case "blowing_kiss":
@@ -598,20 +605,30 @@ function PoseVisuals({ keyName, p }) {
             <path className="ob-tick" d="M228,250 Q252,238 278,242" strokeWidth="3.4" />
             <path className="ob-tick" d="M230,258 Q258,252 286,254" strokeWidth="2.4" style={{ animationDelay: ".18s" }} />
           </g>
-          <path className="ob-rise" d={HEART} fill="#FF6B8A" transform="translate(278,240) scale(1.3)" />
-          <path className="ob-rise" d={HEART} fill={p.base} transform="translate(320,198) scale(1)" style={{ animationDelay: ".4s" }} />
-          <path className="ob-rise" d={HEART} fill={p.top} transform="translate(354,162) scale(0.75)" style={{ animationDelay: ".8s" }} />
+          <g transform="translate(278,240) scale(1.3)">
+            <path className="ob-rise" d={HEART} fill="#FF6B8A" />
+          </g>
+          <g transform="translate(320,198) scale(1)">
+            <path className="ob-rise" d={HEART} fill={p.base} style={{ animationDelay: ".4s" }} />
+          </g>
+          <g transform="translate(354,162) scale(0.75)">
+            <path className="ob-rise" d={HEART} fill={p.top} style={{ animationDelay: ".8s" }} />
+          </g>
         </g>
       );
     case "crying":
     case "sad":
       return (
         <g>
-          <path className="ob-drift" transform="translate(158,310)" fill={p.core} stroke={p.top} strokeWidth="2"
-            d="M0,-10 Q7,-2 7,4 A7,7 0 1,1 -7,4 Q-7,-2 0,-10 Z" />
+          <g transform="translate(158,310)">
+            <path className="ob-tear" fill={p.core} stroke={p.top} strokeWidth="2"
+              d="M0,-10 Q7,-2 7,4 A7,7 0 1,1 -7,4 Q-7,-2 0,-10 Z" />
+          </g>
           {keyName === "crying" && (
-            <path className="ob-drift" transform="translate(260,310)" fill={p.core} stroke={p.top} strokeWidth="2"
-              d="M0,-10 Q7,-2 7,4 A7,7 0 1,1 -7,4 Q-7,-2 0,-10 Z" style={{ animationDelay: ".45s" }} />
+            <g transform="translate(260,310)">
+              <path className="ob-tear" fill={p.core} stroke={p.top} strokeWidth="2"
+                d="M0,-10 Q7,-2 7,4 A7,7 0 1,1 -7,4 Q-7,-2 0,-10 Z" style={{ animationDelay: ".45s" }} />
+            </g>
           )}
         </g>
       );

@@ -40,4 +40,10 @@ describe("sanitizeSvg", () => {
     expect(sanitizeSvg("<div>hi</div>")).toBe("");
     expect(sanitizeSvg("")).toBe("");
   });
+
+  it("repairs unclosed groups so exports stay well-formed", () => {
+    const broken = `<svg xmlns="http://www.w3.org/2000/svg"><g><circle cx="1" cy="1" r="2"/></svg>`;
+    const out = sanitizeSvg(broken);
+    expect(out).toMatch(/<\/g>\s*<\/svg>$/);
+  });
 });

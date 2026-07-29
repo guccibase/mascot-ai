@@ -175,6 +175,7 @@ const SVG_CSS = `
   .gw-rise{animation:gw-rise 2.5s ease-out infinite}
   .gw-fall{animation:gw-fall 2.8s linear infinite}
   .gw-drift{animation:gw-drift 3s ease-out infinite}
+  .gw-tear{animation:gw-tear 2.8s ease-in infinite}
   .gw-tick{animation:gw-tick .62s ease-out infinite}
   .gw-shine{animation:gw-shine 2.1s ease-in-out infinite}
   .gw-write{animation:gw-write 1.2s ease-in-out infinite}
@@ -190,6 +191,7 @@ const SVG_CSS = `
     84%{opacity:.9}100%{opacity:.2;transform:translateY(145px)}}
   @keyframes gw-drift{0%{opacity:.42;transform:translate(0,8px)}22%{opacity:1}
     82%{opacity:.82}100%{opacity:.24;transform:translate(14px,-30px)}}
+  @keyframes gw-tear{0%{opacity:0;transform:translateY(0)}16%{opacity:1}82%{opacity:.85}100%{opacity:0;transform:translateY(46px)}}
   @keyframes gw-tick{0%,100%{opacity:.2}45%{opacity:1}}
   @keyframes gw-shine{0%,100%{opacity:.3}50%{opacity:1}}
   @keyframes gw-write{0%,100%{transform:translateX(0)}50%{transform:translateX(-7px)}}
@@ -1181,7 +1183,7 @@ function PoseProp({ gesture, palette, cache }) {
       return (
         <g data-ms-part="effects" transform="translate(246,302)">
           <path
-            className="gw-drift"
+            className="gw-tear"
             d="M0,-11 Q8,-1 8,6 A8,8 0 1,1 -8,6 Q-8,-1 0,-11 Z"
             fill={palette.sky}
           />

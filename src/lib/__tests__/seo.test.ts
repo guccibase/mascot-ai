@@ -25,30 +25,6 @@ describe("seo helpers", () => {
       "/studio/sol",
       "/studio/bud",
       "/studio/fanous",
-      "/studio/granary",
-      "/studio/byte",
-      "/studio/numi",
-      "/studio/lexa",
-      "/studio/coda",
-      "/studio/kelp",
-      "/studio/nori",
-      "/studio/hay",
-      "/studio/nox",
-      "/studio/zest",
-      "/studio/quill",
-      "/studio/pip",
-      "/studio/bolt",
-      "/studio/relay",
-      "/studio/orbit",
-      "/studio/brew",
-      "/studio/lumen",
-      "/studio/shade",
-      "/studio/watt",
-      "/studio/arc",
-      "/studio/aura",
-      "/studio/glint",
-      "/studio/trove",
-      "/studio/zephyr",
     ]);
 
   });
@@ -108,6 +84,18 @@ describe("seo helpers", () => {
       "SoftwareApplication",
       "ItemList",
     ]);
+    const list = graph["@graph"].find(
+      (node: { "@type": string }) => node["@type"] === "ItemList"
+    ) as { itemListElement: Array<{ url: string }> };
+    expect(list.itemListElement).toHaveLength(4);
+    expect(list.itemListElement.map((item) => item.url)).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/\/studio\/lyra$/),
+        expect.stringMatching(/\/studio\/sol$/),
+        expect.stringMatching(/\/studio\/bud$/),
+        expect.stringMatching(/\/studio\/fanous$/),
+      ])
+    );
   });
 });
 

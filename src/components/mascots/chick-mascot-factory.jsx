@@ -34,6 +34,7 @@ const SVG_CSS = `
   .ck-spin{animation:ck-spin 1.15s linear infinite}
   .ck-pulse{animation:ck-pulse 1.2s ease-in-out infinite}
   .ck-drift{animation:ck-drift 2s ease-out infinite;opacity:.9}
+  .ck-tear{animation:ck-tear 2.8s ease-in infinite}
   .ck-blink{animation:ck-blink 4.8s ease-in-out infinite}
   .ck-svg[data-paused] *{animation-play-state:paused!important}
   @keyframes ck-breathe{0%,100%{transform:translateY(0) scale(1)}
@@ -55,6 +56,7 @@ const SVG_CSS = `
   @keyframes ck-spin{to{transform:rotate(360deg)}}
   @keyframes ck-pulse{0%,100%{opacity:.35;transform:scale(.86)}50%{opacity:1;transform:scale(1.08)}}
   @keyframes ck-drift{0%{opacity:.55;transform:translateY(12px)}25%{opacity:1}100%{opacity:0;transform:translateY(-34px)}}
+  @keyframes ck-tear{0%{opacity:0;transform:translateY(0)}16%{opacity:1}82%{opacity:.85}100%{opacity:0;transform:translateY(46px)}}
   @keyframes ck-blink{0%,44%,48%,100%{transform:scaleY(1)}46%{transform:scaleY(.08)}}
   @media (prefers-reduced-motion:reduce){.ck-svg *{animation:none!important}}
 `;
@@ -349,7 +351,7 @@ function PoseVisuals({ keyName, core, feature, species }) {
         const tear = (x) =>
           `M${x},${y + 18} C${x - 10},${y + 36} ${x - 6},${y + 46} ${x + 2},${y + 46} C${x + 12},${y + 46} ${x + 14},${y + 35} ${x},${y + 18}Z`;
         return (
-          <g className="ck-drift">
+          <g className="ck-tear">
             <path d={`${tear(lx - 4)} ${tear(rx + 4)}`} fill="#75C9F0" />
           </g>
         );
@@ -427,9 +429,11 @@ function PoseVisuals({ keyName, core, feature, species }) {
         puffin: [98, 248],
       }[species];
       return (
-        <g className="ck-pulse" transform={`translate(${x} ${y})`}>
-          <path d="M0 -20 L6 -7 L20 -6 L9 3 L13 17 L0 10 L-13 17 L-9 3 L-20 -6 L-6 -7Z" fill={core} stroke={feature} strokeWidth="4.5" strokeLinejoin="round" />
-          <path d="M-28 -2 L-38 -2 M28 -2 L38 -2 M0 -28 L0 -38" fill="none" stroke={core} strokeWidth="4" strokeLinecap="round" />
+        <g transform={`translate(${x} ${y})`}>
+          <g className="ck-pulse">
+            <path d="M0 -20 L6 -7 L20 -6 L9 3 L13 17 L0 10 L-13 17 L-9 3 L-20 -6 L-6 -7Z" fill={core} stroke={feature} strokeWidth="4.5" strokeLinejoin="round" />
+            <path d="M-28 -2 L-38 -2 M28 -2 L38 -2 M0 -28 L0 -38" fill="none" stroke={core} strokeWidth="4" strokeLinecap="round" />
+          </g>
         </g>
       );
     }

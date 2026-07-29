@@ -225,11 +225,17 @@ async function runCheapOpenAI(args: {
 
   for (const model of CHEAP_SURPRISE_MODELS) {
     try {
+      // OpenAI json_object mode requires the word "json" in input messages
+      // (instructions alone are not enough — same rule as openai-mascot.ts).
+      const input = /\bjson\b/i.test(args.input)
+        ? args.input
+        : `${args.input}\n\nReturn a single JSON object.`;
+
       const response = await openai.responses.create(
         {
           model,
           instructions: args.instructions,
-          input: args.input,
+          input,
           text: { format: { type: "json_object" } },
           max_output_tokens: args.maxOutputTokens,
           ...(supportsReasoningEffort(model)

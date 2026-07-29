@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { ensureCurrentUser, getCurrentUserOrNull } from "./lib/auth";
+import { isPublicExampleSlug } from "./lib/publicExamples";
 import { validators } from "./schema";
 
 const userProfile = v.object({
@@ -47,6 +48,13 @@ function answer(value: string | undefined, max: number) {
   return trimmed ? trimmed.slice(0, max) : undefined;
 }
 
+/** Only persist favorites from the public example allowlist. */
+function publicFavoriteExample(value: string | undefined) {
+  const trimmed = answer(value, 64);
+  if (!trimmed || !isPublicExampleSlug(trimmed)) return undefined;
+  return trimmed;
+}
+
 export const completeOnboarding = mutation({
   args: {
     useCase: v.string(),
@@ -73,7 +81,7 @@ export const completeOnboarding = mutation({
         stack: answer(args.stack, 120),
         referral: answer(args.referral, 64),
         paidBefore: answer(args.paidBefore, 32),
-        favoriteExample: answer(args.favoriteExample, 64),
+        favoriteExample: publicFavoriteExample(args.favoriteExample),
       },
       updatedAt: now,
     });

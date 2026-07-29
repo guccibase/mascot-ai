@@ -1,6 +1,13 @@
 import type { Doc, Id } from "../_generated/dataModel";
-import type { MutationCtx } from "../_generated/server";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
+import {
+  canHardDeleteDeferredHold,
+  isDeferredReservation,
+} from "./spendCapacity";
 import { addCycle, planById, type Plan } from "./plans";
+
+/** Fail closed if a user somehow accumulates more concurrent holds than this. */
+const OPEN_HOLD_SCAN_LIMIT = 100;
 
 /** Upper bound on cycle rolls in one pass. ~20 years of monthly refills. */
 const MAX_CYCLE_ROLLS = 240;
@@ -128,19 +135,88 @@ export async function applyRefill(
   };
 }
 
+export type OpenHoldSum = {
+  /** Deferred auth amounts still within TTL (legacy holds already hit the wallet). */
+  total: number;
+  /** True when the scan hit the concurrency ceiling — treat capacity as exhausted. */
+  truncated: boolean;
+};
+
+/**
+ * Sum of open deferred hold amounts for capacity checks.
+ * Legacy (debit-on-reserve) rows are omitted — their cost is already in the wallet.
+ */
+export async function sumOpenHoldAmount(
+  ctx: QueryCtx | MutationCtx,
+  userId: Id<"users">,
+  now: number
+): Promise<OpenHoldSum> {
+  const open = await ctx.db
+    .query("tokenReservations")
+    .withIndex("by_user_expires", (q) =>
+      q.eq("userId", userId).gte("expiresAt", now)
+    )
+    .take(OPEN_HOLD_SCAN_LIMIT + 1);
+
+  const truncated = open.length > OPEN_HOLD_SCAN_LIMIT;
+  let total = 0;
+  const rows = truncated ? open.slice(0, OPEN_HOLD_SCAN_LIMIT) : open;
+  for (const reservation of rows) {
+    if (isDeferredReservation(reservation)) {
+      total += reservation.amount;
+    }
+  }
+  return { total, truncated };
+}
+
+/**
+ * Recompute denormalized capacity from live deferred holds (server clock).
+ * Call after every reserve / settle / expiry mutation.
+ */
+export async function syncOpenHoldTotal(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  now: number
+): Promise<OpenHoldSum> {
+  const openHolds = await sumOpenHoldAmount(ctx, userId, now);
+  await ctx.db.patch(userId, {
+    openHoldTotal: openHolds.truncated
+      ? Number.MAX_SAFE_INTEGER
+      : openHolds.total,
+    updatedAt: now,
+  });
+  return openHolds;
+}
+
 /**
  * Return one abandoned hold to its buckets and delete it.
  *
- * No ledger entry: a hold was never a settled transaction, so releasing it
- * must leave `sum(ledger) == balance + open holds` intact. The plan cap is
- * respected because a refill may have landed while the hold was open.
+ * Deferred holds never debited the wallet. They stay readable through a settle
+ * grace window after TTL so a late successful settle can still capture; after
+ * grace they are deleted with no refund. Legacy holds refund immediately.
+ *
+ * No ledger entry on release: holds are authorizations, not settled charges.
+ * Wallet ≈ sum(ledger); open deferred holds are tracked separately via
+ * `users.openHoldTotal`.
+ *
+ * @returns true when the reservation row was deleted.
  */
 export async function releaseReservation(
   ctx: MutationCtx,
   user: Doc<"users">,
   reservation: Doc<"tokenReservations">,
   now: number
-): Promise<void> {
+): Promise<boolean> {
+  if (isDeferredReservation(reservation)) {
+    if (!canHardDeleteDeferredHold(reservation.expiresAt, now)) {
+      return false;
+    }
+    await ctx.db.delete(reservation._id);
+    return true;
+  }
+
+  await ctx.db.delete(reservation._id);
+
   const plan = activePlan(user, now);
   const subscriptionTokens = Math.min(
     Math.max(0, user.subscriptionTokens ?? 0) + reservation.fromSubscription,
@@ -148,12 +224,12 @@ export async function releaseReservation(
   );
   const topupTokens = Math.max(0, user.topupTokens ?? 0) + reservation.fromTopup;
 
-  await ctx.db.delete(reservation._id);
   await ctx.db.patch(user._id, {
     subscriptionTokens,
     topupTokens,
     updatedAt: now,
   });
+  return true;
 }
 
 /**
@@ -172,26 +248,13 @@ export async function releaseExpiredReservations(
     )
     .take(20);
 
-  if (stale.length === 0) return;
-
-  let subscriptionBack = 0;
-  let topupBack = 0;
+  let current = user;
   for (const reservation of stale) {
-    subscriptionBack += reservation.fromSubscription;
-    topupBack += reservation.fromTopup;
-    await ctx.db.delete(reservation._id);
+    await releaseReservation(ctx, current, reservation, now);
+    const refreshed = await ctx.db.get(user._id);
+    if (refreshed) current = refreshed;
   }
 
-  const plan = activePlan(user, now);
-  const subscriptionTokens = Math.min(
-    Math.max(0, user.subscriptionTokens ?? 0) + subscriptionBack,
-    plan?.tokensPerCycle ?? Number.MAX_SAFE_INTEGER
-  );
-  const topupTokens = Math.max(0, user.topupTokens ?? 0) + topupBack;
-
-  await ctx.db.patch(user._id, {
-    subscriptionTokens,
-    topupTokens,
-    updatedAt: now,
-  });
+  // Drop capacity for holds past TTL even when still in settle grace.
+  await syncOpenHoldTotal(ctx, user._id, now);
 }

@@ -300,12 +300,12 @@ const sections: LegalSection[] = [
     title: "Third-party services",
     content: (
       <p>
-        The Service depends on third-party services, including Clerk, Convex,
-        OpenAI, Anthropic, Vercel, RevenueCat, and Stripe. Their availability,
-        output, and separate terms or policies may affect the Service. MascotAI
-        is not responsible for third-party services outside our control. Your
-        use of a third-party checkout, authentication method, or model may also
-        be governed by that provider&apos;s terms.
+        The Service relies on outside providers for functions such as
+        authentication, hosting, storage, analytics, payments, and AI
+        generation. When you select an OpenAI or Anthropic model, that
+        provider&apos;s availability, output, and applicable terms or policies
+        may affect your use of the feature. MascotAI is not responsible for
+        external services outside our control.
       </p>
     ),
   },

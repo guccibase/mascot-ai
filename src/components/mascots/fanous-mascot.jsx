@@ -532,9 +532,11 @@ const Crescent = ({ p, x, y, s = 0.8, o = 0.9 }) => (
     transform={`translate(${x},${y}) scale(${s})`} />
 );
 const Drop = ({ x, y, s = 1, cls = "", col = "#9AD7EC", delay }) => (
-  <path className={cls} transform={`translate(${x},${y}) scale(${s})`} fill={col} opacity=".95"
-    style={delay ? { animationDelay: delay } : undefined}
-    d="M0,-14 Q10,-2.5 10,4.5 A10,10 0 1,1 -10,4.5 Q-10,-2.5 0,-14 Z" />
+  <g transform={`translate(${x},${y}) scale(${s})`}>
+    <path className={cls} fill={col} opacity=".95"
+      style={delay ? { animationDelay: delay } : undefined}
+      d="M0,-14 Q10,-2.5 10,4.5 A10,10 0 1,1 -10,4.5 Q-10,-2.5 0,-14 Z" />
+  </g>
 );
 
 function Props({ g, p }) {
@@ -657,9 +659,11 @@ function Props({ g, p }) {
               fill={i % 2 ? p.face : acc} style={{ animationDelay: `${d}s` }} />
           ))}
           {[[130, 84, 0.3], [300, 70, 1.3], [352, 190, 2.3]].map(([x, y, d], i) => (
-            <path key={i} className="lm-fall" transform={`translate(${x},${y}) scale(1.15)`}
-              d="M0,-7 L1.9,-1.9 L7,0 L1.9,1.9 L0,7 L-1.9,1.9 L-7,0 L-1.9,-1.9 Z"
-              fill={p.blush} style={{ animationDelay: `${d}s` }} />
+            <g key={i} transform={`translate(${x},${y}) scale(1.15)`}>
+              <path className="lm-fall"
+                d="M0,-7 L1.9,-1.9 L7,0 L1.9,1.9 L0,7 L-1.9,1.9 L-7,0 L-1.9,-1.9 Z"
+                fill={p.blush} style={{ animationDelay: `${d}s` }} />
+            </g>
           ))}
         </g>
       );
@@ -698,10 +702,13 @@ function Props({ g, p }) {
         <g>
           <FrontArm d="M112,352 Q152,376 196,352" p={p} />
           <FrontArm d="M308,352 Q268,376 224,352" p={p} />
-          <path className="lm-rise" d={HEART_D} fill={p.blush}
-            transform="translate(300,150) scale(1.3)" />
-          <path className="lm-rise" d={HEART_D} fill={p.accent} opacity=".8"
-            transform="translate(334,110) scale(0.8)" style={{ animationDelay: ".9s" }} />
+          <g transform="translate(300,150) scale(1.3)">
+            <path className="lm-rise" d={HEART_D} fill={p.blush} />
+          </g>
+          <g transform="translate(334,110) scale(0.8)">
+            <path className="lm-rise" d={HEART_D} fill={p.accent} opacity=".8"
+              style={{ animationDelay: ".9s" }} />
+          </g>
         </g>
       );
     case "coin":
@@ -709,8 +716,9 @@ function Props({ g, p }) {
         <g>
           <circle cx="382" cy="296" r="17" fill={acc} stroke={p.faceEdge} strokeWidth="3" />
           <Crescent p={p} x={374} y={286} s={0.44} o={1} />
-          <path className="lm-rise" d={HEART_D} fill={p.blush} opacity=".9"
-            transform="translate(384,214) scale(0.62)" />
+          <g transform="translate(384,214) scale(0.62)">
+            <path className="lm-rise" d={HEART_D} fill={p.blush} opacity=".9" />
+          </g>
         </g>
       );
     case "tear":

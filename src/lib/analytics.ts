@@ -53,6 +53,9 @@ type Events = {
 
   /** App icon / favicon / PWA asset exports. */
   app_assets_downloaded: { kind: "single" | "pack" };
+
+  /** Admin manual token credit — bucket + size tier only, no user ids. */
+  admin_grant: { bucket: "topup" | "subscription"; size: string };
 };
 
 /**

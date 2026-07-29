@@ -2,6 +2,8 @@ import "server-only";
 
 import OpenAI, { toFile } from "openai";
 
+export { buildIconPrompt } from "@/lib/app-assets/icon-prompt";
+
 const DEFAULT_IMAGE_MODEL =
   process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-2";
 
@@ -60,38 +62,4 @@ export async function generateAppIconImage(args: {
     buffer: Buffer.from(b64, "base64"),
     mediaType: "image/png",
   };
-}
-
-/**
- * Surgical edit prompt if image-model path is used again.
- * Prefer composeAppIconPreview for guaranteed character fidelity.
- */
-export function buildIconPrompt(args: {
-  mascotName: string;
-  tagline?: string;
-  styleDescription?: string;
-  kinds: string[];
-  variantIndex?: number;
-}): string {
-  const style = args.styleDescription?.trim()
-    ? `Background only: ${args.styleDescription.trim()}`
-    : "Background only: soft polished gradient, crisp, readable at 48px.";
-
-  const variantHint =
-    args.variantIndex != null
-      ? `Variation ${args.variantIndex + 1} of 3 — change ONLY the background treatment.`
-      : null;
-
-  return [
-    `Edit this image into a production APP ICON for "${args.mascotName}".`,
-    "CRITICAL: Keep the mascot character 100% identical to the reference — same shape, colors, face, eyes, proportions, and details. Do NOT redesign, restyle, or replace the character.",
-    "Change ONLY the background behind the character. Leave every character pixel unchanged.",
-    args.tagline ? `Brand vibe for the background: ${args.tagline}.` : null,
-    `Asset types requested: ${args.kinds.join(", ")}.`,
-    style,
-    variantHint,
-    "Requirements: square 1:1, no rounded corners, no text, character centered with breathing room.",
-  ]
-    .filter(Boolean)
-    .join(" ");
 }

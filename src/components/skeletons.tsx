@@ -112,20 +112,19 @@ export function PageShellSkeleton({
 }
 
 /**
- * Library / marketplace studio detail: chrome + stage.
- * `pills` matches library floating back/remix chips; `site-header` matches
- * marketplace listing chrome.
+ * Studio detail loading chrome: site header + thin action toolbar + stage.
+ * Matches marketplace / library / create / remix studio shells.
  */
 export function StudioPageSkeleton({
   withHeaderActions = true,
-  variant = "pills",
+  variant = "site-header",
 }: {
   withHeaderActions?: boolean;
   variant?: "pills" | "site-header";
 }) {
   return (
     <div
-      className="relative min-h-screen bg-[#0a0e18]"
+      className="relative min-h-screen bg-[var(--brand-bg)]"
       aria-busy="true"
       aria-label="Loading"
     >
@@ -139,31 +138,18 @@ export function StudioPageSkeleton({
             </div>
           </div>
         </div>
-      ) : (
-        <div className="absolute left-4 top-4 z-50 flex gap-2 sm:left-6 sm:top-6">
-          <Skeleton className="h-8 w-24 rounded-full bg-white/10" />
-          {withHeaderActions && (
-            <Skeleton className="h-8 w-20 rounded-full bg-white/10" />
-          )}
-        </div>
-      )}
-      <div
-        className={cn(
-          "mx-auto flex max-w-6xl flex-col gap-4 px-5 pb-4 sm:flex-row sm:items-end sm:justify-between sm:px-8",
-          variant === "site-header" ? "pt-2" : "pt-16"
+      ) : null}
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-5 py-3 sm:px-8">
+        <Skeleton className="h-8 w-28 rounded-full bg-white/10" />
+        {withHeaderActions && (
+          <>
+            <Skeleton className="h-8 w-24 rounded-full bg-white/10" />
+            <Skeleton className="h-8 w-28 rounded-full bg-white/10" />
+          </>
         )}
-      >
-        <div className="min-w-0 flex-1 space-y-3">
-          <Skeleton className="h-3 w-28 bg-white/10" />
-          <Skeleton className="h-9 w-64 max-w-full bg-white/10" />
-          <Skeleton className="h-4 w-full max-w-xl bg-white/10" />
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Skeleton className="h-9 w-28 rounded-md bg-white/10" />
-          <Skeleton className="h-9 w-32 rounded-md bg-white/10" />
-        </div>
       </div>
       <div className="mx-auto max-w-6xl px-5 sm:px-8">
+        <Skeleton className="mb-4 h-14 w-72 max-w-full bg-white/10" />
         <Skeleton className="h-[min(70vh,560px)] w-full rounded-[1.5rem] bg-white/[0.04]" />
       </div>
     </div>
