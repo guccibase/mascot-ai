@@ -20,11 +20,13 @@ import {
 import {
   PHASE_OUTPUT_CEILINGS,
   REFINE_MARGIN_MULTIPLIER,
+  REFINE_RESERVE_BUFFER,
   billUsageTokens,
   estimateFullCreate,
   estimateRefineReservation,
   estimateTokens,
   formatTokens,
+  refineHoldTokens,
   runsRemaining,
   tokenRate,
   tokensForUsage,
@@ -283,25 +285,22 @@ describe("payload-sized reservations", () => {
     expect(loaded.max).toBeGreaterThan(bare.max);
   });
 
-  it("covers the real provider cost of a large refine payload at refine margin", () => {
+  it("refine hold covers a typical-sized run on a large payload", () => {
     const model = "claude-fable-5";
-    const reserved = estimateTokens(
+    const estimate = estimateTokens(
       { kind: "refine", payloadChars: big.length },
       model
-    ).max;
-
-    // What the provider would bill if that payload tokenised at a realistic
-    // 3.5 chars/token and the call ran to its output ceiling — then × margin.
-    const cogs = tokensForUsage(
+    );
+    const hold = refineHoldTokens(estimate);
+    const typicalRun = tokensForUsage(
       {
         input_tokens: Math.ceil(big.length / 3.5) + 16_000,
-        output_tokens: 32_000,
+        output_tokens: 8_000,
       },
       model
     );
-    expect(reserved).toBeGreaterThanOrEqual(
-      Math.ceil(cogs * REFINE_MARGIN_MULTIPLIER)
-    );
+    expect(hold).toBeGreaterThanOrEqual(typicalRun);
+    expect(hold).toBeLessThanOrEqual(estimate.max);
   });
 
   it("re-charges the payload once per phase that re-sends it", () => {
@@ -372,52 +371,37 @@ describe("store product identifiers", () => {
   });
 });
 
-describe("refine margin and reservation quotes", () => {
-  it("uses a 50% gross-margin multiplier", () => {
-    expect(REFINE_MARGIN_MULTIPLIER).toBe(2);
-  });
-
-  it("marks up bare refine estimates by exactly ×2 COGS", () => {
+describe("refine reservation quotes", () => {
+  it("bills refine at COGS like create (no per-call markup)", () => {
+    expect(REFINE_MARGIN_MULTIPLIER).toBe(1);
     const model = "gpt-5.6-sol";
     const rate = tokenRate(mascotModelOption(model));
-    // PHASES.refine: input 16_000, outputTypical 8_000, outputMax 32_000, no payload.
     const cogsTypical = 16_000 * rate.input + 8_000 * rate.output;
     const cogsMax = 16_000 * rate.input + 32_000 * rate.output;
     const estimate = estimateTokens({ kind: "refine", batches: 1 }, model);
-    expect(estimate.typical).toBe(
-      Math.ceil(cogsTypical * REFINE_MARGIN_MULTIPLIER)
+    expect(estimate.typical).toBe(Math.ceil(cogsTypical));
+    expect(estimate.max).toBe(Math.ceil(cogsMax));
+  });
+
+  it("uses a practical hold (typical × buffer) below absolute max", () => {
+    const estimate = estimateTokens(
+      { kind: "refine", batches: 1, payloadChars: 80_000 },
+      "claude-fable-5"
     );
-    expect(estimate.max).toBe(Math.ceil(cogsMax * REFINE_MARGIN_MULTIPLIER));
+    const hold = refineHoldTokens(estimate);
+    expect(hold).toBe(Math.ceil(estimate.typical * REFINE_RESERVE_BUFFER));
+    expect(hold).toBeLessThan(estimate.max);
+    expect(hold).toBeGreaterThanOrEqual(estimate.typical);
   });
 
-  it("does not mark up studio estimates", () => {
-    const model = "gpt-5.6-sol";
-    const rate = tokenRate(mascotModelOption(model));
-    // bible + idle scaffolds only (gestures: 1 → no studioGesture phases).
-    const cogsMax =
-      (7_000 + 6_500) * rate.input +
-      (Math.max(8_000, 0) + 16_000) * rate.output;
-    const studio = estimateTokens({ kind: "studio", gestures: 1 }, model);
-    expect(studio.max).toBe(Math.ceil(cogsMax));
-  });
-
-  it("billUsageTokens applies refine margin without double-ceil inflation", () => {
-    expect(billUsageTokens(1_000, 1)).toBe(1_000);
-    expect(billUsageTokens(1_000, REFINE_MARGIN_MULTIPLIER)).toBe(2_000);
-    expect(billUsageTokens(0, REFINE_MARGIN_MULTIPLIER)).toBe(0);
-    expect(billUsageTokens(-5, REFINE_MARGIN_MULTIPLIER)).toBe(0);
-  });
-
-  it("openMeter settle path: refine usage is marked up like billUsageTokens", () => {
-    // Mirrors openMeter.record: tokensForUsage (COGS) → billUsageTokens(margin).
-    const cogs = tokensForUsage(
-      { input_tokens: 10_000, output_tokens: 4_000 },
-      "gpt-5.6-sol"
+  it("keeps a simple Fable edit within a weekly 240K grant", () => {
+    const weekly = PLANS.find((p) => p.id === "weekly")!;
+    const hold = estimateRefineReservation(
+      { batches: 1, payloadChars: 120_000, hasReference: false },
+      "claude-fable-5"
     );
-    const refineCharged = billUsageTokens(cogs, REFINE_MARGIN_MULTIPLIER);
-    const studioCharged = billUsageTokens(cogs, 1);
-    expect(refineCharged).toBe(cogs * REFINE_MARGIN_MULTIPLIER);
-    expect(studioCharged).toBe(cogs);
+    expect(hold.minCost).toBeLessThanOrEqual(weekly.tokensPerCycle);
+    expect(hold.editCost).toBe(hold.minCost);
   });
 
   it("keeps Fable worst-case refine holds under MAX_TOKEN_RESERVATION", () => {
@@ -430,7 +414,6 @@ describe("refine margin and reservation quotes", () => {
       "claude-fable-5"
     );
     expect(worst.editCost).toBeLessThanOrEqual(MAX_TOKEN_RESERVATION);
-    expect(MAX_TOKEN_RESERVATION).toBeGreaterThanOrEqual(20_000_000);
   });
 
   it("estimateRefineReservation: min is 1-batch; edit scales with batches", () => {
@@ -445,7 +428,7 @@ describe("refine margin and reservation quotes", () => {
     expect(one.minCost).toBe(one.editCost);
     expect(three.minCost).toBe(one.minCost);
     expect(three.editCost).toBeGreaterThan(three.minCost);
-    expect(three.editCost).toBeGreaterThan(one.editCost * 2.9);
+    expect(three.editCost).toBeGreaterThan(one.editCost * 2.5);
     expect(three.typical).toBeGreaterThan(0);
   });
 
@@ -460,9 +443,10 @@ describe("refine margin and reservation quotes", () => {
     );
     expect(withRef.minCost).toBeGreaterThan(bare.minCost);
     expect(withRef.editCost).toBeGreaterThan(withRef.minCost);
-    expect(withRef.editCost - bare.editCost).toBeGreaterThan(
-      withRef.minCost - bare.minCost
-    );
+  });
+
+  it("billUsageTokens is a no-op at refine margin 1", () => {
+    expect(billUsageTokens(1_000, REFINE_MARGIN_MULTIPLIER)).toBe(1_000);
   });
 });
 

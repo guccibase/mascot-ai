@@ -20,10 +20,19 @@ export { MAX_TOKEN_RESERVATION, USD_PER_TOKEN };
 export const APP_ASSET_MARGIN_MULTIPLIER = 2;
 
 /**
- * Gross-margin multiplier on provider COGS for Ask AI (`refine`) only.
- * Same 50% margin convention as app-assets: `(S - C) / S = 0.5` when S = 2C.
+ * Per-call markup on Ask AI refine. Kept at `1` so edits use the same COGS→token
+ * math as create/studio — plan/top-up prices already carry margin. A refine-only
+ * ×2 made simple edits cost more than building a mascot on light models and
+ * broke the weekly “refine anytime” promise on a 240K grant.
  */
-export const REFINE_MARGIN_MULTIPLIER = 2;
+export const REFINE_MARGIN_MULTIPLIER = 1;
+
+/**
+ * Reserve / UI hold for refine: typical × buffer, capped by absolute max.
+ * Worst-case 32K-output holds made Fable “simple edits” exceed a weekly grant
+ * even when a normal run fits comfortably.
+ */
+export const REFINE_RESERVE_BUFFER = 1.5;
 
 /**
  * Apply an action margin to already-computed COGS billing tokens.
@@ -364,9 +373,17 @@ export function estimateTokens(
   };
 }
 
+/** Practical refine hold used by Ask AI UI and `openMeter` reserve. */
+export function refineHoldTokens(estimate: TokenEstimate): number {
+  const typical = Math.max(0, estimate.typical);
+  const max = Math.max(typical, estimate.max);
+  const buffered = Math.ceil(typical * REFINE_RESERVE_BUFFER);
+  return Math.min(max, Math.max(typical, buffered));
+}
+
 /**
  * Ask AI quotes for the selected model: smallest 1-batch hold vs this edit's
- * full-pack reservation (both already include refine margin).
+ * full-pack hold (practical typical×buffer, not absolute output ceilings).
  */
 export function estimateRefineReservation(
   args: {
@@ -397,8 +414,8 @@ export function estimateRefineReservation(
     model
   );
   return {
-    minCost: min.max,
-    editCost: edit.max,
+    minCost: refineHoldTokens(min),
+    editCost: refineHoldTokens(edit),
     typical: edit.typical,
   };
 }

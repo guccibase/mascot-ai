@@ -6,6 +6,7 @@ import {
   billUsageTokens,
   estimateTokens,
   fallbackTokens,
+  refineHoldTokens,
   tokensForUsage,
   type MeteredAction,
   type ProviderUsage,
@@ -73,6 +74,9 @@ export async function openMeter(
   }
 
   const estimate = estimateTokens(action, model);
+  // Refine: practical hold (typical×buffer). Other actions: absolute max.
+  const reserveAmount =
+    action.kind === "refine" ? refineHoldTokens(estimate) : estimate.max;
   // Proves these calls came from the server, not from a browser holding the
   // same user's Clerk token. Optional so an unconfigured deployment still runs.
   const serverSecret = process.env.GENERATION_SERVER_SECRET;
@@ -80,7 +84,7 @@ export async function openMeter(
   let reservationId: Id<"tokenReservations">;
   try {
     const reservation = await client.mutation(api.tokens.reserve, {
-      amount: estimate.max,
+      amount: reserveAmount,
       action: action.kind,
       model,
       serverSecret,

@@ -33,10 +33,10 @@
 
 | Topic | Choice |
 |-------|--------|
-| Margin scope | Ask AI / `refine` only |
-| Margin math | 50% **gross margin** → multiplier `2` (same as app-assets) |
-| Smallest-change floor | 1-batch refine `.max` on the **selected** model (real payload) |
-| Hard refuse for this edit | Balance must cover this edit’s reservation `.max` |
+| Margin scope | Plan/top-up pricing (not a refine-only ×2 — that made edits costlier than creates) |
+| Refine hold | Practical `typical × 1.5`, capped by absolute max (UI + reserve) |
+| Smallest-change floor | 1-batch practical hold on the **selected** model (real payload) |
+| Hard refuse for this edit | Balance must cover this edit’s practical hold |
 | Model persistence | Edit-session only; default from mascot prop / `DEFAULT_MASCOT_MODEL` |
 
 ## Pricing model
@@ -45,32 +45,23 @@
 
 `1` billing token = `USD_PER_TOKEN` (`$0.00001`) of provider COGS, as in `convex/lib/plans.ts`.
 
-### Refine margin
+### Refine billing
 
-```
-REFINE_MARGIN_MULTIPLIER = 2  // (S − C) / S = 0.5 when S = 2C
-billable = ceil(cogsBillingTokens * REFINE_MARGIN_MULTIPLIER)
-```
+Refine uses the same COGS→billing-token math as create (`REFINE_MARGIN_MULTIPLIER = 1`). Margin lives in plan/top-up prices, not a refine-only surcharge.
 
-Apply after COGS conversion in:
+**Hold (UI + `openMeter` reserve):** `refineHoldTokens(estimate) = min(max, ceil(typical × 1.5))` so a normal edit is not gated on the 32K-output worst case.
 
-1. **`estimateTokens`** when `action.kind === "refine"` — both `typical` and `max`
-2. **Settle path for refine** — `openMeter` / `record` must multiply usage the same way so UI quote ≡ reserve ≡ charge intent
-
-`fallbackTokens` for refine already goes through `estimateTokens` and therefore inherits the markup.
-
-Non-refine kinds stay at COGS (no multiplier).
+Actual settle still charges metered usage (overruns can draw more / writeoff as today).
 
 ### Quotes (selected model)
 
-Shared helper (name e.g. `estimateRefineReservation`) used by UI and conceptually matching the refine route:
-
 | Quote | Definition |
 |-------|------------|
-| `minCost` | `estimateTokens({ kind: "refine", batches: 1, payloadChars, referenceImages: ref ? 1 : 0 }).max` |
-| `editCost` | Same with **actual** `batches = splitRefineGestures(mascot.gestures).length` and `referenceImages: ref ? batches : 0` (matching today’s panel) |
+| `minCost` | Practical hold for 1-batch refine on selected model |
+| `editCost` | Practical hold for actual batch count (+ vision when a reference is attached) |
+| `typical` | Expected spend shown in the cost chip |
 
-`payloadChars` = compact mascot JSON + current message + history (same as `/api/generate/refine`). Do **not** invent an empty-pack min. `ref` means a valid reference id is attached.
+`payloadChars` = compact mascot JSON + current message + history (same as `/api/generate/refine`).
 
 ### Affordability gates
 
