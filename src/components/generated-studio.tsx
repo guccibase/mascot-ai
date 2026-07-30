@@ -20,7 +20,7 @@ import { DEFAULT_MASCOT_MODEL } from "@/lib/mascot-model-options";
 import { applyPartVisibility, extractPartsFromMascot } from "@/lib/mascot-parts";
 import { sanitizeSvg } from "@/lib/sanitize-svg";
 import { estimateTokens } from "@/lib/token-pricing";
-import { packHasLiveSignal } from "@/lib/mascot-pack";
+import { packHasLiveSignal, packSignalPartKey } from "@/lib/mascot-pack";
 import { useAffordability } from "@/lib/use-affordability";
 import {
   bakeGestureExport,
@@ -31,6 +31,8 @@ import {
   normalizeSignal,
   SPARK_PATHS,
   computeSignalBars,
+  applyNmChipsLiveSignal,
+  setSignalPaint,
   type SparkKind,
 } from "@/lib/studio-utils";
 import type {
@@ -173,24 +175,19 @@ function applyLiveVars(
       el.style.transformOrigin = "center bottom";
       el.style.transform = `scale(${spread.toFixed(3)})`;
       el.style.opacity = String(0.35 + e * 0.65);
-      if (el.getAttribute("fill") && el.getAttribute("fill") !== "none") {
-        el.setAttribute("fill", color);
-      }
-      if (el.getAttribute("stroke") && el.getAttribute("stroke") !== "none") {
-        el.setAttribute("stroke", color);
-      }
+      setSignalPaint(el, "fill", color, true);
+      setSignalPaint(el, "stroke", color, true);
     });
   }
 
   svg.querySelectorAll(".ms-signal-tint").forEach((node) => {
     const el = node as SVGElement;
-    if (el.getAttribute("fill") && el.getAttribute("fill") !== "none") {
-      el.setAttribute("fill", color);
-    }
-    if (el.getAttribute("stroke") && el.getAttribute("stroke") !== "none") {
-      el.setAttribute("stroke", color);
-    }
+    setSignalPaint(el, "fill", color, true);
+    setSignalPaint(el, "stroke", color, true);
   });
+
+  const chipRoot = svg.querySelector(".nm-chips");
+  if (chipRoot) applyNmChipsLiveSignal(chipRoot, signal, color);
 }
 
 /** Scope paint-server and event IDs so two inline copies cannot collide. */
@@ -455,8 +452,14 @@ export function GeneratedStudio({
    */
   // Never show a Signal slider the artwork can't answer — stale marketplace
   // packs sometimes shipped a non-hidden instrument without `.ms-signal-*`.
+  const signalPartKey = useMemo(
+    () => packSignalPartKey(mascot.gestures),
+    [mascot.gestures]
+  );
   const showSignal =
-    !instrument.hidden && packHasLiveSignal(mascot.gestures);
+    !instrument.hidden &&
+    packHasLiveSignal(mascot.gestures) &&
+    (signalPartKey === null || enabledParts.has(signalPartKey));
   const accent = mascot.accent;
   const zone = zoneForSignal(signal);
   const signalColor = rampColor(signalAnim, instrument.ramp);
@@ -528,7 +531,9 @@ export function GeneratedStudio({
     svgRef.current = svg;
     if (svg) scopeInlineSvgIds(svg, `${svgInstanceId}-${gestureKey}`);
     eyesRefs.current = [
-      ...host.querySelectorAll<SVGGElement>(".ms-eyes, .bd-pupils"),
+      ...host.querySelectorAll<SVGGElement>(
+        ".ms-eyes, .bd-pupils, .bt-pupils, .nm-pupils, .hm-pupils"
+      ),
     ];
     if (!svg) return;
     svg.setAttribute("width", "420");

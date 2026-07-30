@@ -36,6 +36,13 @@ const GENERATED_STUDIO_SLUGS = new Set<MascotSlug>([
   "zephyr",
 ]);
 
+/**
+ * Admin slugs call Clerk (`isAdminUser`) on this shared segment. With only
+ * generateStaticParams, Next treats the route as static SSG and on-demand
+ * admin params throw DYNAMIC_SERVER_USAGE in production (ok in `next dev`).
+ */
+export const dynamic = "force-dynamic";
+
 /** Admin-only slugs are not prebuilt; resolve on demand after the auth gate. */
 export const dynamicParams = true;
 
