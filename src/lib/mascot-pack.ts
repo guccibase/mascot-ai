@@ -1,4 +1,7 @@
-import { normalizeInstrumentDefault } from "@/lib/studio-utils";
+import {
+  ensureThemeContractOnPack,
+  normalizeInstrumentDefault,
+} from "@/lib/studio-utils";
 import type { GeneratedMascot, StudioInstrument } from "@/lib/types";
 
 /** True when the pack's SVG can respond to a live signal / delivery slider. */
@@ -51,8 +54,11 @@ export function toGeneratedMascot(pack: {
     // Explicit hide wins; otherwise hide when the SVG can't answer the slider.
     hidden: pack.instrument.hidden === true || !live,
   };
-  return {
+  // Bought / remixed / created packs all open in GeneratedStudio. Re-apply the
+  // theme contract so legacy marketplace copies with baked hexes still respond
+  // to theme swatches and custom colours.
+  return ensureThemeContractOnPack({
     ...pack,
     instrument,
-  };
+  });
 }

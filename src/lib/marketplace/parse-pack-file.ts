@@ -7,7 +7,10 @@ import type { PosePackMeta } from "@/lib/example-poses/types";
 import { getMascot } from "@/lib/mascots";
 import { extractPartsFromMascot } from "@/lib/mascot-parts";
 import { sanitizeSvg } from "@/lib/sanitize-svg";
-import { normalizeInstrumentDefault } from "@/lib/studio-utils";
+import {
+  ensureThemeContractOnPack,
+  normalizeInstrumentDefault,
+} from "@/lib/studio-utils";
 import type {
   GeneratedGesture,
   GeneratedMascot,
@@ -81,7 +84,9 @@ export function finalizeMarketplacePack(pack: GeneratedMascot): GeneratedMascot 
     }
     return { ...g, svg };
   });
-  const next: GeneratedMascot = { ...pack, gestures };
+  // Theme swatches alone are not enough — gesture SVGs must use --ms-* vars
+  // so marketplace previews and buy-to-own copies can switch / customise themes.
+  const next = ensureThemeContractOnPack({ ...pack, gestures });
   assertPack(next);
   const bytes = JSON.stringify(next).length;
   if (bytes > MAX_PACK_JSON_BYTES) {

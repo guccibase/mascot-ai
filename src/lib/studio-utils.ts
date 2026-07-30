@@ -197,6 +197,33 @@ function themeVarsStyle(theme: ThemeSwatch, accent: string) {
 `.trim();
 }
 
+const THEME_VARS_START = "/*ms-theme-vars*/";
+const THEME_VARS_END = "/*/ms-theme-vars*/";
+
+function themeVarsBlock(theme: ThemeSwatch, accent: string): string {
+  return `${THEME_VARS_START}${themeVarsStyle(theme, accent)}${THEME_VARS_END}`;
+}
+
+function primaryThemeOf(pack: GeneratedMascot): ThemeSwatch {
+  const themes = pack.themes ?? {};
+  const primary = themes.primary ?? Object.values(themes)[0];
+  if (!primary) {
+    throw new Error("Mascot pack missing themes");
+  }
+  return {
+    ...primary,
+    top: normalizeHex(primary.top, "#FFE9AE"),
+    mid: normalizeHex(primary.mid, "#FFB35C"),
+    base: normalizeHex(primary.base, "#F4744E"),
+    core: normalizeHex(primary.core, "#FFF6CF"),
+    stage: normalizeHex(primary.stage, "#1A2438"),
+    features: normalizeHex(primary.features ?? "#2A1A0C", "#2A1A0C"),
+    blush: primary.blush
+      ? normalizeHex(primary.blush, "#E8A8A0")
+      : primary.blush,
+  };
+}
+
 /** Replace literal theme hexes with CSS variables so themes/custom colours work live. */
 export function applyThemeContract(
   svg: string,
@@ -239,11 +266,14 @@ export function applyThemeContract(
     );
   }
 
-  const styleBlock = `<style>${themeVarsStyle(theme, accent)}</style>`;
-  if (out.includes("</style>")) {
-    out = out.replace("</style>", `${themeVarsStyle(theme, accent)}</style>`);
+  const vars = themeVarsBlock(theme, accent);
+  const varsRe = /\/\*ms-theme-vars\*\/[\s\S]*?\/\*\/ms-theme-vars\*\//;
+  if (varsRe.test(out)) {
+    out = out.replace(varsRe, vars);
+  } else if (out.includes("</style>")) {
+    out = out.replace("</style>", `${vars}</style>`);
   } else {
-    out = out.replace(/<svg([^>]*)>/, `<svg$1>${styleBlock}`);
+    out = out.replace(/<svg([^>]*)>/, `<svg$1><style>${vars}</style>`);
   }
 
   // Eye group for cursor tracking. Wrap common eye patterns if missing
@@ -265,6 +295,44 @@ export function applyThemeContract(
   }
 
   return out;
+}
+
+const THEME_VARS_MARKER = /\/\*ms-theme-vars\*\//;
+const THEME_PAINT_VAR = /var\(--ms-(top|mid|base|core)\)/;
+
+function gestureNeedsThemeContract(svg: string): boolean {
+  if (!svg.includes("<svg")) return false;
+  if (THEME_VARS_MARKER.test(svg) && THEME_PAINT_VAR.test(svg)) return false;
+  return true;
+}
+
+function packNeedsThemeContract(pack: GeneratedMascot): boolean {
+  return pack.gestures.some((g) => gestureNeedsThemeContract(g.svg));
+}
+
+/**
+ * Ensure every gesture SVG answers live theme / custom colour changes.
+ * Marketplace pose packs often bake primary-theme hexes; without this, buyers
+ * see theme swatches that do nothing. Safe to run more than once; skips packs
+ * that already carry theme vars.
+ */
+export function ensureThemeContractOnPack(pack: GeneratedMascot): GeneratedMascot {
+  if (!packNeedsThemeContract(pack)) {
+    return pack;
+  }
+  const primary = primaryThemeOf(pack);
+  const accent = normalizeHex(pack.accent, primary.mid);
+  return {
+    ...pack,
+    accent,
+    themes: pack.themes,
+    gestures: pack.gestures.map((g) => ({
+      ...g,
+      svg: gestureNeedsThemeContract(g.svg)
+        ? applyThemeContract(g.svg, primary, accent)
+        : g.svg,
+    })),
+  };
 }
 
 function defaultInstrument(product?: string): StudioInstrument {

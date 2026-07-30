@@ -149,6 +149,26 @@ export const CREATE_BRIEF_PRESETS: CreateBriefPreset[] = [
     personality: "Thrifty, cheerful, careful with money, never shames a miss",
   },
   {
+    slug: "poppy",
+    name: "Pixel Poppy",
+    description:
+      "A bright-eyed poppy who cheers users through onboarding, empty states, and tiny wins.",
+    look:
+      "Rounded red poppy head with scalloped petal circles, dark charcoal seed face, white eye dots, green leaf bow limbs, soft orange pollen mote, and a seven-blade pollen meter fan.",
+    productContext: "Onboarding, empty states, loading screens, and micro-interaction rewards",
+    personality: "Optimistic, encouraging, lightweight, playful without chaos",
+  },
+  {
+    slug: "dada",
+    name: "Dada",
+    description:
+      "A bright-eyed rose who blooms with every little joy through onboarding and tiny wins.",
+    look:
+      "Pink rose head with outer and inner petals, cream golden flower face, big oval eyes, green stem body, leaf bow, stick limbs, and a Rose Radiance meter fan.",
+    productContext: "Joyful onboarding, empty states, and celebration micro-interactions",
+    personality: "Warm, bright-eyed, blooms with every little joy",
+  },
+  {
     slug: "nox",
     name: "Nox",
     description:

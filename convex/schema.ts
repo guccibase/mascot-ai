@@ -266,6 +266,8 @@ export default defineSchema({
         v.literal("kelp"),
         v.literal("nori"),
         v.literal("hay"),
+        v.literal("poppy"),
+        v.literal("dada"),
         v.literal("nox"),
         v.literal("zest"),
         v.literal("quill"),

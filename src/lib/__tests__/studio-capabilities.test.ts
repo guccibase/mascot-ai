@@ -186,6 +186,20 @@ describe("studio entry wiring (UI functional matrix)", () => {
     expect(source).toMatch(/capabilities=\{EXAMPLE_PREVIEW_CAPABILITIES\}/);
   });
 
+  it("every GENERATED_STUDIO_SLUGS entry has a studio-client case", () => {
+    const page = readApp("app/studio/[slug]/page.tsx");
+    const client = readApp("app/studio/[slug]/studio-client.tsx");
+    const block = page.match(
+      /GENERATED_STUDIO_SLUGS = new Set<MascotSlug>\(\[([\s\S]*?)\]\)/
+    )?.[1];
+    expect(block).toBeTruthy();
+    const slugs = [...block!.matchAll(/"([^"]+)"/g)].map((m) => m[1]!);
+    expect(slugs.length).toBeGreaterThan(0);
+    for (const slug of slugs) {
+      expect(client).toMatch(new RegExp(`case "${slug}"`));
+    }
+  });
+
   it("convex getMine/listMine expose owner-scoped source", () => {
     const source = readFileSync(
       join(ROOT, "../convex/mascots.ts"),

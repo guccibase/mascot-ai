@@ -22,6 +22,8 @@ const LOADERS: Record<MascotSlug, () => Promise<{ default: unknown }>> = {
   kelp: () => import("./kelp.json"),
   nori: () => import("./nori.json"),
   hay: () => import("./hay.json"),
+  poppy: () => import("./poppy.json"),
+  dada: () => import("./dada.json"),
   nox: () => import("./nox.json"),
   zest: () => import("./zest.json"),
   quill: () => import("./quill.json"),

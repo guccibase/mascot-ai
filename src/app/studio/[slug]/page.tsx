@@ -17,6 +17,8 @@ import { StudioClient } from "./studio-client";
 
 const GENERATED_STUDIO_SLUGS = new Set<MascotSlug>([
   "granary",
+  "poppy",
+  "dada",
   "nox",
   "zest",
   "quill",

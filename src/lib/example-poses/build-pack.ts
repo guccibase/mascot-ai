@@ -22,6 +22,8 @@ import { POSE_SOURCE as CODA } from "@/components/mascots/coda-mascot";
 import { POSE_SOURCE as KELP } from "@/components/mascots/kelp-mascot";
 import { POSE_SOURCE as NORI } from "@/components/mascots/nori-mascot";
 import { POSE_SOURCE as HAY } from "@/components/mascots/hay-mascot";
+import { POSE_SOURCE as POPPY } from "@/components/mascots/poppy-mascot";
+import { POSE_SOURCE as DADA } from "@/components/mascots/dada-mascot";
 import { POSE_SOURCE as NOX } from "@/components/mascots/nox-mascot";
 import { POSE_SOURCE as ZEST } from "@/components/mascots/zest-mascot";
 import { POSE_SOURCE as QUILL } from "@/components/mascots/quill-mascot";
@@ -69,6 +71,8 @@ const SOURCES: Record<MascotSlug, PoseSource> = {
   kelp: KELP as PoseSource,
   nori: NORI as PoseSource,
   hay: HAY as PoseSource,
+  poppy: POPPY as PoseSource,
+  dada: DADA as PoseSource,
   nox: NOX as PoseSource,
   zest: ZEST as PoseSource,
   quill: QUILL as PoseSource,

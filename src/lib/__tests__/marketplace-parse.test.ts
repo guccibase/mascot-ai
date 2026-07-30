@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  EXAMPLE_MARKETPLACE_OPTIONS,
   loadExampleMarketplacePack,
   parseMarketplaceUpload,
 } from "@/lib/marketplace/example-packs";
@@ -157,6 +158,22 @@ describe("parseMarketplacePackFile", () => {
     expect(pack.gestures).toHaveLength(16);
     expect(JSON.stringify(pack).length).toBeLessThan(MAX_PACK_JSON_BYTES);
   });
+
+  it("applies theme contract so listing packs can switch themes after purchase", () => {
+    const text = readFileSync(
+      resolve(__dirname, "../example-poses/lyra.json"),
+      "utf8"
+    );
+    const pack = finalizeMarketplacePack(parseMarketplacePackFile(text));
+    expect(Object.keys(pack.themes).length).toBeGreaterThan(1);
+    const idle = pack.gestures.find((g) => g.key === "idle");
+    expect(idle?.svg).toMatch(/var\(--ms-top\)/);
+    expect(idle?.svg).toMatch(/\/\*ms-theme-vars\*\//);
+
+    const again = finalizeMarketplacePack(pack);
+    const idle2 = again.gestures.find((g) => g.key === "idle");
+    expect(idle2?.svg.match(/\/\*ms-theme-vars\*\//g)?.length).toBe(1);
+  });
 });
 
 describe("loadExampleMarketplacePack", () => {
@@ -166,6 +183,30 @@ describe("loadExampleMarketplacePack", () => {
     expect(pack.gestures.length).toBeGreaterThan(10);
     expect(JSON.stringify(pack).length).toBeLessThan(MAX_PACK_JSON_BYTES);
   });
+
+  it("loads example packs with themeable SVGs for buy-to-own", async () => {
+    for (const slug of ["lyra", "bud", "poppy", "dada", "byte"] as const) {
+      const pack = await loadExampleMarketplacePack(slug);
+      expect(Object.keys(pack.themes).length).toBeGreaterThan(0);
+      const idle = pack.gestures.find((g) => g.key === "idle");
+      expect(idle?.svg).toMatch(/\/\*ms-theme-vars\*\//);
+      expect(idle?.svg).toMatch(/var\(--ms-(top|mid|base|core)\)/);
+      expect(JSON.stringify(pack).length).toBeLessThan(MAX_PACK_JSON_BYTES);
+    }
+  });
+
+  it("every catalog example finalizes under the size limit with theme vars", async () => {
+    for (const { slug } of EXAMPLE_MARKETPLACE_OPTIONS) {
+      const pack = await loadExampleMarketplacePack(slug);
+      expect(Object.keys(pack.themes).length, slug).toBeGreaterThan(0);
+      const idle = pack.gestures.find((g) => g.key === "idle");
+      expect(idle?.svg, slug).toMatch(/\/\*ms-theme-vars\*\//);
+      expect(idle?.svg, slug).toMatch(/var\(--ms-(top|mid|base|core)\)/);
+      expect(JSON.stringify(pack).length, slug).toBeLessThan(
+        MAX_PACK_JSON_BYTES
+      );
+    }
+  }, 60_000);
 
   it("rejects studio JSX via parseMarketplaceUpload", async () => {
     await expect(

@@ -7,6 +7,8 @@ export type MascotSlug =
   | "byte"
   | "numi"
   | "hay"
+  | "poppy"
+  | "dada"
   | "lexa"
   | "coda"
   | "kelp"
@@ -171,6 +173,28 @@ export const MASCOTS: MascotMeta[] = [
     poseCount: 37,
     blurb:
       "App-friendly American pika with short rounded ears, mitten paws, and realistic SVG coins across the full Core / Moods / Action / Feedback gesture set.",
+  },
+  {
+    slug: "poppy",
+    name: "Pixel Poppy",
+    tagline: "Small flower, big cheer. Keep going.",
+    product: "Onboarding companion",
+    accent: "#FFB347",
+    stage: "#FFF6EC",
+    poseCount: 37,
+    blurb:
+      "Vector poppy with a charcoal seed face, leaf-bow limbs, pollen mote props, and a seven-blade pollen meter across the full 37-pose set.",
+  },
+  {
+    slug: "dada",
+    name: "Dada",
+    tagline: "A bright-eyed rose who blooms with every little joy.",
+    product: "Joyful onboarding companion",
+    accent: "#E63956",
+    stage: "#FFF4F6",
+    poseCount: 37,
+    blurb:
+      "Pink rose with a cream flower face, green stem, stick limbs, leaf bow, and Rose Radiance meter across the full 37-pose set.",
   },
   {
     slug: "nox",
