@@ -180,6 +180,15 @@ describe("studio entry wiring (UI functional matrix)", () => {
     expect(source).not.toMatch(/onMascotChange/);
   });
 
+  it("owned studio Add gesture uses MAX_STUDIO_GESTURES (not a stale 12 cap)", () => {
+    const source = readApp("components/generated-studio.tsx");
+    expect(source).toMatch(/MAX_STUDIO_GESTURES/);
+    expect(source).toMatch(/gestures\.length < MAX_STUDIO_GESTURES/);
+    expect(source).toMatch(/gestures\.length >= MAX_STUDIO_GESTURES/);
+    expect(source).not.toMatch(/gestures\.length < 12/);
+    expect(source).not.toMatch(/gestures\.length >= 12/);
+  });
+
   it("example studios use example preview capabilities", () => {
     const source = readApp("app/studio/[slug]/studio-client.tsx");
     expect(source).toMatch(/EXAMPLE_PREVIEW_CAPABILITIES/);
