@@ -5,6 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useConvexAuth, useQuery } from "convex/react";
 import { PageShellSkeleton } from "@/components/skeletons";
 import { isAccessGateBalancePending } from "@/lib/access-gate-loading";
+import {
+  isMarketplaceBrowsePath,
+  isMarketplaceFulfillmentPath,
+} from "@/lib/marketplace-routes";
 import { useTokenBalance } from "@/lib/use-token-balance";
 import { api } from "../../convex/_generated/api";
 
@@ -28,6 +32,7 @@ const UNGATED_PATHS = [
 /**
  * Routes that spend tokens. Saved work stays readable without a plan; the
  * generate API routes are the real enforcement point, this is just the UX.
+ * Marketplace remix unlock entry is excluded — generation still meters on API.
  */
 const PAID_PATHS = ["/create", "/remix"];
 
@@ -35,14 +40,10 @@ function matches(pathname: string, paths: string[]) {
   return paths.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
-/** Public marketplace browse (not remix/checkout). */
-function isMarketplaceBrowse(pathname: string) {
-  if (pathname === "/marketplace") return true;
-  if (!pathname.startsWith("/marketplace/")) return false;
-  if (pathname.includes("/remix") || pathname.includes("/checkout")) {
-    return false;
-  }
-  return true;
+/** Library/example remix paths that require a plan in the UX gate. */
+function isPlanGatedRemixPath(pathname: string) {
+  if (isMarketplaceFulfillmentPath(pathname)) return false;
+  return pathname.endsWith("/remix") || pathname.includes("/remix/");
 }
 
 /**
@@ -57,15 +58,14 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
   const ungated =
     pathname === "/" ||
     matches(pathname, UNGATED_PATHS) ||
-    isMarketplaceBrowse(pathname);
+    isMarketplaceBrowsePath(pathname) ||
+    isMarketplaceFulfillmentPath(pathname);
   // While Clerk/Convex auth is unresolved, gated routes must not render as
   // signed-out (empty library / "not found" flashes).
   const authPending = !ungated && authLoading;
   const gated = isAuthenticated && !ungated;
   const onPaidPath =
-    matches(pathname, PAID_PATHS) ||
-    pathname.endsWith("/remix") ||
-    pathname.includes("/remix/");
+    matches(pathname, PAID_PATHS) || isPlanGatedRemixPath(pathname);
   const onOnboardingPath = pathname === ONBOARDING_PATH;
 
   const me = useQuery(api.users.me, gated ? {} : "skip");
