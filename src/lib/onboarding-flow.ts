@@ -16,14 +16,14 @@ export type OnboardingStep = (typeof ONBOARDING_STEPS)[number];
 
 export const OLD_WAY_POINTS = [
   {
-    label: "Hundreds — sometimes thousands",
+    label: "Hundreds, sometimes thousands",
     detail:
       "Hiring a designer or studio usually runs hundreds of dollars, sometimes into the thousands, for a character and a handful of poses.",
   },
   {
     label: "Weeks to months",
     detail:
-      "Turnaround is commonly weeks to months — and every revision loop starts the clock again.",
+      "Turnaround is commonly weeks to months, and every revision loop starts the clock again.",
   },
   {
     label: "Still unfinished for product",

@@ -10,8 +10,8 @@ import {
   Globe,
   Loader2,
   Smartphone,
-  Sparkles,
 } from "lucide-react";
+import { OnboardingStepMascot } from "@/components/onboarding/onboarding-step-mascot";
 import { answered, oneOf, trackEvent } from "@/lib/analytics";
 import {
   OLD_WAY_POINTS,
@@ -103,9 +103,9 @@ const REFERRALS = [
 ] as const;
 
 const PAID_BEFORE = [
-  { id: "agency", label: "Yes — agency or freelancer" },
-  { id: "marketplace", label: "Yes — stock or marketplace" },
-  { id: "never", label: "No — first time for me" },
+  { id: "agency", label: "Yes, agency or freelancer" },
+  { id: "marketplace", label: "Yes, stock or marketplace" },
+  { id: "never", label: "No, first time for me" },
 ] as const;
 
 /** Shared across pitch CTA, Continue, and finish so every step matches. */
@@ -116,6 +116,19 @@ const BACK_BTN = "w-full text-[var(--brand-muted)] hover:text-white sm:w-auto";
 function firstName(name: string | null | undefined) {
   if (!name?.trim()) return "there";
   return name.trim().split(/\s+/)[0]!;
+}
+
+function buildingSubtitle(useCase: string | null) {
+  if (useCase === "web") {
+    return "Got it. Web apps need a face that fits in dashboards and empty states.";
+  }
+  if (useCase === "mobile") {
+    return "Got it. Small screen, so the personality has to land fast.";
+  }
+  if (useCase === "game") {
+    return "Got it. Games need a character people actually remember.";
+  }
+  return "Your mascot needs to fit where it lives.";
 }
 
 function Chip({
@@ -266,9 +279,10 @@ export function OnboardingFlow() {
         >
           {step === "pitch" && (
             <div className="text-center">
-              <div className="mx-auto mb-8 flex size-20 items-center justify-center rounded-[1.75rem] border border-[var(--brand-accent)]/30 bg-[var(--brand-accent)]/10 shadow-[0_0_60px_rgba(245,179,79,0.15)]">
-                <Sparkles className="size-9 text-[var(--brand-accent)]" />
-              </div>
+              <OnboardingStepMascot
+                step="pitch"
+                className="h-32 w-28 sm:h-36 sm:w-32"
+              />
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--brand-accent)]">
                 Welcome, {displayName}
               </p>
@@ -281,12 +295,12 @@ export function OnboardingFlow() {
                   a static logo or a generic AI blob.
                 </p>
                 <p>
-                  We used AI to build mascot studios for real products. The
-                  craft was too good to keep as one-offs.
+                  We used AI to build mascot studios for real products. The craft
+                  was too good to keep as one-offs.
                 </p>
                 <p className="text-white/90">
-                  So we opened it up for everyone to try it. Animated, gestural, downloadable, and
-                  ready to drop into whatever you&apos;re shipping.
+                  So we opened it up. Animated, gestural, downloadable, and ready
+                  to drop into whatever you&apos;re shipping.
                 </p>
               </div>
             </div>
@@ -294,6 +308,7 @@ export function OnboardingFlow() {
 
           {step === "old-way" && (
             <div>
+              <OnboardingStepMascot step="old-way" />
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--brand-accent)]">
                 The usual path
               </p>
@@ -319,8 +334,8 @@ export function OnboardingFlow() {
               </div>
 
               <p className="mt-6 text-[15px] leading-relaxed text-white/90">
-                We built the studio so you can skip that gauntlet — gestural
-                mascots you can iterate on and ship without waiting on a studio
+                We built the studio so you can skip that. Gestural mascots you
+                can iterate on and ship without waiting on someone else&apos;s
                 timeline.
               </p>
             </div>
@@ -328,11 +343,16 @@ export function OnboardingFlow() {
 
           {step === "building" && (
             <div>
+              <OnboardingStepMascot
+                key={useCase ?? "building-default"}
+                step="building"
+                useCase={useCase}
+              />
               <h2 className="font-[family-name:var(--font-display)] text-3xl tracking-tight sm:text-4xl">
                 What are you building?
               </h2>
               <p className="mt-2 text-[var(--brand-muted)]">
-                Your mascot needs to fit where it lives.
+                {buildingSubtitle(useCase)}
               </p>
               <div className="mt-8 grid gap-3 sm:grid-cols-3">
                 {USE_CASES.map((item) => {
@@ -372,6 +392,7 @@ export function OnboardingFlow() {
 
           {step === "context" && (
             <div>
+              <OnboardingStepMascot step="context" />
               <h2 className="font-[family-name:var(--font-display)] text-3xl tracking-tight sm:text-4xl">
                 Three quick things
               </h2>
@@ -382,7 +403,7 @@ export function OnboardingFlow() {
               <div className="mt-8 space-y-7">
                 <Question
                   label="What's your stack?"
-                  hint="So downloads land in a format you can drop straight in."
+                  hint="SVGs you can drop straight in."
                 >
                   <Input
                     value={stack}
@@ -442,6 +463,7 @@ export function OnboardingFlow() {
 
           {step === "proof" && (
             <div>
+              <OnboardingStepMascot step="proof" />
               <h2 className="font-[family-name:var(--font-display)] text-3xl tracking-tight sm:text-4xl">
                 Why bother with a mascot?
               </h2>
@@ -482,9 +504,14 @@ export function OnboardingFlow() {
 
           {step === "examples" && (
             <div>
+              <OnboardingStepMascot step="examples" />
               <h2 className="font-[family-name:var(--font-display)] text-3xl tracking-tight sm:text-4xl">
                 Here&apos;s the bar
               </h2>
+              <p className="mt-2 text-[var(--brand-muted)]">
+                This is what done looks like. Pick a favorite if one catches
+                your eye.
+              </p>
 
               <div className="mt-8">
                 <OnboardingExamplePicker
