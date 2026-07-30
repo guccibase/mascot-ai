@@ -293,7 +293,7 @@ Routes: `/marketplace`, `/marketplace/[slug]`, checkout success
 - [ ] Browse + search (no auth required)
 - [ ] Preview studio: export/edit disabled; parts/themes view OK
 - [ ] Checkout → success polling (`confirmOrder`)
-- [ ] Pack ≤ 48 gestures, ≤ ~900KB JSON for listings
+- [ ] Pack ≤ 64 gestures, ≤ ~900KB JSON for listings
 
 ---
 

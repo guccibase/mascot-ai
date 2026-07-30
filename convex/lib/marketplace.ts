@@ -56,8 +56,12 @@ type PackLike = {
   }>;
 };
 
-/** Marketplace / library packs (examples can ship many poses). */
-export const MAX_PACK_GESTURES = 48;
+/**
+ * Marketplace / library pack pose ceiling.
+ * Must stay equal to `MAX_STUDIO_GESTURES` in `src/lib/refine-pack.ts` so
+ * Add gesture / Ask AI never succeed then fail on `mascots.save`.
+ */
+export const MAX_PACK_GESTURES = 64;
 
 export function assertPack(pack: PackLike) {
   if (pack.gestures.length < 1 || pack.gestures.length > MAX_PACK_GESTURES) {

@@ -11,10 +11,12 @@ import {
   parseMarketplacePackFile,
 } from "@/lib/marketplace/parse-pack-file";
 import {
+  MAX_PACK_GESTURES,
   MAX_PACK_JSON_BYTES,
   buildListingSearchText,
   packFingerprint,
 } from "../../../convex/lib/marketplace";
+import { MAX_STUDIO_GESTURES } from "@/lib/refine-pack";
 
 const samplePack = {
   name: "Nova Fox",
@@ -59,6 +61,13 @@ const samplePack = {
   ],
   parts: [{ key: "tail", label: "Tail", category: "body" }],
 };
+
+describe("pack gesture ceilings", () => {
+  it("keeps Convex save cap aligned with studio Add gesture / refine", () => {
+    expect(MAX_PACK_GESTURES).toBe(MAX_STUDIO_GESTURES);
+    expect(MAX_PACK_GESTURES).toBe(64);
+  });
+});
 
 describe("parseMarketplacePackFile", () => {
   it("parses raw JSON packs", () => {
