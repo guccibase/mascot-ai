@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { packHasLiveSignal, toGeneratedMascot } from "@/lib/mascot-pack";
+import { packHasLiveSignal, packSignalPartKey, toGeneratedMascot } from "@/lib/mascot-pack";
 import {
   ensureThemeContractOnPack,
   normalizeInstrumentDefault,
@@ -48,6 +48,22 @@ const basePack = {
 };
 
 describe("packHasLiveSignal", () => {
+  it("detects nm-chips markup", () => {
+    expect(
+      packHasLiveSignal([
+        { svg: '<svg><g class="nm-chips"></g></svg>' },
+      ])
+    ).toBe(true);
+  });
+
+  it("maps nm-chips to chips part key", () => {
+    expect(
+      packSignalPartKey([
+        { svg: '<svg><g class="nm-chips"></g></svg>' },
+      ])
+    ).toBe("chips");
+  });
+
   it("detects ms-signal-fan markup", () => {
     expect(
       packHasLiveSignal([

@@ -401,7 +401,7 @@ function Eye({ kind, x, p, track, eyeRef }) {
         </>
       )}
       <ellipse cx="0" cy="0" rx={rx} ry={ry} fill={p.led} />
-      <g ref={track ? eyeRef : undefined} className="bt-pupils">
+      <g ref={track ? eyeRef : undefined} className="bt-pupils ms-eyes" data-ms-part="eyes">
         <circle cx="-3" cy="-4" r={wide ? 4 : 3.4} fill={p.screen} opacity=".72" />
         <circle cx="3" cy="3.4" r="1.6" fill={light(p.led, 0.55)} opacity=".7" />
       </g>
@@ -507,7 +507,7 @@ function Thrusters({ p }) {
     { x: 240, y: 442, begin: "0.08s" },
   ];
   return (
-    <g>
+    <g data-ms-part="thrusters">
       <defs>
         <radialGradient id="bt-puff" cx="50%" cy="30%" r="70%">
           <stop offset="0" stopColor={FLAME.smoke} stopOpacity=".5" />
@@ -976,8 +976,10 @@ function ByteSVG({ p, glow, paused, waving, gesture, svgRef, eyeRef, parts = ALL
       </defs>
 
       {parts.shadow && (
-        <ellipse className="bt-shadowO" cx="210" cy={flying ? 508 : 498}
-          rx={flying ? 68 : 88} ry="9" fill="#000" opacity=".2" />
+        <g data-ms-part="shadow">
+          <ellipse className="bt-shadowO" cx="210" cy={flying ? 508 : 498}
+            rx={flying ? 68 : 88} ry="9" fill="#000" opacity=".2" />
+        </g>
       )}
 
       <g transform={`translate(0,${lift})`}>
@@ -1001,15 +1003,22 @@ function ByteSVG({ p, glow, paused, waving, gesture, svgRef, eyeRef, parts = ALL
             <g transform="translate(-210,-470)">
               <g id="bt-hit">
                 {parts.halo && (
-                  <ellipse className="bt-glow" cx="210" cy="280" rx="140" ry="124"
-                    fill={`url(#bt-glow-${g.key})`} />
+                  <ellipse
+                    className="bt-glow ms-glow-halo"
+                    data-ms-part="halo"
+                    cx="210"
+                    cy="280"
+                    rx="140"
+                    ry="124"
+                    fill={`url(#bt-glow-${g.key})`}
+                  />
                 )}
 
                 {/* thrusters sit behind the feet */}
                 {flying && parts.thrusters && <Thrusters p={p} />}
 
                 {parts.legs && (
-                  <g>
+                  <g data-ms-part="legs">
                     {flying ? (
                       <>
                         {/* legs straight down for a vertical launch */}
@@ -1060,14 +1069,14 @@ function ByteSVG({ p, glow, paused, waving, gesture, svgRef, eyeRef, parts = ALL
                 <rect x="194" y="284" width="32" height="22" rx="9" fill={p.bodyDark} />
                 <rect x="150" y="300" width="120" height="108" rx="34" fill={`url(#bt-body-${g.key})`} />
                 {parts.chest && (
-                  <g>
+                  <g data-ms-part="chest">
                     <rect x="168" y="320" width="84" height="56" rx="14" fill={p.screen} opacity=".9" />
                     <path d="M182,338 H238 M182,350 H222 M182,362 H232" fill="none" stroke={p.led}
                       strokeWidth="3" strokeLinecap="round" opacity=".55" />
                   </g>
                 )}
                 {parts.rivets && (
-                  <g fill={p.bodyDark} opacity=".65">
+                  <g data-ms-part="rivets" fill={p.bodyDark} opacity=".65">
                     <circle cx="162" cy="312" r="3.5" /><circle cx="258" cy="312" r="3.5" />
                     <circle cx="162" cy="396" r="3.5" /><circle cx="258" cy="396" r="3.5" />
                   </g>
@@ -1075,7 +1084,7 @@ function ByteSVG({ p, glow, paused, waving, gesture, svgRef, eyeRef, parts = ALL
 
                 {/* shoulder sockets painted on the torso so limbs always read as attached */}
                 {parts.arms && (
-                  <g>
+                  <g data-ms-part="arms">
                     <ellipse cx={SH_L[0]} cy={SH_L[1]} rx="20" ry="16" fill={p.bodyDark} opacity=".55" />
                     <ellipse cx={SH_R[0]} cy={SH_R[1]} rx="20" ry="16" fill={p.bodyDark} opacity=".55" />
                   </g>
@@ -1083,13 +1092,13 @@ function ByteSVG({ p, glow, paused, waving, gesture, svgRef, eyeRef, parts = ALL
 
                 {/* head */}
                 {parts.ears && (
-                  <g fill={p.bodyDark}>
+                  <g data-ms-part="ears" fill={p.bodyDark}>
                     <rect x="122" y="206" width="18" height="32" rx="9" />
                     <rect x="280" y="206" width="18" height="32" rx="9" />
                   </g>
                 )}
                 {parts.antenna && (
-                  <g transform={`translate(210,${skyward ? 148 : 158})`}>
+                  <g data-ms-part="antenna" transform={`translate(210,${skyward ? 148 : 158})`}>
                     <path d={skyward ? "M0,0 L0,-52" : "M0,0 Q-7,-26 0,-46"} fill="none"
                       stroke={p.joint} strokeWidth="5" strokeLinecap="round">
                       {!skyward && (
@@ -1104,18 +1113,30 @@ function ByteSVG({ p, glow, paused, waving, gesture, svgRef, eyeRef, parts = ALL
                 <rect x="138" y={skyward ? 148 : 158} width="144" height="132" rx="40"
                   fill={`url(#bt-body-${g.key})`} />
 
-                {/* face panel */}
+                {/* face panel — screen fill is always on; frame ring is toggleable */}
                 <rect x="150" y={skyward ? 176 : 186} width="120" height="84" rx="20"
-                  fill={`url(#bt-screen-${g.key})`}
-                  stroke={parts.frame ? p.accent : "none"} strokeWidth="2.5" />
+                  fill={`url(#bt-screen-${g.key})`} stroke="none" />
+                {parts.frame && (
+                  <rect
+                    data-ms-part="frame"
+                    x="150"
+                    y={skyward ? 176 : 186}
+                    width="120"
+                    height="84"
+                    rx="20"
+                    fill="none"
+                    stroke={p.accent}
+                    strokeWidth="2.5"
+                  />
+                )}
                 {parts.scan && (
-                  <g clipPath={`url(#bt-face-${g.key})`}>
+                  <g data-ms-part="scan" clipPath={`url(#bt-face-${g.key})`}>
                     <rect className="bt-scan" x="150" y={skyward ? 178 : 188} width="120" height="3"
                       fill={p.led} opacity=".2" />
                   </g>
                 )}
                 {parts.blush && (
-                  <g fill={p.blush} opacity=".38"
+                  <g data-ms-part="blush" fill={p.blush} opacity=".38"
                     transform={`translate(0,${skyward ? -14 : 0})`}>
                     <ellipse cx="158" cy="252" rx="8" ry="5" />
                     <ellipse cx="262" cy="252" rx="8" ry="5" />
@@ -1135,19 +1156,19 @@ function ByteSVG({ p, glow, paused, waving, gesture, svgRef, eyeRef, parts = ALL
                 </g>
 
                 {parts.props && (
-                  <g key={`p-${g.key}`} className="bt-pop">
+                  <g key={`p-${g.key}`} className="bt-pop" data-ms-part="props">
                     <Props g={g} p={p} />
                   </g>
                 )}
 
                 {/* arms always on top of the chassis so they never float as orphan tips */}
                 {parts.arms && (
-                  <>
+                  <g data-ms-part="arms">
                     <Arm d={g.armL} shoulder={SH_L} p={p} anim={armLAnim}
                       morph={armMorphL} animKey={`l-${g.key}-${isWaving}`} />
                     <Arm d={g.armR} shoulder={SH_R} p={p} anim={armRAnim}
                       morph={armMorphR} animKey={`r-${g.key}-${isWaving}`} />
-                  </>
+                  </g>
                 )}
               </g>
             </g>
@@ -1206,6 +1227,7 @@ export const POSE_SOURCE = {
       waving={false}
       gesture={key}
       eyeRef={{}}
+      parts={ALL_PARTS}
     />
   ),
 };

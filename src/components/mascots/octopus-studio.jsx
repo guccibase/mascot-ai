@@ -575,7 +575,7 @@ function Arm({ d, frames, dur, w, p, sway, suckers }) {
         )}
       </path>
       {suckers && (
-        <g fill={p.sucker} stroke="none" opacity=".85">
+        <g data-ms-part="suckers" fill={p.sucker} stroke="none" opacity=".85">
           {SUCKER_T.map((t, i) => {
             const [x, y] = atQ(q, t);
             if (!morph || !timing) {
@@ -735,7 +735,12 @@ function Eye({ kind, x, p, track, eyeRef, gaze, face }) {
           dur="5.6s" repeatCount="indefinite" />
       )}
       <ellipse cx="0" cy="0" rx={rx} ry={ry} fill={p.eyeWhite} />
-      <g ref={track ? eyeRef : undefined} className="nm-pupils" transform={pupilAt}>
+      <g
+        ref={track ? eyeRef : undefined}
+        className="nm-pupils ms-eyes"
+        data-ms-part="eyes"
+        transform={pupilAt}
+      >
         {pupil}
       </g>
     </g>
@@ -824,8 +829,15 @@ function Chips({ arms, p, solve, skip, symbols, chip }) {
   const lit = Math.round((Math.max(0, Math.min(100, solve)) / 100) * 8);
   const r = chip?.r ?? 11;
   return (
-    <g className="nm-chips" textAnchor="middle" dominantBaseline="central"
-      fontFamily="ui-monospace, monospace" fontSize="11" fontWeight="700">
+    <g
+      className="nm-chips"
+      data-ms-part="chips"
+      textAnchor="middle"
+      dominantBaseline="central"
+      fontFamily="ui-monospace, monospace"
+      fontSize="11"
+      fontWeight="700"
+    >
       {arms.filter((a) => !skip.has(a.id)).map(({ id, side, index, socket, d }) => {
         const [tx, ty] = tipOf(d);
         const on = CHIP_ORDER.indexOf(id) < lit;
@@ -1564,7 +1576,7 @@ function OctopusSVG({
       </defs>
 
       {parts.shadow && (
-        <g transform="translate(210,486)">
+        <g data-ms-part="shadow" transform="translate(210,486)">
           <ellipse className="nm-shadowO" cx="0" cy="0" rx="104" ry="10" fill="#000000" />
         </g>
       )}
@@ -1593,20 +1605,31 @@ function OctopusSVG({
                   )}
                   <g transform="translate(-210,-300)">
                     {parts.halo && (
-                      <ellipse className="nm-glow" cx="210" cy="248" rx="152" ry="140"
-                        fill={`url(#${glowId})`} />
+                      <ellipse
+                        className="nm-glow ms-glow-halo"
+                        data-ms-part="halo"
+                        cx="210"
+                        cy="248"
+                        rx="152"
+                        ry="140"
+                        fill={`url(#${glowId})`}
+                      />
                     )}
 
                     {renderArms(backArms)}
 
-                    {parts.siphon && <Siphon kind={body.siphon} p={p} />}
+                    {parts.siphon && (
+                      <g data-ms-part="siphon">
+                        <Siphon kind={body.siphon} p={p} />
+                      </g>
+                    )}
 
                     <path d={body.mantle} fill={`url(#${mantleId})`} />
                     <g clipPath={`url(#${clipId})`}>
                       <ellipse cx={hi.cx} cy={hi.cy} rx={hi.rx} ry={hi.ry}
                         fill={p.bodyLight} opacity=".5" />
                       {parts.spots && (
-                        <g fill={p.spot} opacity=".3">
+                        <g data-ms-part="spots" fill={p.spot} opacity=".3">
                           {body.spots.map(([cx, cy, r], i) => (
                             <circle key={i} cx={cx} cy={cy} r={r} />
                           ))}
@@ -1617,7 +1640,7 @@ function OctopusSVG({
                     <Signature kind={body.signature} p={p} />
 
                     {parts.blush && (
-                      <g fill={p.blush} opacity=".32">
+                      <g data-ms-part="blush" fill={p.blush} opacity=".32">
                         {body.blush.map(([cx, cy, rx, ry], i) => (
                           <ellipse key={i} cx={cx} cy={cy} rx={rx} ry={ry} />
                         ))}
@@ -1625,7 +1648,11 @@ function OctopusSVG({
                     )}
 
                     <g key={g.key} className="nm-pop">
-                      {parts.brows && <Brows kind={g.brow} p={p} face={face} />}
+                      {parts.brows && (
+                        <g data-ms-part="brows">
+                          <Brows kind={g.brow} p={p} face={face} />
+                        </g>
+                      )}
                       <Eye kind={g.eye} x={face.eyeL} p={p} track={g.track}
                         eyeRef={eyeRefs?.l} gaze={look} face={face} />
                       <Eye kind={g.eye} x={face.eyeR} p={p} track={g.track}
@@ -1634,13 +1661,19 @@ function OctopusSVG({
                     </g>
 
                     {parts.specs && (
-                      <CostumeSpecs style={body.costume.specs} p={p} face={face} />
+                      <g data-ms-part="specs">
+                        <CostumeSpecs style={body.costume.specs} p={p} face={face} />
+                      </g>
                     )}
 
-                    {parts.cap && <CostumeCap style={body.costume.cap} p={p} />}
+                    {parts.cap && (
+                      <g data-ms-part="cap">
+                        <CostumeCap style={body.costume.cap} p={p} />
+                      </g>
+                    )}
 
                     {parts.slate && g.key === "writing" && (
-                      <g transform="rotate(-7 114 410)">
+                      <g data-ms-part="slate" transform="rotate(-7 114 410)">
                         <rect x="66" y="380" width="96" height="60" rx="9"
                           fill={`url(#${slateId})`} stroke={p.slateEdge} strokeWidth="3" />
                         <g stroke={p.chalk} strokeWidth="3" strokeLinecap="round" opacity=".65">
@@ -1660,7 +1693,11 @@ function OctopusSVG({
                     )}
 
                     {parts.props && (
-                      <g key={`p-${g.key}`} className="nm-pop">
+                      <g
+                        key={`p-${g.key}`}
+                        className="nm-pop"
+                        data-ms-part="props"
+                      >
                         <Props g={g} p={p} propKit={body.propKit} />
                       </g>
                     )}
@@ -1734,6 +1771,7 @@ export function createOctopusStudio(cfg) {
   }));
   const PART_CATEGORIES = ["Body", "Face", "Costume", "Props", "Stage"];
   const DEFAULT_PARTS = { ...(cfg.defaultParts || body.defaultParts) };
+  const EXPORT_PARTS = Object.fromEntries(PARTS.map((part) => [part.key, true]));
   const allParts = (on) =>
     PARTS.reduce((acc, part) => ({ ...acc, [part.key]: on }), {});
   const character = {
@@ -1765,7 +1803,21 @@ export function createOctopusStudio(cfg) {
           },
         ])
       ),
-      instrument: null,
+      instrument: {
+        label: solveCfg.label,
+        description: solveCfg.hint,
+        lowLabel: solveCfg.zones[0],
+        midLabel: solveCfg.zones[1],
+        highLabel: solveCfg.zones[2],
+        defaultValue: 62,
+        ramp: [
+          SOLVE_RAMP[0],
+          SOLVE_RAMP[1],
+          SOLVE_RAMP[2],
+          SOLVE_RAMP[3],
+          SOLVE_RAMP[3],
+        ],
+      },
     },
     poses: GESTURES.map((g) => ({
       key: g.key,
@@ -1783,7 +1835,7 @@ export function createOctopusStudio(cfg) {
           p={derive(THEMES[DEFAULT_THEME])}
           glow={0.45}
           solve={g.solve ?? 62}
-          parts={DEFAULT_PARTS}
+          parts={EXPORT_PARTS}
           gesture={key}
           g={g}
           eyeRefs={{}}

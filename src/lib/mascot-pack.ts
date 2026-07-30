@@ -10,8 +10,22 @@ export function packHasLiveSignal(
 ): boolean {
   return gestures.some(
     (g) =>
-      /\bms-signal-fan\b/.test(g.svg) || /\bms-signal-tint\b/.test(g.svg)
+      /\bms-signal-fan\b/.test(g.svg) ||
+      /\bms-signal-tint\b/.test(g.svg) ||
+      /\bnm-chips\b/.test(g.svg)
   );
+}
+
+/**
+ * Part key that must stay enabled for the signal slider to apply (null = always on).
+ * Octopus chips use `chips`; Lyra-style fans use structural `instrument`.
+ */
+export function packSignalPartKey(
+  gestures: Array<{ svg: string }>
+): string | null {
+  if (gestures.some((g) => /\bnm-chips\b/.test(g.svg))) return "chips";
+  if (gestures.some((g) => /\bms-signal-fan\b/.test(g.svg))) return "instrument";
+  return null;
 }
 
 /**

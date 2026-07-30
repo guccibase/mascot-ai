@@ -310,3 +310,124 @@ describe("Granary toggle parts", () => {
     }
   });
 });
+
+describe("factory pack marketplace parity", () => {
+  const partKeys = (svg: string) =>
+    new Set(
+      [...svg.matchAll(/data-ms-part=["']([^"']+)["']/g)].map(
+        (match) => match[1]!
+      )
+    );
+
+  const octopusParts = [
+    "suckers",
+    "spots",
+    "brows",
+    "blush",
+    "specs",
+    "cap",
+    "slate",
+    "chips",
+    "siphon",
+    "props",
+    "halo",
+    "shadow",
+    "eyes",
+  ] as const;
+
+  const byteParts = [
+    "antenna",
+    "ears",
+    "arms",
+    "chest",
+    "rivets",
+    "legs",
+    "frame",
+    "scan",
+    "blush",
+    "thrusters",
+    "halo",
+    "shadow",
+    "props",
+    "eyes",
+  ] as const;
+
+  const hayParts = [
+    "ears",
+    "whiskers",
+    "arms",
+    "legs",
+    "belly",
+    "brows",
+    "blush",
+    "nose",
+    "vest",
+    "cape",
+    "coins",
+    "flames",
+    "halo",
+    "shadow",
+    "props",
+    "eyes",
+  ] as const;
+
+  for (const [slug, expectedParts] of [
+    ["kelp", octopusParts],
+    ["numi", octopusParts],
+    ["lexa", octopusParts],
+    ["coda", octopusParts],
+    ["nori", octopusParts],
+    ["byte", byteParts],
+    ["hay", hayParts],
+  ] as const) {
+    it(`${slug} exports a full parts catalog for marketplace preview`, () => {
+      const imported = finalizeMarketplacePack(
+        parseMarketplacePackFile(JSON.stringify(buildPosePack(slug)))
+      );
+
+      expect(imported.parts.map((part) => part.key).sort()).toEqual(
+        [...expectedParts].sort()
+      );
+      expect(Object.keys(imported.themes).length).toBeGreaterThan(0);
+
+      for (const part of imported.parts) {
+        expect(
+          imported.gestures.some((gesture) =>
+            gesture.svg.includes(`data-ms-part="${part.key}"`)
+          ),
+          `part “${part.key}” must control at least one rendered element`
+        ).toBe(true);
+      }
+    });
+
+    it(`${slug} idle pose carries theme contract and ms-glow-halo`, () => {
+      const imported = finalizeMarketplacePack(
+        parseMarketplacePackFile(JSON.stringify(buildPosePack(slug)))
+      );
+      const idle = imported.gestures.find((g) => g.key === "idle");
+      expect(idle?.svg).toMatch(/\/\*ms-theme-vars\*\//);
+      expect(idle?.svg).toMatch(/var\(--ms-(top|mid|base|core)\)/);
+      expect(idle?.svg).toContain("ms-glow-halo");
+    });
+  }
+
+  it("kelp exports live energy instrument with nm-chips hooks", () => {
+    const imported = finalizeMarketplacePack(
+      parseMarketplacePackFile(JSON.stringify(buildPosePack("kelp")))
+    );
+
+    expect(imported.instrument.hidden).not.toBe(true);
+    expect(imported.instrument.label).toBe("Energy");
+    expect(imported.gestures.some((g) => g.svg.includes("nm-chips"))).toBe(
+      true
+    );
+  });
+
+  it("octopus writing pose exposes slate part only when rendered", () => {
+    const pack = buildPosePack("kelp");
+    const writing = pack.poses.find((p) => p.key === "writing")!;
+    const idle = pack.poses.find((p) => p.key === "idle")!;
+    expect(partKeys(writing.svg).has("slate")).toBe(true);
+    expect(partKeys(idle.svg).has("slate")).toBe(false);
+  });
+});

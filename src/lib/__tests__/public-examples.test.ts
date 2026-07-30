@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   ADMIN_GENERATED_EXAMPLES,
@@ -47,6 +49,20 @@ describe("public example allowlist", () => {
     expect(isPublicExampleSlug("lyra")).toBe(true);
     expect(isPublicExampleSlug("granary")).toBe(false);
     expect(isPublicExampleSlug("not-a-mascot")).toBe(false);
+  });
+
+  /**
+   * Admin studios share /studio/[slug] with public examples. generateStaticParams
+   * marks the segment static; Clerk auth on on-demand admin slugs then throws
+   * DYNAMIC_SERVER_USAGE in `next start` / Vercel (works in `next dev`).
+   */
+  it("forces dynamic rendering so admin studio auth can run", () => {
+    const page = readFileSync(
+      join(process.cwd(), "src/app/studio/[slug]/page.tsx"),
+      "utf8"
+    );
+    expect(page).toMatch(/export const dynamic\s*=\s*["']force-dynamic["']/);
+    expect(page).toMatch(/isAdminUser\(\)/);
   });
 });
 

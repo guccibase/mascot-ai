@@ -386,7 +386,7 @@ function Coin({ x, y, s = 1, metal = "gold", spin = false, uid = "c0", tilt = 1 
   });
   return (
     /* Outer owns placement; inner owns spin so they don't fight on one transform attr. */
-    <g transform={`translate(${x},${y}) scale(${s})`}>
+    <g transform={`translate(${x},${y}) scale(${s})`} data-ms-part="coins">
       <g>
         {spin && (
           <animateTransform attributeName="transform" type="rotate" additive="sum"
@@ -463,7 +463,7 @@ function Eye({ kind, x, p, track, eyeRef, gaze = [0, 0] }) {
       )}
       <ellipse cx="0" cy="0" rx={rx} ry={ry} fill={p.feature} />
       {/* Track uses style.transform on the outer group; gaze stays on the inner SVG transform. */}
-      <g ref={track ? eyeRef : undefined} className="hm-pupils">
+      <g ref={track ? eyeRef : undefined} className="hm-pupils ms-eyes" data-ms-part="eyes">
         <g transform={`translate(${gx},${gy})`}>
           <circle cx="-2.5" cy="-3.5" r={wide ? 3.6 : 3.2} fill="#F8F4EC" />
           <circle cx="2.5" cy="3" r="1.4" fill={light(p.feature, 0.4)} opacity=".75" />
@@ -568,7 +568,7 @@ function Cape({ p, uid, mode = "fly" }) {
   const gold = light(p.accent, 0.15);
   const rest = mode === "rest";
   return (
-    <g transform={rest ? "translate(210,302)" : "translate(210,308)"}>
+    <g data-ms-part="cape" transform={rest ? "translate(210,302)" : "translate(210,308)"}>
       {!rest && (
         <animateTransform attributeName="transform" type="rotate" additive="sum"
           values="-3;3;-3" dur="1.1s" repeatCount="indefinite" />
@@ -609,7 +609,7 @@ function RocketFlames({ uid }) {
     { x: 242, y: 448, begin: "0.1s", s: 1 },
   ];
   return (
-    <g>
+    <g data-ms-part="flames">
       <defs>
         <radialGradient id={`hm-puff-${uid}`} cx="50%" cy="28%" r="72%">
           <stop offset="0" stopColor={FLAME.smoke} stopOpacity=".55" />
@@ -1051,8 +1051,10 @@ export function HaySVG({ p, glow, paused, waving, gesture, svgRef, eyeRef, parts
       </defs>
 
       {parts.shadow && (
-        <ellipse className="hm-shadowO" cx="210" cy={flying ? 512 : 498}
-          rx={flying ? 52 : 84} ry="8" fill="#000" opacity=".2" />
+        <g data-ms-part="shadow">
+          <ellipse className="hm-shadowO" cx="210" cy={flying ? 512 : 498}
+            rx={flying ? 52 : 84} ry="8" fill="#000" opacity=".2" />
+        </g>
       )}
 
       <g transform={`translate(0,${lift})`}>
@@ -1076,9 +1078,15 @@ export function HaySVG({ p, glow, paused, waving, gesture, svgRef, eyeRef, parts
             <g transform="translate(-210,-470)">
               <g id="hm-hit">
                 {parts.halo && (
-                  <ellipse className="hm-glow" cx="210" cy={flying ? 250 : 278}
-                    rx={flying ? 148 : 136} ry={flying ? 132 : 120}
-                    fill={`url(#hm-glow-${g.key})`} />
+                  <ellipse
+                    className="hm-glow ms-glow-halo"
+                    data-ms-part="halo"
+                    cx="210"
+                    cy={flying ? 250 : 278}
+                    rx={flying ? 148 : 136}
+                    ry={flying ? 132 : 120}
+                    fill={`url(#hm-glow-${g.key})`}
+                  />
                 )}
 
                 {/* Cape sits behind the body — resting drape when not flying so the toggle stays honest */}
@@ -1087,7 +1095,7 @@ export function HaySVG({ p, glow, paused, waving, gesture, svgRef, eyeRef, parts
                 {flying && parts.flames && <RocketFlames uid={g.key} />}
 
                 {parts.legs && (
-                  <g>
+                  <g data-ms-part="legs">
                     {flying ? (
                       <>
                         <path d="M196,398 L192,442" stroke={p.limb} strokeWidth="13" strokeLinecap="round" />
@@ -1117,16 +1125,30 @@ export function HaySVG({ p, glow, paused, waving, gesture, svgRef, eyeRef, parts
                 <ellipse cx="210" cy="348" rx="74" ry="58" fill={`url(#hm-body-${g.key})`}
                   stroke={p.bodyDark} strokeWidth="2" />
                 {parts.belly && (
-                  <ellipse cx="210" cy="358" rx="48" ry="38" fill={`url(#hm-belly-${g.key})`} opacity=".92" />
+                  <ellipse
+                    data-ms-part="belly"
+                    cx="210"
+                    cy="358"
+                    rx="48"
+                    ry="38"
+                    fill={`url(#hm-belly-${g.key})`}
+                    opacity=".92"
+                  />
                 )}
 
                 {parts.vest && (
-                  <path d="M168,312 Q210,298 252,312 L248,368 Q210,378 172,368 Z"
-                    fill={dark(p.accent, 0.15)} stroke={p.accent} strokeWidth="2" opacity=".88" />
+                  <path
+                    data-ms-part="vest"
+                    d="M168,312 Q210,298 252,312 L248,368 Q210,378 172,368 Z"
+                    fill={dark(p.accent, 0.15)}
+                    stroke={p.accent}
+                    strokeWidth="2"
+                    opacity=".88"
+                  />
                 )}
 
                 {parts.arms && (
-                  <g>
+                  <g data-ms-part="arms">
                     <ellipse cx={SH_L[0]} cy={SH_L[1]} rx="18" ry="14" fill={p.bodyDark} opacity=".5" />
                     <ellipse cx={SH_R[0]} cy={SH_R[1]} rx="18" ry="14" fill={p.bodyDark} opacity=".5" />
                   </g>
@@ -1139,7 +1161,7 @@ export function HaySVG({ p, glow, paused, waving, gesture, svgRef, eyeRef, parts
                 {/* head — upright, attached; looking up is face-only */}
                 <g>
                   {parts.ears && (
-                    <g>
+                    <g data-ms-part="ears">
                       <g transform="translate(148,132)">
                         <ellipse cx="0" cy="0" rx="22" ry="26" fill={p.body} stroke={p.bodyDark} strokeWidth="2" />
                         <ellipse cx="0" cy="-4" rx="14" ry="16" fill={p.earInner} />
@@ -1162,18 +1184,24 @@ export function HaySVG({ p, glow, paused, waving, gesture, svgRef, eyeRef, parts
                   <ellipse cx="210" cy="224" rx="62" ry="48" fill={p.bodyLight} opacity=".22" />
 
                   {parts.whiskers && (
-                    <g stroke={p.feature} strokeWidth="1.8" strokeLinecap="round" opacity=".55">
+                    <g
+                      data-ms-part="whiskers"
+                      stroke={p.feature}
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      opacity=".55"
+                    >
                       <path d="M138,228 L98,222" /><path d="M138,238 L96,242" /><path d="M138,248 L100,258" />
                       <path d="M282,228 L322,222" /><path d="M282,238 L324,242" /><path d="M282,248 L320,258" />
                     </g>
                   )}
 
                   {parts.nose && (
-                    <ellipse cx="210" cy="254" rx="7" ry="6" fill={p.feature} />
+                    <ellipse data-ms-part="nose" cx="210" cy="254" rx="7" ry="6" fill={p.feature} />
                   )}
 
                   {parts.blush && (
-                    <g fill={p.blush} opacity=".38">
+                    <g data-ms-part="blush" fill={p.blush} opacity=".38">
                       <ellipse cx="156" cy="252" rx="9" ry="5.5" />
                       <ellipse cx="264" cy="252" rx="9" ry="5.5" />
                     </g>
@@ -1181,7 +1209,11 @@ export function HaySVG({ p, glow, paused, waving, gesture, svgRef, eyeRef, parts
 
                   <g key={g.key} className="hm-pop"
                     transform={`translate(${look[0]},${look[1] + faceLift})`}>
-                    {parts.brows && <Brows kind={g.brow} p={p} />}
+                    {parts.brows && (
+                      <g data-ms-part="brows">
+                        <Brows kind={g.brow} p={p} />
+                      </g>
+                    )}
                     <g>
                       <Eye kind={g.eye} x={EYE_L_X} p={p} track={g.track} eyeRef={eyeRef?.l}
                         gaze={pupilGaze} />
@@ -1193,18 +1225,18 @@ export function HaySVG({ p, glow, paused, waving, gesture, svgRef, eyeRef, parts
                 </g>
 
                 {parts.props && (
-                  <g key={`p-${g.key}`} className="hm-pop">
+                  <g key={`p-${g.key}`} className="hm-pop" data-ms-part="props">
                     <Props g={g} p={p} showCoins={showCoins} />
                   </g>
                 )}
 
                 {parts.arms && (
-                  <>
+                  <g data-ms-part="arms">
                     <Arm d={g.armL} shoulder={SH_L} p={p} anim={armLAnim}
                       morph={armMorphL} animKey={`l-${g.key}-${isWaving}`} />
                     <Arm d={g.armR} shoulder={SH_R} p={p} anim={armRAnim}
                       morph={armMorphR} animKey={`r-${g.key}-${isWaving}`} />
-                  </>
+                  </g>
                 )}
               </g>
             </g>
@@ -1263,6 +1295,7 @@ export const POSE_SOURCE = {
       waving={false}
       gesture={key}
       eyeRef={{}}
+      parts={allParts(true)}
     />
   ),
 };

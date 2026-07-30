@@ -65,6 +65,60 @@ export function rampColor(score: number, ramp: string[] = DEFAULT_RAMP) {
   return mixHex(ramp[i] ?? ramp[0]!, ramp[i + 1] ?? ramp[i]!, t);
 }
 
+/** Minimal paint target for live signal updates (SVG elements in the browser). */
+export type SignalPaintTarget = {
+  getAttribute(name: string): string | null;
+  setAttribute(name: string, value: string): void;
+  hasAttribute(name: string): boolean;
+};
+
+/** Tint an SVG fill/stroke from the signal ramp; restore baked values when inactive. */
+export function setSignalPaint(
+  el: SignalPaintTarget,
+  attr: "fill" | "stroke",
+  color: string,
+  active: boolean
+) {
+  const origKey = `data-ms-orig-${attr}`;
+  const current = el.getAttribute(attr);
+  if (active) {
+    if (current && current !== "none" && !el.hasAttribute(origKey)) {
+      el.setAttribute(origKey, current);
+    }
+    if (current && current !== "none") {
+      el.setAttribute(attr, color);
+    }
+  } else {
+    const orig = el.getAttribute(origKey);
+    if (orig !== null) el.setAttribute(attr, orig);
+  }
+}
+
+/** Octopus solve chips: light N arm-tip chips from the live signal slider. */
+export function applyNmChipsLiveSignal(
+  chipRoot: ParentNode,
+  signal: number,
+  color: string
+) {
+  const kids = Array.from(chipRoot.children);
+  const lit = Math.round((clamp(signal) / 100) * kids.length);
+  kids.forEach((node, index) => {
+    const el = node as SVGElement;
+    const on = index < lit;
+    el.style.opacity = on ? "1" : "0.55";
+    el.querySelectorAll("polygon,circle,rect,path").forEach((shape) => {
+      const s = shape as SVGElement;
+      setSignalPaint(s, "fill", color, on);
+      setSignalPaint(s, "stroke", color, on);
+    });
+    const label = el.querySelector("text");
+    if (label) {
+      setSignalPaint(label, "fill", color, on);
+      label.setAttribute("opacity", on ? "1" : "0.55");
+    }
+  });
+}
+
 function hx(h: string): [number, number, number] {
   const s = h.replace("#", "");
   const v =
