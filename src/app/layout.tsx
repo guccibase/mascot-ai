@@ -3,6 +3,7 @@ import { Outfit, Manrope } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { shadcn } from "@clerk/ui/themes";
 import { Analytics } from "@vercel/analytics/next";
+import { GoogleAdsTag } from "@/components/google-ads-tag";
 import { Toaster } from "@/components/ui/sonner";
 import { AppProviders } from "@/components/providers/app-providers";
 import {
@@ -108,6 +109,7 @@ export default function RootLayout({
             {children}
             <Toaster />
           </AppProviders>
+          <GoogleAdsTag />
           <Analytics />
         </body>
       </html>
