@@ -1,8 +1,10 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { MARKETPLACE_PUBLIC_ROUTE_PATTERNS } from "@/lib/marketplace-routes";
 
 /**
  * The shop window is open to everyone: the landing page, the example studios,
- * and pricing. Signing in is only required to create, save, or buy.
+ * pricing, and marketplace browse/preview. Signing in is only required to
+ * create, save, or buy (including marketplace remix/checkout).
  *
  * Crawler entrypoints (robots/sitemap) and static metadata assets are also
  * public so Googlebot never hits an auth redirect.
@@ -14,6 +16,7 @@ const isPublicRoute = createRouteMatcher([
   "/privacy",
   "/terms",
   "/studio(.*)",
+  ...MARKETPLACE_PUBLIC_ROUTE_PATTERNS,
   "/pricing",
   "/robots.txt",
   "/sitemap.xml",

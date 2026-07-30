@@ -19,6 +19,7 @@ describe("seo helpers", () => {
     expect(paths).toEqual([
       "/",
       "/pricing",
+      "/marketplace",
       "/privacy",
       "/terms",
       "/studio/lyra",
@@ -26,7 +27,6 @@ describe("seo helpers", () => {
       "/studio/bud",
       "/studio/fanous",
     ]);
-
   });
 
   it("uses relative canonicals so metadataBase can resolve them", () => {

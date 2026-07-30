@@ -20,7 +20,7 @@ type Props = { params: Promise<{ slug: string }> };
 
 export default function MarketplaceListingPage({ params }: Props) {
   const { slug } = use(params);
-  const { isSignedIn } = useAuth();
+  const { isLoaded: authLoaded, isSignedIn } = useAuth();
   const listing = useQuery(api.marketplace.getBySlug, { slug });
   const ensureUser = useMutation(api.users.ensure);
   const createCheckout = useAction(api.marketplaceStripe.createCheckoutSession);
@@ -44,7 +44,10 @@ export default function MarketplaceListingPage({ params }: Props) {
 
   const unlock = useQuery(
     api.marketplace.getActiveRemixUnlock,
-    listing?._id ? { listingId: listing._id, now } : "skip"
+    // After auth resolves, signed-out browse skips this auth-scoped query.
+    authLoaded && isSignedIn && listing?._id
+      ? { listingId: listing._id, now }
+      : "skip"
   );
 
   const startCheckout = async (sku: "remix" | "buy_to_own") => {
@@ -67,8 +70,12 @@ export default function MarketplaceListingPage({ params }: Props) {
     }
   };
 
-  // Wait for unlock so the CTA doesn't flash "Remix $…" → "Continue remix".
-  if (listing === undefined || (listing && unlock === undefined)) {
+  // Wait for auth + unlock so the CTA doesn't flash "Remix $…" → "Continue remix".
+  if (
+    listing === undefined ||
+    !authLoaded ||
+    (isSignedIn && listing && unlock === undefined)
+  ) {
     return <StudioPageSkeleton variant="site-header" />;
   }
 
