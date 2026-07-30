@@ -9,9 +9,17 @@ const SWEEP_BATCH = 100;
 /**
  * How long a processed webhook id is worth remembering. RevenueCat gives up
  * retrying long before this, so anything older can no longer be a duplicate.
- * Token settle receipts (`token_settle:*`) share this table and retention.
+ * Token settle receipts (`token_settle:*`) share this table but are retained
+ * longer so a late settle after prune cannot orphan-capture twice.
  */
 const EVENT_RETENTION_MS = 14 * 24 * 60 * 60 * 1000;
+const SETTLE_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
+
+function isSettleReceipt(row: { eventId: string; type: string }): boolean {
+  return (
+    row.type === "token_settle" || row.eventId.startsWith("token_settle:")
+  );
+}
 
 /**
  * Hard-delete abandoned holds (after deferred settle grace) and refresh
@@ -58,13 +66,21 @@ export const pruneBillingEvents = internalMutation({
   args: {},
   returns: v.object({ deleted: v.number() }),
   handler: async (ctx) => {
-    const cutoff = Date.now() - EVENT_RETENTION_MS;
+    const now = Date.now();
+    const webhookCutoff = now - EVENT_RETENTION_MS;
+    const settleCutoff = now - SETTLE_RETENTION_MS;
+    // Index is by processedAt; fetch the older webhook window and filter settles.
     const old = await ctx.db
       .query("billingEvents")
-      .withIndex("by_processed", (q) => q.lt("processedAt", cutoff))
+      .withIndex("by_processed", (q) => q.lt("processedAt", webhookCutoff))
       .take(SWEEP_BATCH);
 
-    for (const row of old) await ctx.db.delete(row._id);
-    return { deleted: old.length };
+    let deleted = 0;
+    for (const row of old) {
+      if (isSettleReceipt(row) && row.processedAt >= settleCutoff) continue;
+      await ctx.db.delete(row._id);
+      deleted++;
+    }
+    return { deleted };
   },
 });

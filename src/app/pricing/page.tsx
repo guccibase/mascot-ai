@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
+import { useAction } from "convex/react";
 import { toast } from "sonner";
 import { Check, Coins, ExternalLink, Loader2, Sparkles } from "lucide-react";
+import { api } from "../../../convex/_generated/api";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { PriceSkeleton } from "@/components/skeletons";
@@ -215,6 +217,7 @@ export default function PricingPage() {
   const { isSignedIn } = useAuth();
   const balance = useTokenBalance(isSignedIn === true);
   const { status, purchasing, getPrice, purchase } = useRevenueCat();
+  const syncPurchases = useAction(api.billingSync.syncMyPurchases);
 
   // Tokens are granted by the RevenueCat webhook, so checkout finishing is not
   // the same as the plan being live. Watch the reactive balance for the change.
@@ -284,7 +287,13 @@ export default function PricingPage() {
     };
     trackEvent("checkout_started", { product: productId, kind });
     const ok = await purchase(productId);
-    if (ok) setAwaiting(kind);
+    if (!ok) return;
+    setAwaiting(kind);
+    // Webhook is primary; REST sync recovers when the destination was missing
+    // or delayed so the pricing page does not spin forever after a paid checkout.
+    void syncPurchases().catch((err) => {
+      console.error("[pricing] purchase sync failed:", err);
+    });
   };
 
   const currentPlan = balance?.planId ? planById(balance.planId) : null;

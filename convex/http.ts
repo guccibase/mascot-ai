@@ -113,6 +113,8 @@ type RevenueCatEvent = {
   store?: string | null;
   environment?: string | null;
   cancel_reason?: string | null;
+  transaction_id?: string | null;
+  original_transaction_id?: string | null;
 };
 
 /** Convex v.optional rejects JSON null; RevenueCat sends null for unset fields. */
@@ -177,6 +179,9 @@ http.route({
           store: rcOptionalString(event.store),
           environment: rcOptionalString(event.environment),
           cancelReason: rcOptionalString(event.cancel_reason),
+          transactionId: rcOptionalString(
+            event.transaction_id ?? event.original_transaction_id
+          ),
         }
       );
       if (!result.handled) {

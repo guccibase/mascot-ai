@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalMutation } from "./_generated/server";
+import { resolveUsersByClerkId } from "./lib/userMerge";
 
 const DELETE_BATCH = 100;
 
@@ -13,24 +14,9 @@ export const upsertFromClerk = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const matches = await ctx.db
-      .query("users")
-      .withIndex("by_clerk", (q) => q.eq("clerkId", args.clerkId))
-      .take(2);
     const now = Date.now();
-    // Prefer a row that already has a real JWT tokenIdentifier over pending:
-    const existing =
-      matches.find((u) => !u.tokenIdentifier.startsWith("pending:")) ??
-      matches[0] ??
-      null;
-
-    if (matches.length > 1) {
-      for (const dup of matches) {
-        if (existing && dup._id !== existing._id) {
-          await ctx.db.delete(dup._id);
-        }
-      }
-    }
+    // Merge-safe dedupe: never delete a pending row that already holds a grant.
+    const existing = await resolveUsersByClerkId(ctx, args.clerkId);
 
     if (existing) {
       await ctx.db.patch(existing._id, {

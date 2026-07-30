@@ -2,13 +2,11 @@ const RC_API = "https://api.revenuecat.com/v2";
 
 type RcList<T> = { object: "list"; items: T[] };
 
-type RcCustomer = { id: string };
-
 type RcSubscription = {
   id: string;
   gives_access: boolean;
   status: string;
-  ends_at: number;
+  ends_at: number | null;
 };
 
 type RcManagementUrl = {
@@ -56,7 +54,16 @@ function pickManageableSubscription(
       sub.status === "grace_period"
   );
   if (candidates.length === 0) return null;
-  return candidates.sort((a, b) => b.ends_at - a.ends_at)[0] ?? null;
+  return (
+    candidates.sort((a, b) => (b.ends_at ?? 0) - (a.ends_at ?? 0))[0] ?? null
+  );
+}
+
+/** Environments to query — production first; sandbox only when explicitly allowed. */
+export function billingEnvironments(): Array<"production" | "sandbox"> {
+  return process.env.ALLOW_SANDBOX_BILLING === "true"
+    ? ["production", "sandbox"]
+    : ["production"];
 }
 
 /**
@@ -70,30 +77,35 @@ export async function getSubscriptionManagementUrl(
   if (!config) return null;
 
   const { apiKey, projectId } = config;
+  // RC v2 accepts the app user id as customer_id — avoid fuzzy search.
   const encodedUser = encodeURIComponent(appUserId);
 
-  const customers = await rcFetch<RcList<RcCustomer>>(
-    `/projects/${projectId}/customers?search=${encodedUser}`,
-    apiKey
-  );
-  const customer = customers.items[0];
-  if (!customer) return null;
+  for (const environment of billingEnvironments()) {
+    let subs: RcList<RcSubscription>;
+    try {
+      subs = await rcFetch<RcList<RcSubscription>>(
+        `/projects/${projectId}/customers/${encodedUser}/subscriptions?environment=${environment}`,
+        apiKey
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      // 404 = no customer in this environment; try the next.
+      if (message.includes("RevenueCat 404")) continue;
+      throw err;
+    }
 
-  const environment =
-    process.env.ALLOW_SANDBOX_BILLING === "true" ? "sandbox" : "production";
-  const subs = await rcFetch<RcList<RcSubscription>>(
-    `/projects/${projectId}/customers/${customer.id}/subscriptions?environment=${environment}`,
-    apiKey
-  );
+    const subscription = pickManageableSubscription(subs.items);
+    if (!subscription) continue;
 
-  const subscription = pickManageableSubscription(subs.items);
-  if (!subscription) return null;
+    const portal = await rcFetch<RcManagementUrl>(
+      `/projects/${projectId}/subscriptions/${subscription.id}/authenticated_management_url`,
+      apiKey
+    );
+    const url = portal.management_url?.trim();
+    if (url) return url;
+  }
 
-  const portal = await rcFetch<RcManagementUrl>(
-    `/projects/${projectId}/subscriptions/${subscription.id}/authenticated_management_url`,
-    apiKey
-  );
-  return portal.management_url?.trim() || null;
+  return null;
 }
 
 export function isRevenueCatManagementConfigured(): boolean {

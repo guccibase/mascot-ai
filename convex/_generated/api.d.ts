@@ -10,6 +10,7 @@
 
 import type * as adminUsers from "../adminUsers.js";
 import type * as billing from "../billing.js";
+import type * as billingSync from "../billingSync.js";
 import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as lib_adminGrant from "../lib/adminGrant.js";
@@ -22,10 +23,12 @@ import type * as lib_marketplace from "../lib/marketplace.js";
 import type * as lib_marketplaceCategories from "../lib/marketplaceCategories.js";
 import type * as lib_plans from "../lib/plans.js";
 import type * as lib_publicExamples from "../lib/publicExamples.js";
+import type * as lib_revenueCatSubscriber from "../lib/revenueCatSubscriber.js";
 import type * as lib_serverAuth from "../lib/serverAuth.js";
 import type * as lib_spendCapacity from "../lib/spendCapacity.js";
 import type * as lib_spendSplit from "../lib/spendSplit.js";
 import type * as lib_tokens from "../lib/tokens.js";
+import type * as lib_userMerge from "../lib/userMerge.js";
 import type * as maintenance from "../maintenance.js";
 import type * as marketplace from "../marketplace.js";
 import type * as marketplaceStripe from "../marketplaceStripe.js";
@@ -45,6 +48,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   adminUsers: typeof adminUsers;
   billing: typeof billing;
+  billingSync: typeof billingSync;
   crons: typeof crons;
   http: typeof http;
   "lib/adminGrant": typeof lib_adminGrant;
@@ -57,10 +61,12 @@ declare const fullApi: ApiFromModules<{
   "lib/marketplaceCategories": typeof lib_marketplaceCategories;
   "lib/plans": typeof lib_plans;
   "lib/publicExamples": typeof lib_publicExamples;
+  "lib/revenueCatSubscriber": typeof lib_revenueCatSubscriber;
   "lib/serverAuth": typeof lib_serverAuth;
   "lib/spendCapacity": typeof lib_spendCapacity;
   "lib/spendSplit": typeof lib_spendSplit;
   "lib/tokens": typeof lib_tokens;
+  "lib/userMerge": typeof lib_userMerge;
   maintenance: typeof maintenance;
   marketplace: typeof marketplace;
   marketplaceStripe: typeof marketplaceStripe;
