@@ -39,6 +39,7 @@ const THEMES = {
   },
 };
 
+/** @type {import("@/lib/types").StudioInstrument} */
 const INSTRUMENT = {
   label: "Pollen Meter",
   description:
