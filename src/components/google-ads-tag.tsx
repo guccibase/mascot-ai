@@ -7,6 +7,18 @@ import Script from "next/script";
 export const GOOGLE_ADS_ID =
   process.env.NEXT_PUBLIC_GOOGLE_ADS_ID ?? "AW-10864235093";
 
+/** Subscribe conversion `send_to` from the Google Ads event snippet. */
+export const GOOGLE_ADS_SUBSCRIBE_SEND_TO =
+  process.env.NEXT_PUBLIC_GOOGLE_ADS_SUBSCRIBE_SEND_TO ??
+  "AW-10864235093/_amCCOSh1ogcENWkvLwo";
+
+declare global {
+  interface Window {
+    dataLayer?: unknown[];
+    gtag?: (...args: unknown[]) => void;
+  }
+}
+
 /** Base tag for remarketing + conversion linking. Load once in the root layout. */
 export function GoogleAdsTag() {
   const id = GOOGLE_ADS_ID.trim();
@@ -28,4 +40,23 @@ gtag('config', '${id}');
       </Script>
     </>
   );
+}
+
+/**
+ * Fire the Google Ads "Subscribe" conversion once a plan is live.
+ * No dedicated success URL — RevenueCat returns to /pricing; we emit here
+ * when access flips on, matching the Ads event snippet.
+ */
+export function trackGoogleAdsSubscribeConversion(): void {
+  if (typeof window === "undefined") return;
+  const sendTo = GOOGLE_ADS_SUBSCRIBE_SEND_TO.trim();
+  if (!sendTo || !GOOGLE_ADS_ID.trim()) return;
+
+  const gtag = window.gtag;
+  if (typeof gtag !== "function") {
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push(["event", "conversion", { send_to: sendTo }]);
+    return;
+  }
+  gtag("event", "conversion", { send_to: sendTo });
 }
