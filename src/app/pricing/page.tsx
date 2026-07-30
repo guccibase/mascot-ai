@@ -11,6 +11,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { PriceSkeleton } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
+import { trackGoogleAdsSubscribeConversion } from "@/components/google-ads-tag";
 import { useRevenueCat } from "@/components/providers/revenuecat-provider";
 import { trackEvent } from "@/lib/analytics";
 import { MASCOT_MODEL_OPTIONS } from "@/lib/mascot-model-options";
@@ -228,6 +229,8 @@ export default function PricingPage() {
     total: 0,
     planId: null as string | null,
   });
+  // Guard against Strict Mode / balance ticks double-firing the Ads conversion.
+  const adsSubscribeSent = useRef(false);
 
   useEffect(() => {
     if (!awaiting || !balance) return;
@@ -238,12 +241,17 @@ export default function PricingPage() {
     const credited = balance.total > baseline.current.total;
     if (!activated && !credited) return;
 
+    const kind = awaiting;
     setAwaiting(null);
     trackEvent("checkout_completed", {
-      kind: awaiting,
+      kind,
       plan: balance.planId ?? "none",
     });
-    if (awaiting === "plan" && activated) {
+    if (kind === "plan" && activated) {
+      if (!adsSubscribeSent.current) {
+        adsSubscribeSent.current = true;
+        trackGoogleAdsSubscribeConversion();
+      }
       toast.success("You're in. Let's build your mascot.");
       router.push("/create");
     } else {
