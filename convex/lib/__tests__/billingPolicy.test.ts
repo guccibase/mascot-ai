@@ -2,9 +2,16 @@ import { describe, expect, it } from "vitest";
 import {
   isStaleBillingEvent,
   shouldIgnoreSandboxBilling,
+  topupSyncEventId,
 } from "../billingPolicy";
 
-const ORDERED = new Set(["INITIAL_PURCHASE", "RENEWAL", "EXPIRATION"]);
+const ORDERED = new Set([
+  "INITIAL_PURCHASE",
+  "RENEWAL",
+  "EXPIRATION",
+  "SUBSCRIPTION_PAUSED",
+  "TRANSFER",
+]);
 
 describe("shouldIgnoreSandboxBilling", () => {
   it("ignores sandbox when ALLOW_SANDBOX_BILLING is off", () => {
@@ -31,8 +38,16 @@ describe("isStaleBillingEvent", () => {
     expect(isStaleBillingEvent(300, 200, ORDERED, "RENEWAL")).toBe(false);
   });
 
-  it("accepts equal timestamps (strict older-only)", () => {
+  it("accepts equal-timestamp grants (renewals still apply)", () => {
     expect(isStaleBillingEvent(200, 200, ORDERED, "RENEWAL")).toBe(false);
+  });
+
+  it("drops equal-timestamp destructive events so a same-ms EXPIRATION cannot undo a RENEWAL", () => {
+    expect(isStaleBillingEvent(200, 200, ORDERED, "EXPIRATION")).toBe(true);
+    expect(isStaleBillingEvent(200, 200, ORDERED, "SUBSCRIPTION_PAUSED")).toBe(
+      true
+    );
+    expect(isStaleBillingEvent(200, 200, ORDERED, "TRANSFER")).toBe(true);
   });
 
   it("accepts ordered events when no lastEventAt yet", () => {
@@ -43,5 +58,11 @@ describe("isStaleBillingEvent", () => {
 
   it("ignores non-ordered event types", () => {
     expect(isStaleBillingEvent(50, 200, ORDERED, "NON_ORDERED")).toBe(false);
+  });
+});
+
+describe("topupSyncEventId", () => {
+  it("builds a stable alias shared by webhook and REST sync", () => {
+    expect(topupSyncEventId(" txn_1 ")).toBe("sync:topup:txn_1");
   });
 });

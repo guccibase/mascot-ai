@@ -12,9 +12,14 @@ import {
 import {
   isStaleBillingEvent,
   shouldIgnoreSandboxBilling,
+  topupSyncEventId,
 } from "./lib/billingPolicy";
 import { resolveSubscriptionExpiry } from "./lib/billingExpiry";
 import { recordLedger } from "./lib/tokens";
+import {
+  resolveUsersByClerkId,
+  shouldGrantSubscriptionFromSync,
+} from "./lib/userMerge";
 
 /**
  * Cancellations RevenueCat attributes to an actual refund. `DEVELOPER_INITIATED`
@@ -49,22 +54,7 @@ async function findUser(
   ctx: MutationCtx,
   appUserId: string
 ): Promise<Doc<"users"> | null> {
-  const matches = await ctx.db
-    .query("users")
-    .withIndex("by_clerk", (q) => q.eq("clerkId", appUserId))
-    .take(2);
-  if (matches.length === 0) return null;
-
-  const preferred =
-    matches.find((u) => !u.tokenIdentifier.startsWith("pending:")) ??
-    matches[0]!;
-
-  for (const dup of matches) {
-    if (dup._id !== preferred._id) {
-      await ctx.db.delete(dup._id);
-    }
-  }
-  return preferred;
+  return await resolveUsersByClerkId(ctx, appUserId);
 }
 
 /**
@@ -199,6 +189,7 @@ export const applyRevenueCatEvent = internalMutation({
     store: v.optional(v.string()),
     environment: v.optional(v.string()),
     cancelReason: v.optional(v.string()),
+    transactionId: v.optional(v.string()),
   },
   returns: v.object({ handled: v.boolean(), reason: v.string() }),
   handler: async (ctx, args): Promise<Outcome> => {
@@ -207,6 +198,17 @@ export const applyRevenueCatEvent = internalMutation({
       .withIndex("by_event", (q) => q.eq("eventId", args.eventId))
       .first();
     if (seen) return { handled: false, reason: "duplicate" };
+
+    // Top-up sync uses `sync:topup:{transactionId}`; claim that alias too so
+    // a later REST catch-up cannot double-grant the same store purchase.
+    if (args.transactionId) {
+      const alias = topupSyncEventId(args.transactionId);
+      const aliasSeen = await ctx.db
+        .query("billingEvents")
+        .withIndex("by_event", (q) => q.eq("eventId", alias))
+        .first();
+      if (aliasSeen) return { handled: false, reason: "duplicate" };
+    }
 
     // Look the user up before claiming the event id. A purchase can land
     // before the Clerk webhook has created the row; leaving the id unclaimed
@@ -219,12 +221,21 @@ export const applyRevenueCatEvent = internalMutation({
     // Only a decision we actually reached gets recorded. Unhandled events stay
     // unclaimed so a retry can still apply them once the cause is fixed.
     if (outcome.handled) {
+      const processedAt = Date.now();
       await ctx.db.insert("billingEvents", {
         eventId: args.eventId,
         type: args.type,
         appUserId: args.appUserId,
-        processedAt: Date.now(),
+        processedAt,
       });
+      if (args.type === "NON_RENEWING_PURCHASE" && args.transactionId) {
+        await ctx.db.insert("billingEvents", {
+          eventId: topupSyncEventId(args.transactionId),
+          type: "SYNC_TOPUP_ALIAS",
+          appUserId: args.appUserId,
+          processedAt,
+        });
+      }
     }
     return outcome;
   },
@@ -243,6 +254,7 @@ async function route(
     store?: string;
     environment?: string;
     cancelReason?: string;
+    transactionId?: string;
   }
 ): Promise<Outcome> {
   const now = Date.now();
@@ -474,7 +486,7 @@ async function route(
 const subscriptionSnapshot = v.object({
   productId: v.string(),
   purchasedAtMs: v.number(),
-  expiresAtMs: v.number(),
+  expiresAtMs: v.optional(v.number()),
   store: v.optional(v.string()),
   environment: v.optional(v.string()),
 });
@@ -532,6 +544,9 @@ export const applySubscriberSnapshot = internalMutation({
       }
     }
 
+    // Refresh after possible prior patches in this mutation.
+    let latest = (await ctx.db.get(user._id)) ?? user;
+
     if (best) {
       const productKey = normalizeProductId(best.sub.productId);
       const eventId = `sync:sub:${args.appUserId}:${productKey}:${best.sub.expiresAtMs}`;
@@ -540,15 +555,24 @@ export const applySubscriberSnapshot = internalMutation({
         .withIndex("by_event", (q) => q.eq("eventId", eventId))
         .first();
       if (!seen) {
-        await activate(ctx, user, best.plan, {
-          eventId,
-          eventAt: now,
-          productId: best.sub.productId,
-          purchasedAt: best.sub.purchasedAtMs,
-          expiresAt: best.sub.expiresAtMs,
-          store: best.sub.store,
-          environment: best.sub.environment,
-        });
+        if (
+          shouldGrantSubscriptionFromSync(
+            latest,
+            best.plan.id,
+            best.sub.expiresAtMs
+          )
+        ) {
+          await activate(ctx, latest, best.plan, {
+            eventId,
+            eventAt: now,
+            productId: best.sub.productId,
+            purchasedAt: best.sub.purchasedAtMs,
+            expiresAt: best.sub.expiresAtMs,
+            store: best.sub.store,
+            environment: best.sub.environment,
+          });
+          latest = (await ctx.db.get(user._id)) ?? latest;
+        }
         await ctx.db.insert("billingEvents", {
           eventId,
           type: "SYNC_SUBSCRIPTION",
@@ -571,7 +595,7 @@ export const applySubscriberSnapshot = internalMutation({
       const pack = topupByProductId(topup.productId);
       if (!pack) continue;
 
-      const eventId = `sync:topup:${topup.transactionId}`;
+      const eventId = topupSyncEventId(topup.transactionId);
       const seen = await ctx.db
         .query("billingEvents")
         .withIndex("by_event", (q) => q.eq("eventId", eventId))
@@ -581,10 +605,10 @@ export const applySubscriberSnapshot = internalMutation({
         continue;
       }
 
-      const topupTokens = Math.max(0, user.topupTokens ?? 0) + pack.tokens;
-      await ctx.db.patch(user._id, { topupTokens, updatedAt: now });
+      const topupTokens = Math.max(0, latest.topupTokens ?? 0) + pack.tokens;
+      await ctx.db.patch(latest._id, { topupTokens, updatedAt: now });
       await recordLedger(ctx, {
-        userId: user._id,
+        userId: latest._id,
         kind: "grant",
         bucket: "topup",
         amount: pack.tokens,
@@ -598,6 +622,7 @@ export const applySubscriberSnapshot = internalMutation({
         appUserId: args.appUserId,
         processedAt: now,
       });
+      latest = { ...latest, topupTokens };
       synced = true;
     }
 

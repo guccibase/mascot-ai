@@ -1,6 +1,7 @@
 import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { resolveUsersByClerkId } from "./userMerge";
 
 type Ctx = QueryCtx | MutationCtx;
 
@@ -35,23 +36,7 @@ async function resolveUserByClerk(
   ctx: MutationCtx,
   clerkId: string
 ): Promise<Doc<"users"> | null> {
-  const matches = await ctx.db
-    .query("users")
-    .withIndex("by_clerk", (q) => q.eq("clerkId", clerkId))
-    .take(2);
-  if (matches.length === 0) return null;
-
-  const preferred =
-    matches.find((u) => !u.tokenIdentifier.startsWith("pending:")) ??
-    matches[0]!;
-
-  // Deduplicate rare webhook/ensure races
-  for (const dup of matches) {
-    if (dup._id !== preferred._id) {
-      await ctx.db.delete(dup._id);
-    }
-  }
-  return preferred;
+  return await resolveUsersByClerkId(ctx, clerkId);
 }
 
 export async function getCurrentUserOrNull(
