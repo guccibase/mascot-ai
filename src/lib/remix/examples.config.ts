@@ -69,6 +69,18 @@ export const EXAMPLE_REMIX_CONFIG: Record<MascotSlug, ExampleRemixConfig> = {
     eyesClass: /\bhm-pupils\b/,
     haloClass: /\bhm-glow\b/,
   },
+  poppy: {
+    slug: "poppy",
+    eyesClass: /\bms-eyes\b/,
+    haloClass: /\bms-glow-halo\b/,
+    instrumentClass: /\bms-signal-fan\b/,
+  },
+  dada: {
+    slug: "dada",
+    eyesClass: /\bms-eyes\b/,
+    haloClass: /\bms-glow-halo\b/,
+    instrumentClass: /\bms-signal-fan\b/,
+  },
   nox: {
     slug: "nox",
     eyesClass: /\bck-eyes\b/,

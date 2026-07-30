@@ -62,6 +62,8 @@ export function StudioClient({
     case "fanous":
       return <FanousStudio />;
     case "granary":
+    case "poppy":
+    case "dada":
     case "nox":
     case "zest":
     case "quill":

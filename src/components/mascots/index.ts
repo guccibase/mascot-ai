@@ -10,6 +10,8 @@ export { default as CodaStudio } from "./coda-mascot";
 export { default as KelpStudio } from "./kelp-mascot";
 export { default as NoriStudio } from "./nori-mascot";
 export { default as HayStudio } from "./hay-mascot";
+export { default as PoppyStudio } from "./poppy-mascot";
+export { default as DadaStudio } from "./dada-mascot";
 export { default as NoxStudio } from "./nox-mascot";
 export { default as ZestStudio } from "./zest-mascot";
 export { default as QuillStudio } from "./quill-mascot";

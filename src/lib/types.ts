@@ -165,6 +165,8 @@ export type RemixRequest = {
     | "kelp"
     | "nori"
     | "hay"
+    | "poppy"
+    | "dada"
     | "nox"
     | "zest"
     | "quill"

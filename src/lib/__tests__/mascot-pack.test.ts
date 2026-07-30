@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { packHasLiveSignal, toGeneratedMascot } from "@/lib/mascot-pack";
-import { normalizeInstrumentDefault } from "@/lib/studio-utils";
+import {
+  ensureThemeContractOnPack,
+  normalizeInstrumentDefault,
+} from "@/lib/studio-utils";
 
 const basePack = {
   name: "Bud",
@@ -103,6 +106,36 @@ describe("toGeneratedMascot", () => {
       ],
     });
     expect(pack.instrument.defaultValue).toBe(50);
+  });
+
+  it("rewrites baked theme hexes so purchased packs respond to theme changes", () => {
+    const pack = toGeneratedMascot({
+      ...basePack,
+      gestures: [
+        {
+          ...basePack.gestures[0]!,
+          svg: '<svg viewBox="0 0 10 10"><circle fill="#f8b679"/><circle fill="#F59A48"/></svg>',
+        },
+      ],
+    });
+    expect(pack.gestures[0]!.svg).toContain('fill="var(--ms-top)"');
+    expect(pack.gestures[0]!.svg).toContain('fill="var(--ms-mid)"');
+    expect(pack.gestures[0]!.svg).toContain("--ms-top:");
+  });
+
+  it("skips rewrites when the pack already carries theme vars", () => {
+    const contracted = toGeneratedMascot({
+      ...basePack,
+      gestures: [
+        {
+          ...basePack.gestures[0]!,
+          svg: '<svg viewBox="0 0 10 10"><circle fill="#f8b679"/></svg>',
+        },
+      ],
+    });
+    const again = ensureThemeContractOnPack(contracted);
+    expect(again).toBe(contracted);
+    expect(again.gestures[0]!.svg).toBe(contracted.gestures[0]!.svg);
   });
 });
 

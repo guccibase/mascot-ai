@@ -19,6 +19,8 @@ const LOADERS: Record<MascotSlug, () => Promise<{ default: unknown }>> = {
   kelp: () => import("@/lib/example-poses/kelp.json"),
   nori: () => import("@/lib/example-poses/nori.json"),
   hay: () => import("@/lib/example-poses/hay.json"),
+  poppy: () => import("@/lib/example-poses/poppy.json"),
+  dada: () => import("@/lib/example-poses/dada.json"),
   nox: () => import("@/lib/example-poses/nox.json"),
   zest: () => import("@/lib/example-poses/zest.json"),
   quill: () => import("@/lib/example-poses/quill.json"),
