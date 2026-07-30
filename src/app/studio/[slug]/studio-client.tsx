@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { PreviewContentGuard } from "@/components/preview-content-guard";
 import type { MascotSlug } from "@/lib/mascots";
 import { EXAMPLE_PREVIEW_CAPABILITIES } from "@/lib/studio-capabilities";
 import type { GeneratedMascot } from "@/lib/types";
@@ -50,6 +51,7 @@ export function StudioClient({
   slug: MascotSlug;
   initialMascot?: GeneratedMascot;
 }) {
+  const studio = (() => {
   switch (slug) {
     case "lyra":
       return <LyraStudio />;
@@ -105,4 +107,7 @@ export function StudioClient({
     default:
       return null;
   }
+  })();
+
+  return <PreviewContentGuard>{studio}</PreviewContentGuard>;
 }

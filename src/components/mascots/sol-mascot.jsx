@@ -1,5 +1,8 @@
 "use client";
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { MascotPartsPanel } from "@/components/mascot-edit-panel";
+import { useStudioPartToggles } from "@/hooks/use-studio-part-toggles";
+import { SOL_PARTS } from "@/lib/legacy-example-parts";
 
 /* ============================================================
    SOL: the sunrise blob. A drop of dawn light with a face,
@@ -609,7 +612,7 @@ function SolSVG({ p, glow, paused, waving, gesture, svgRef, eyesRef }) {
       </defs>
 
       {/* Sol casts a warm pool of light on the ground, never a shadow */}
-      <g transform="translate(210,466)">
+      <g data-ms-part="pool" transform="translate(210,466)">
         <ellipse className="sd-poolO" cx="0" cy="0" rx="108" ry="12" fill="url(#sd-poolG)" />
         <ellipse cx="0" cy="0" rx="46" ry="5" fill={p.core} opacity=".35" />
       </g>
@@ -631,17 +634,17 @@ function SolSVG({ p, glow, paused, waving, gesture, svgRef, eyesRef }) {
             <g className={g.flicker ? "sd-flicker" : undefined}>
               <g id="sd-hit" filter="url(#sd-grain)">
                 {/* breathing halo */}
-                <ellipse className="sd-glow" cx="210" cy="300" rx="164" ry="158"
+                <ellipse data-ms-part="halo" className="sd-glow ms-glow-halo" cx="210" cy="300" rx="164" ry="158"
                   fill="url(#sd-haloG)" />
 
                 {/* the drop itself; its outline is alive */}
-                <path key={`body-${g.body}`} d={body.d} fill="url(#sd-bodyG)">
+                <path data-ms-part="body" key={`body-${g.body}`} d={body.d} fill="url(#sd-bodyG)">
                   <animate attributeName="d" values={body.values} dur="7s"
                     repeatCount="indefinite" />
                 </path>
 
                 {/* the sun-core nucleus */}
-                <g key={`core-${g.key}`} className="sd-pop">
+                <g data-ms-part="core" key={`core-${g.key}`} className="sd-pop">
                   <circle cx="210" cy={coreY} r={coreR} fill="url(#sd-coreG)" />
                   <circle cx={210 - coreR * 0.28} cy={coreY - coreR * 0.34} r={coreR * 0.16}
                     fill={p.core} opacity=".9" />
@@ -656,29 +659,35 @@ function SolSVG({ p, glow, paused, waving, gesture, svgRef, eyesRef }) {
                 )}
 
                 {/* shimmer sweeping the surface */}
-                <g clipPath="url(#sd-clip)">
+                <g data-ms-part="gleam" clipPath="url(#sd-clip)">
                   <ellipse className="sd-gleam" cx="210" cy="300" rx="13" ry="132"
                     fill={p.rim} opacity="0" />
                 </g>
 
                 {/* blush */}
-                <circle cx="138" cy="326" r="11" fill={p.blush} opacity=".6" />
-                <circle cx="282" cy="326" r="11" fill={p.blush} opacity=".6" />
+                <g data-ms-part="blush">
+                  <circle cx="138" cy="326" r="11" fill={p.blush} opacity=".6" />
+                  <circle cx="282" cy="326" r="11" fill={p.blush} opacity=".6" />
+                </g>
 
                 {/* face: the eyes group drifts toward your cursor */}
-                <g className="sd-eyes" ref={eyesRef}>
+                <g className="sd-eyes ms-eyes" ref={eyesRef}>
                   <g key={g.key} className="sd-pop" transform={`translate(${look[0]},${look[1]})`}>
-                    <Brows kind={g.brow} p={p} />
-                    <Eye kind={g.eyeL} x={EYE_L_X} p={p} />
-                    <Eye kind={g.eyeR} x={EYE_R_X} p={p} />
+                    <g data-ms-part="brows">
+                      <Brows kind={g.brow} p={p} />
+                    </g>
+                    <g data-ms-part="eyes">
+                      <Eye kind={g.eyeL} x={EYE_L_X} p={p} />
+                      <Eye kind={g.eyeR} x={EYE_R_X} p={p} />
+                    </g>
                   </g>
                 </g>
-                <g key={`m-${g.key}`} className="sd-pop">
+                <g data-ms-part="mouth" key={`m-${g.key}`} className="sd-pop">
                   <Mouth kind={g.mouth} p={p} />
                 </g>
 
                 {/* the prop that removes all doubt */}
-                <g key={`p-${g.key}`} className="sd-pop">
+                <g data-ms-part="props" key={`p-${g.key}`} className="sd-pop">
                   <Props g={g} p={p} />
                 </g>
               </g>
@@ -748,6 +757,11 @@ export default function SolStudio() {
   const theme = themeKey === "custom" ? custom : THEMES[themeKey];
   const p = useMemo(() => derive(theme), [theme]);
   const activeG = byKey(gesture);
+  const { parts, enabledParts, togglePart } = useStudioPartToggles(
+    SOL_PARTS,
+    svgRef,
+    [gesture, glow, themeKey, waving, paused]
+  );
 
   useEffect(() => {
     const m = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -883,6 +897,15 @@ export default function SolStudio() {
             hover to shimmer faster &nbsp;·&nbsp; tap for a bounce &amp; motes of light &nbsp;·&nbsp;
             its eyes drift toward your cursor
           </p>
+
+          <MascotPartsPanel
+            parts={parts}
+            enabledParts={enabledParts}
+            onTogglePart={togglePart}
+            accent={AMBER}
+            pillClassName="ss-pill"
+            eyebrowClassName="ss-eyebrow"
+          />
         </section>
 
         {/* ---------- controls ---------- */}
