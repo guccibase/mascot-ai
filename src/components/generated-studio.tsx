@@ -18,6 +18,7 @@ import { AppAssetsPanel } from "@/components/app-assets-panel";
 import { GESTURE_PRESETS } from "@/lib/gesture-presets";
 import { DEFAULT_MASCOT_MODEL } from "@/lib/mascot-model-options";
 import { applyPartVisibility, extractPartsFromMascot } from "@/lib/mascot-parts";
+import { MAX_STUDIO_GESTURES } from "@/lib/refine-pack";
 import { sanitizeSvg } from "@/lib/sanitize-svg";
 import { estimateTokens } from "@/lib/token-pricing";
 import { packHasLiveSignal, packSignalPartKey } from "@/lib/mascot-pack";
@@ -750,8 +751,8 @@ export function GeneratedStudio({
       toast.error("That gesture is already in the studio");
       return;
     }
-    if (mascot.gestures.length >= 12) {
-      toast.error("Studio is limited to 12 gestures");
+    if (mascot.gestures.length >= MAX_STUDIO_GESTURES) {
+      toast.error(`Studio is limited to ${MAX_STUDIO_GESTURES} gestures`);
       return;
     }
     if (gestureBlocked) {
@@ -1187,7 +1188,7 @@ export function GeneratedStudio({
               </p>
             </div>
 
-            {canEdit && mascot.gestures.length < 12 && (
+            {canEdit && mascot.gestures.length < MAX_STUDIO_GESTURES && (
               <div className="mt-4">
                 <button
                   type="button"
