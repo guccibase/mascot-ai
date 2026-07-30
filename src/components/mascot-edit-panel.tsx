@@ -70,6 +70,8 @@ type PartsPanelProps = {
   enabledParts: Set<string>;
   onTogglePart: (key: string) => void;
   accent: string;
+  pillClassName?: string;
+  eyebrowClassName?: string;
 };
 
 /** Instant, reversible SVG layer controls; independent from metered AI edits. */
@@ -78,6 +80,8 @@ export function MascotPartsPanel({
   enabledParts,
   onTogglePart,
   accent,
+  pillClassName = "gs-pill",
+  eyebrowClassName = "gs-eyebrow",
 }: PartsPanelProps) {
   const partsByCategory = useMemo(() => {
     const map = new Map<string, MascotPart[]>();
@@ -95,7 +99,7 @@ export function MascotPartsPanel({
       style={{ borderColor: `${accent}29` }}
     >
       <div>
-        <h3 className="gs-eyebrow mb-2">Elements</h3>
+        <h3 className={`${eyebrowClassName} mb-2`}>Elements</h3>
         <p style={{ fontSize: 12.5, color: "#B5AC9A", lineHeight: 1.5 }}>
           Toggle parts on/off instantly. Hidden parts stay available to add back.
         </p>
@@ -125,7 +129,7 @@ export function MascotPartsPanel({
                     title={part.description || part.label}
                     onClick={() => onTogglePart(part.key)}
                     aria-pressed={enabled}
-                    className={cn("gs-pill", enabled && "on")}
+                    className={cn(pillClassName, enabled && "on")}
                     style={
                       enabled
                         ? undefined

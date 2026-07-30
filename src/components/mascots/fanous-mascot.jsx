@@ -1,5 +1,8 @@
 "use client";
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { MascotPartsPanel } from "@/components/mascot-edit-panel";
+import { useStudioPartToggles } from "@/hooks/use-studio-part-toggles";
+import { FANOUS_PARTS } from "@/lib/legacy-example-parts";
 
 /* ============================================================
    FANOUS: animated lantern mascot studio for an Islamic app
@@ -959,7 +962,7 @@ function LanternSVG({ p, glow, paused, waving, depth, gesture, svgRef, eyesRef }
       </defs>
 
       {/* ground shadow, squashed via SMIL around its own centre */}
-      <g transform="translate(210,452)">
+      <g data-ms-part="shadow" transform="translate(210,452)">
         <ellipse className="lm-shadowO" cx="0" cy="0" rx="104" ry="10" fill="#000000">
           <animateTransform attributeName="transform" type="scale" additive="sum"
             values="1 1;0.88 1;1 1" keyTimes="0;0.5;1" dur="3.8s" repeatCount="indefinite" />
@@ -990,11 +993,12 @@ function LanternSVG({ p, glow, paused, waving, depth, gesture, svgRef, eyesRef }
               <g filter={g.drain ? `url(#lm-desat${g.drain === "dead" ? "D" : "P"})` : undefined}>
 
               {/* halo of light */}
-              <ellipse className="lm-glow" cx="210" cy="280" rx="122" ry="96" fill="url(#lm-glowG)" />
+              <ellipse data-ms-part="halo" className="lm-glow ms-glow-halo" cx="210" cy="280" rx="122" ry="96" fill="url(#lm-glowG)" />
 
               {/* mitten arms use symmetric shoulders so mirrored poses come out
                   dead level and equal length; only `idle` keeps the artwork's
                   traced uneven pivots (its arms are meant to differ) */}
+              <g data-ms-part="arms">
               <g transform={`translate(${(g.art ? SH_L_ART : SH_L).join(",")})`}>
                 <animateTransform id="lm-armAnim" key={waving ? "w" : "i"}
                   attributeName="transform" type="rotate" additive="sum"
@@ -1020,26 +1024,35 @@ function LanternSVG({ p, glow, paused, waving, depth, gesture, svgRef, eyesRef }
                     strokeWidth="10" strokeLinecap="round" opacity=".26" style={dOnly} />
                 )}
               </g>
+              </g>
 
               {/* flared base: straight trumpet sides, exactly as drawn */}
-              <path d="M127.4,396.3 L292.6,396.3 L315.5,442.2 L104.5,442.2 Z"
-                fill={depth ? "url(#lm-baseG)" : p.body} />
-              <path d="M135,400 L143,400 L129,438 L121,438 Z" fill="#ffffff" opacity=".1" style={dOnly} />
+              <g data-ms-part="base">
+                <path d="M127.4,396.3 L292.6,396.3 L315.5,442.2 L104.5,442.2 Z"
+                  fill={depth ? "url(#lm-baseG)" : p.body} />
+                <path d="M135,400 L143,400 L129,438 L121,438 Z" fill="#ffffff" opacity=".1" style={dOnly} />
+                <Band x={101.4} y={436.2} w={217.3} h={23.8} p={p} depth={depth} />
+              </g>
 
               {/* body barrel curve: swells at the belly, tucks into the waist */}
-              <path d="M107,190.1 L313,190.1 C316,261.8 334,268.4 334,320.5 C334,349.9 299.1,353.1 293.1,385.7 L126.9,385.7 C120.9,353.1 86,349.9 86,320.5 C86,268.4 104,261.8 107,190.1 Z"
-                fill={depth ? "url(#lm-bodyG)" : p.body} />
-              <rect x="107" y="190" width="206" height="13" fill="url(#lm-aoG)" style={dOnly} />
-              <ellipse cx="152" cy="252" rx="44" ry="70" fill="url(#lm-sheenG)" style={dOnly} />
+              <g data-ms-part="body">
+                <path d="M107,190.1 L313,190.1 C316,261.8 334,268.4 334,320.5 C334,349.9 299.1,353.1 293.1,385.7 L126.9,385.7 C120.9,353.1 86,349.9 86,320.5 C86,268.4 104,261.8 107,190.1 Z"
+                  fill={depth ? "url(#lm-bodyG)" : p.body} />
+                <rect x="107" y="190" width="206" height="13" fill="url(#lm-aoG)" style={dOnly} />
+                <ellipse cx="152" cy="252" rx="44" ry="70" fill="url(#lm-sheenG)" style={dOnly} />
+              </g>
 
               {/* super-rounded glass face with its ochre rim */}
+              <g data-ms-part="face">
               <rect x="118.9" y="207" width="181.6" height="144.9" rx="70"
                 fill={depth ? "url(#lm-faceG)" : p.face}
                 stroke={p.faceEdge} strokeWidth="6.2" />
               <g clipPath="url(#lm-faceclip)">
                 <rect x="118.9" y="207" width="181.6" height="30" fill="url(#lm-aoG)" opacity=".5" style={dOnly} />
-                <circle cx="156" cy="306" r="9" fill={p.blush} opacity=".45" style={dOnly} />
-                <circle cx="264" cy="306" r="9" fill={p.blush} opacity=".45" style={dOnly} />
+                <g data-ms-part="blush">
+                  <circle cx="156" cy="306" r="9" fill={p.blush} opacity=".45" style={dOnly} />
+                  <circle cx="264" cy="306" r="9" fill={p.blush} opacity=".45" style={dOnly} />
+                </g>
                 {g.tint && (
                   <rect x="118.9" y="207" width="181.6" height="144.9"
                     fill={g.tint} opacity={g.tintO || 0.3} />
@@ -1052,43 +1065,50 @@ function LanternSVG({ p, glow, paused, waving, depth, gesture, svgRef, eyesRef }
                 )}
 
                 {/* expression: the group tracks the cursor; gaze is per gesture */}
-                <g className="lm-eyes" ref={eyesRef}>
+                <g className="lm-eyes ms-eyes" ref={eyesRef}>
                   <g key={g.key} className="lm-pop" transform={`translate(${look[0]},${look[1]})`}>
-                    <Brows kind={g.brow} p={p} />
-                    <Eye kind={g.eyeL} x={EYE_L_X} p={p} dOnly={dOnly} />
-                    <Eye kind={g.eyeR} x={EYE_R_X} p={p} dOnly={dOnly} />
+                    <g data-ms-part="brows">
+                      <Brows kind={g.brow} p={p} />
+                    </g>
+                    <g data-ms-part="eyes">
+                      <Eye kind={g.eyeL} x={EYE_L_X} p={p} dOnly={dOnly} />
+                      <Eye kind={g.eyeR} x={EYE_R_X} p={p} dOnly={dOnly} />
+                    </g>
                   </g>
                 </g>
-                <g key={`m-${g.key}`} className="lm-pop">
+                <g data-ms-part="mouth" key={`m-${g.key}`} className="lm-pop">
                   <Mouth kind={g.mouth} p={p} />
                 </g>
 
                 <rect x="132" y="218" width="62" height="26" rx="13" fill="#ffffff" opacity=".2"
                   transform="rotate(-14 163 231)" style={dOnly} />
               </g>
-
-              {/* waist ring: the thinnest, capping the body/base seam */}
-              <Band x={125.2} y={377.7} w={169.2} h={17.6} p={p} depth={depth} />
-              {/* foot ring: the widest and tallest */}
-              <Band x={101.4} y={436.2} w={217.3} h={23.8} p={p} depth={depth} />
-
-              {/* ogee bell: flares at the rim, sweeps into a narrow neck */}
-              <path d="M114.8,171.9 C114.8,137.2 200.9,94.3 200.9,91.2 L219.1,91.2 C219.1,94.3 305.2,137.2 305.2,171.9 Z"
-                fill={depth ? "url(#lm-bodyG)" : p.body} />
-              <g clipPath="url(#lm-domeclip)" style={dOnly}>
-                <ellipse cx="168" cy="138" rx="40" ry="24" fill="url(#lm-sheenG)" />
-                <ellipse className="lm-gleam" cx="210" cy="140" rx="11" ry="30" fill="#ffffff" opacity="0" />
               </g>
 
-              {/* collar ring overhangs the bell and body */}
-              <Band x={98.3} y={172.4} w={223.5} h={21.7} p={p} depth={depth} />
+              {/* waist ring: the thinnest, capping the body/base seam */}
+              <g data-ms-part="bands">
+                <Band x={125.2} y={377.7} w={169.2} h={17.6} p={p} depth={depth} />
+                <Band x={98.3} y={172.4} w={223.5} h={21.7} p={p} depth={depth} />
+              </g>
+
+              {/* ogee bell: flares at the rim, sweeps into a narrow neck */}
+              <g data-ms-part="dome">
+                <path d="M114.8,171.9 C114.8,137.2 200.9,94.3 200.9,91.2 L219.1,91.2 C219.1,94.3 305.2,137.2 305.2,171.9 Z"
+                  fill={depth ? "url(#lm-bodyG)" : p.body} />
+                <g clipPath="url(#lm-domeclip)" style={dOnly}>
+                  <ellipse cx="168" cy="138" rx="40" ry="24" fill="url(#lm-sheenG)" />
+                  <ellipse className="lm-gleam" cx="210" cy="140" rx="11" ry="30" fill="#ffffff" opacity="0" />
+                </g>
+              </g>
 
               {/* finial ball capping the neck */}
-              <circle cx="210" cy="78" r="13" fill={depth ? "url(#lm-knobG)" : p.accent} />
-              <circle cx="205" cy="73" r="3.4" fill="#ffffff" opacity=".75" style={dOnly} />
+              <g data-ms-part="finial">
+                <circle cx="210" cy="78" r="13" fill={depth ? "url(#lm-knobG)" : p.accent} />
+                <circle cx="205" cy="73" r="3.4" fill="#ffffff" opacity=".75" style={dOnly} />
+              </g>
 
               {/* the prop that removes all doubt: rings, rays, Zzz, tear, arrow, mushaf */}
-              <g key={`p-${g.key}`} className="lm-pop">
+              <g data-ms-part="props" key={`p-${g.key}`} className="lm-pop">
                 <Props g={g} p={p} />
               </g>
               </g>
@@ -1194,6 +1214,12 @@ export default function FanousStudio() {
   const theme = themeKey === "custom" ? custom : THEMES[themeKey];
   const p = useMemo(() => derive(theme), [theme]);
   const activeG = byKey(gesture);
+  const { parts, enabledParts, togglePart } = useStudioPartToggles(
+    FANOUS_PARTS,
+    svgRef,
+    [gesture, glow, themeKey, depth, waving, paused]
+  );
+
   /* a held pose shouldn't inherit the last cursor offset */
   useEffect(() => {
     if (eyesRef.current) eyesRef.current.style.transform = "translate(0,0)";
@@ -1383,6 +1409,15 @@ export default function FanousStudio() {
             <p className="text-center" style={{ fontSize: 12.5, color: "#8B98B0", marginTop: 14, letterSpacing: ".04em" }}>
               hover to make him wave &nbsp;·&nbsp; tap for a grin, bounce &amp; sparkles &nbsp;·&nbsp; pick a gesture for app scenes
             </p>
+
+            <MascotPartsPanel
+              parts={parts}
+              enabledParts={enabledParts}
+              onTogglePart={togglePart}
+              accent={GOLD}
+              pillClassName="fs-pill"
+              eyebrowClassName="fs-eyebrow"
+            />
           </section>
 
           {/* ---------- controls ---------- */}

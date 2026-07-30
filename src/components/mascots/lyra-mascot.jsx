@@ -1,5 +1,8 @@
 "use client";
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { MascotPartsPanel } from "@/components/mascot-edit-panel";
+import { useStudioPartToggles } from "@/hooks/use-studio-part-toggles";
+import { LYRA_PARTS } from "@/lib/legacy-example-parts";
 
 /* ============================================================
    LYRA, the lyrebird. Mascot for Orator AI, a speech
@@ -695,7 +698,7 @@ function LyraSVG({ p, glow, paused, gesture, score, svgRef, eyesRef }) {
       </defs>
 
       {/* stage shadow */}
-      <g transform="translate(210,496)">
+      <g data-ms-part="shadow" transform="translate(210,496)">
         <ellipse className="lv-shadowO" cx="0" cy="0" rx="86" ry="8" fill="#000000" />
       </g>
 
@@ -712,13 +715,13 @@ function LyraSVG({ p, glow, paused, gesture, score, svgRef, eyesRef }) {
             <g transform="translate(-210,-492)">
               <g id="lv-hit" filter="url(#lv-grain)">
                 {/* halo, tinted by the live score */}
-                <ellipse className="lv-glow" cx="210" cy="300" rx="150" ry="140"
+                <ellipse data-ms-part="halo" className="lv-glow ms-glow-halo" cx="210" cy="300" rx="150" ry="140"
                   fill="url(#lv-glowG)" />
 
                 {/* ============ THE INSTRUMENT ============
                     nine feathers · spread, length & colour all
                     driven by the animated delivery score */}
-                <g>
+                <g data-ms-part="instrument">
                   {feathers.map((f) => (
                     <g key={f.i}
                       transform={`translate(${TAIL_BASE[0]},${TAIL_BASE[1]}) rotate(${f.angle})`}>
@@ -750,59 +753,75 @@ function LyraSVG({ p, glow, paused, gesture, score, svgRef, eyesRef }) {
                 </g>
 
                 {/* microphone perch */}
-                <path d="M202,466 L218,466 L222,486 L198,486 Z" fill={p.micDark} />
-                <ellipse cx="210" cy="488" rx="34" ry="7" fill={p.mic} />
-                <circle cx="210" cy="432" r="33" fill={p.mic} />
-                <g stroke={p.micDark} strokeWidth="2.4" opacity=".8">
-                  <path d="M182,420 L238,420 M179,432 L241,432 M182,444 L238,444" />
-                  <path d="M198,402 L198,462 M210,399 L210,465 M222,402 L222,462" />
+                <g data-ms-part="mic">
+                  <path d="M202,466 L218,466 L222,486 L198,486 Z" fill={p.micDark} />
+                  <ellipse cx="210" cy="488" rx="34" ry="7" fill={p.mic} />
+                  <circle cx="210" cy="432" r="33" fill={p.mic} />
+                  <g stroke={p.micDark} strokeWidth="2.4" opacity=".8">
+                    <path d="M182,420 L238,420 M179,432 L241,432 M182,444 L238,444" />
+                    <path d="M198,402 L198,462 M210,399 L210,465 M222,402 L222,462" />
+                  </g>
+                  <path d="M186,412 A32,32 0 0 1 208,400" fill="none" stroke={p.micLight}
+                    strokeWidth="4" strokeLinecap="round" opacity=".8" />
                 </g>
-                <path d="M186,412 A32,32 0 0 1 208,400" fill="none" stroke={p.micLight}
-                  strokeWidth="4" strokeLinecap="round" opacity=".8" />
 
                 {/* legs + claws on the grille */}
-                <path d="M200,382 L202,402 M198,404 L206,404" stroke={p.leg} strokeWidth="4.5"
-                  strokeLinecap="round" fill="none" />
-                <path d="M220,382 L218,402 M214,404 L222,404" stroke={p.leg} strokeWidth="4.5"
-                  strokeLinecap="round" fill="none" />
+                <g data-ms-part="legs">
+                  <path d="M200,382 L202,402 M198,404 L206,404" stroke={p.leg} strokeWidth="4.5"
+                    strokeLinecap="round" fill="none" />
+                  <path d="M220,382 L218,402 M214,404 L222,404" stroke={p.leg} strokeWidth="4.5"
+                    strokeLinecap="round" fill="none" />
+                </g>
 
                 {/* wings behind the body */}
-                <g transform={`translate(${WING_L.join(",")})`}>
-                  <path d={wings.l} fill="none" stroke={p.wing} strokeWidth="16"
-                    strokeLinecap="round" />
-                </g>
-                <g transform={`translate(${WING_R.join(",")})`}>
-                  <animateTransform attributeName="transform" type="rotate" additive="sum"
-                    values="1.6;-1.6;1.6" dur="3.8s" repeatCount="indefinite" />
-                  <path d={wings.r} fill="none" stroke={p.wing} strokeWidth="16"
-                    strokeLinecap="round" />
+                <g data-ms-part="wings">
+                  <g transform={`translate(${WING_L.join(",")})`}>
+                    <path d={wings.l} fill="none" stroke={p.wing} strokeWidth="16"
+                      strokeLinecap="round" />
+                  </g>
+                  <g transform={`translate(${WING_R.join(",")})`}>
+                    <animateTransform attributeName="transform" type="rotate" additive="sum"
+                      values="1.6;-1.6;1.6" dur="3.8s" repeatCount="indefinite" />
+                    <path d={wings.r} fill="none" stroke={p.wing} strokeWidth="16"
+                      strokeLinecap="round" />
+                  </g>
                 </g>
 
                 {/* body + breast + head, one elegant silhouette */}
-                <path d="M210,232 C238,232 252,254 252,278 C252,296 244,308 240,322 C236,346 258,352 258,362 C258,384 236,394 210,394 C184,394 162,384 162,362 C162,352 184,346 180,322 C176,308 168,296 168,278 C168,254 182,232 210,232 Z"
-                  fill={p.body} />
-                <ellipse cx="210" cy="352" rx="30" ry="32" fill={p.breast} />
+                <g data-ms-part="body">
+                  <path d="M210,232 C238,232 252,254 252,278 C252,296 244,308 240,322 C236,346 258,352 258,362 C258,384 236,394 210,394 C184,394 162,384 162,362 C162,352 184,346 180,322 C176,308 168,296 168,278 C168,254 182,232 210,232 Z"
+                    fill={p.body} />
+                  <ellipse cx="210" cy="352" rx="30" ry="32" fill={p.breast} />
+                </g>
                 {/* crest wisps */}
-                <path d="M198,236 Q194,224 200,216 M210,234 Q210,220 217,214" fill="none"
-                  stroke={p.crest} strokeWidth="4" strokeLinecap="round" />
+                <g data-ms-part="crest">
+                  <path d="M198,236 Q194,224 200,216 M210,234 Q210,220 217,214" fill="none"
+                    stroke={p.crest} strokeWidth="4" strokeLinecap="round" />
+                </g>
                 {/* blush */}
-                <circle cx="184" cy="276" r="6.5" fill={p.blush} opacity=".55" />
-                <circle cx="236" cy="276" r="6.5" fill={p.blush} opacity=".55" />
+                <g data-ms-part="blush">
+                  <circle cx="184" cy="276" r="6.5" fill={p.blush} opacity=".55" />
+                  <circle cx="236" cy="276" r="6.5" fill={p.blush} opacity=".55" />
+                </g>
 
                 {/* face */}
-                <g className="lv-eyes" ref={eyesRef}>
+                <g className="lv-eyes ms-eyes" ref={eyesRef}>
                   <g key={g.key} className="lv-pop" transform={`translate(${look[0]},${look[1]})`}>
-                    <Brows kind={g.brow} p={p} />
-                    <Eye kind={g.eyeL} x={EYE_L_X} p={p} />
-                    <Eye kind={g.eyeR} x={EYE_R_X} p={p} />
+                    <g data-ms-part="brows">
+                      <Brows kind={g.brow} p={p} />
+                    </g>
+                    <g data-ms-part="eyes">
+                      <Eye kind={g.eyeL} x={EYE_L_X} p={p} />
+                      <Eye kind={g.eyeR} x={EYE_R_X} p={p} />
+                    </g>
                   </g>
                 </g>
-                <g key={`b-${g.key}`}>
+                <g data-ms-part="beak" key={`b-${g.key}`}>
                   <Beak kind={g.beak} p={p} />
                 </g>
 
                 {/* the prop that removes all doubt */}
-                <g key={`p-${g.key}`} className="lv-pop">
+                <g data-ms-part="props" key={`p-${g.key}`} className="lv-pop">
                   <Props g={g} p={p} score={score} />
                 </g>
               </g>
@@ -930,6 +949,11 @@ export default function LyraStudio() {
   const theme = themeKey === "custom" ? custom : THEMES[themeKey];
   const p = useMemo(() => derive(theme), [theme]);
   const activeG = byKey(gesture);
+  const { parts, enabledParts, togglePart } = useStudioPartToggles(
+    LYRA_PARTS,
+    svgRef,
+    [gesture, glow, themeKey, score, paused]
+  );
 
   useEffect(() => {
     const m = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -1075,6 +1099,15 @@ export default function LyraStudio() {
             drag Delivery: the tail and the strip read the same nine values &nbsp;·&nbsp;
             tap for a bounce &amp; notes &nbsp;·&nbsp; her eyes follow your cursor
           </p>
+
+          <MascotPartsPanel
+            parts={parts}
+            enabledParts={enabledParts}
+            onTogglePart={togglePart}
+            accent={AMBER}
+            pillClassName="ly-pill"
+            eyebrowClassName="ly-eyebrow"
+          />
         </section>
 
         {/* ---------- controls ---------- */}

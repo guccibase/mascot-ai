@@ -1,5 +1,8 @@
 "use client";
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { MascotPartsPanel } from "@/components/mascot-edit-panel";
+import { useStudioPartToggles } from "@/hooks/use-studio-part-toggles";
+import { BUD_PARTS } from "@/lib/legacy-example-parts";
 
 /* ============================================================
    BUD: a round dawn-orange rooster chick with tiny
@@ -616,7 +619,7 @@ function BudSVG({ p, glow, paused, waving, gesture, svgRef, eyeRefs }) {
       </defs>
 
       {/* ground shadow */}
-      <g transform="translate(210,470)">
+      <g data-ms-part="shadow" transform="translate(210,470)">
         <ellipse className="bd-shadowO" cx="0" cy="0" rx="96" ry="9" fill="#000000" />
       </g>
 
@@ -638,36 +641,40 @@ function BudSVG({ p, glow, paused, waving, gesture, svgRef, eyeRefs }) {
             <g transform="translate(-210,-470)">
               <g id="bd-hit" filter="url(#bd-grain)">
                 {/* dawn halo */}
-                <ellipse className="bd-glow" cx="210" cy="280" rx="146" ry="128"
+                <ellipse data-ms-part="halo" className="bd-glow ms-glow-halo" cx="210" cy="280" rx="146" ry="128"
                   fill="url(#bd-glowG)" />
 
                 {/* wings: symmetric shoulders, mirrored paths */}
-                <g transform={`translate(${SH_L.join(",")})`}>
-                  <animateTransform id="bd-wingAnim" key={isWaving ? "w" : "i"}
-                    attributeName="transform" type="rotate" additive="sum"
-                    values={wingAnim.values} dur={wingAnim.dur} repeatCount="indefinite" />
-                  <animateTransform attributeName="transform" type="rotate" additive="sum"
-                    begin="bd-hit.click" dur="0.8s" fill="remove"
-                    values="0;24;-8;20;0" keyTimes="0;0.3;0.55;0.8;1" />
-                  <path d={g.wingL} fill="none" stroke={p.wing}
-                    strokeWidth="34" strokeLinecap="round" />
-                </g>
-                <g transform={`translate(${SH_R.join(",")})`}>
-                  <animateTransform attributeName="transform" type="rotate" additive="sum"
-                    values="2.5;-2.5;2.5" dur="3.9s" repeatCount="indefinite" />
-                  <animateTransform attributeName="transform" type="rotate" additive="sum"
-                    begin="bd-hit.click" dur="0.8s" fill="remove"
-                    values="0;-24;8;-20;0" keyTimes="0;0.3;0.55;0.8;1" />
-                  <path d={g.wingR} fill="none" stroke={p.wing}
-                    strokeWidth="34" strokeLinecap="round" />
+                <g data-ms-part="wings">
+                  <g transform={`translate(${SH_L.join(",")})`}>
+                    <animateTransform id="bd-wingAnim" key={isWaving ? "w" : "i"}
+                      attributeName="transform" type="rotate" additive="sum"
+                      values={wingAnim.values} dur={wingAnim.dur} repeatCount="indefinite" />
+                    <animateTransform attributeName="transform" type="rotate" additive="sum"
+                      begin="bd-hit.click" dur="0.8s" fill="remove"
+                      values="0;24;-8;20;0" keyTimes="0;0.3;0.55;0.8;1" />
+                    <path d={g.wingL} fill="none" stroke={p.wing}
+                      strokeWidth="34" strokeLinecap="round" />
+                  </g>
+                  <g transform={`translate(${SH_R.join(",")})`}>
+                    <animateTransform attributeName="transform" type="rotate" additive="sum"
+                      values="2.5;-2.5;2.5" dur="3.9s" repeatCount="indefinite" />
+                    <animateTransform attributeName="transform" type="rotate" additive="sum"
+                      begin="bd-hit.click" dur="0.8s" fill="remove"
+                      values="0;-24;8;-20;0" keyTimes="0;0.3;0.55;0.8;1" />
+                    <path d={g.wingR} fill="none" stroke={p.wing}
+                      strokeWidth="34" strokeLinecap="round" />
+                  </g>
                 </g>
 
                 {/* legs down to the bell feet */}
-                <path d="M186,396 L166,420" stroke={p.leg} strokeWidth="7" strokeLinecap="round" />
-                <path d="M234,396 L254,420" stroke={p.leg} strokeWidth="7" strokeLinecap="round" />
+                <g data-ms-part="legs">
+                  <path d="M186,396 L166,420" stroke={p.leg} strokeWidth="7" strokeLinecap="round" />
+                  <path d="M234,396 L254,420" stroke={p.leg} strokeWidth="7" strokeLinecap="round" />
+                </g>
 
                 {/* striker between the bells; whips when the alarm fires */}
-                <g transform="translate(210,404)">
+                <g data-ms-part="striker" transform="translate(210,404)">
                   {g.ringing && (
                     <animateTransform attributeName="transform" type="rotate" additive="sum"
                       values="-24;24;-24" dur="0.14s" repeatCount="indefinite" />
@@ -677,64 +684,76 @@ function BudSVG({ p, glow, paused, waving, gesture, svgRef, eyeRefs }) {
                 </g>
 
                 {/* ALARM-BELL FEET: brass domes, knobs, base rims */}
-                <g>
-                  {g.ringing && (
-                    <animateTransform attributeName="transform" type="rotate" additive="sum"
-                      values="-4 166 452;4 166 452;-4 166 452" dur="0.16s" repeatCount="indefinite" />
-                  )}
-                  <circle cx="166" cy="416" r="5.5" fill={p.brassDark} />
-                  <path d="M140,450 A26,26 0 0 1 192,450 Z" fill={p.brass} />
-                  <path d="M147,436 A19,19 0 0 1 166,424" fill="none" stroke={light(p.brass, 0.4)}
-                    strokeWidth="4" strokeLinecap="round" opacity=".8" />
-                  <rect x="137" y="448" width="58" height="10" rx="5" fill={p.brassDark} />
-                </g>
-                <g>
-                  {g.ringing && (
-                    <animateTransform attributeName="transform" type="rotate" additive="sum"
-                      values="4 254 452;-4 254 452;4 254 452" dur="0.16s" repeatCount="indefinite" />
-                  )}
-                  <circle cx="254" cy="416" r="5.5" fill={p.brassDark} />
-                  <path d="M228,450 A26,26 0 0 1 280,450 Z" fill={p.brass} />
-                  <path d="M235,436 A19,19 0 0 1 254,424" fill="none" stroke={light(p.brass, 0.4)}
-                    strokeWidth="4" strokeLinecap="round" opacity=".8" />
-                  <rect x="225" y="448" width="58" height="10" rx="5" fill={p.brassDark} />
+                <g data-ms-part="feet">
+                  <g>
+                    {g.ringing && (
+                      <animateTransform attributeName="transform" type="rotate" additive="sum"
+                        values="-4 166 452;4 166 452;-4 166 452" dur="0.16s" repeatCount="indefinite" />
+                    )}
+                    <circle cx="166" cy="416" r="5.5" fill={p.brassDark} />
+                    <path d="M140,450 A26,26 0 0 1 192,450 Z" fill={p.brass} />
+                    <path d="M147,436 A19,19 0 0 1 166,424" fill="none" stroke={light(p.brass, 0.4)}
+                      strokeWidth="4" strokeLinecap="round" opacity=".8" />
+                    <rect x="137" y="448" width="58" height="10" rx="5" fill={p.brassDark} />
+                  </g>
+                  <g>
+                    {g.ringing && (
+                      <animateTransform attributeName="transform" type="rotate" additive="sum"
+                        values="4 254 452;-4 254 452;4 254 452" dur="0.16s" repeatCount="indefinite" />
+                    )}
+                    <circle cx="254" cy="416" r="5.5" fill={p.brassDark} />
+                    <path d="M228,450 A26,26 0 0 1 280,450 Z" fill={p.brass} />
+                    <path d="M235,436 A19,19 0 0 1 254,424" fill="none" stroke={light(p.brass, 0.4)}
+                      strokeWidth="4" strokeLinecap="round" opacity=".8" />
+                    <rect x="225" y="448" width="58" height="10" rx="5" fill={p.brassDark} />
+                  </g>
                 </g>
 
                 {/* round chick body + cream belly */}
-                <ellipse cx="210" cy="288" rx="112" ry="120" fill={p.body} />
-                <ellipse cx="210" cy="330" rx="72" ry="62" fill={p.belly} />
-                {/* tiny feather flick on the crown */}
-                <path d="M196,172 Q192,158 200,150 M210,170 Q210,152 218,146" fill="none"
-                  stroke={dark(p.body, 0.1)} strokeWidth="5" strokeLinecap="round" opacity="0" />
+                <g data-ms-part="body">
+                  <ellipse cx="210" cy="288" rx="112" ry="120" fill={p.body} />
+                  <ellipse cx="210" cy="330" rx="72" ry="62" fill={p.belly} />
+                  {/* tiny feather flick on the crown */}
+                  <path d="M196,172 Q192,158 200,150 M210,170 Q210,152 218,146" fill="none"
+                    stroke={dark(p.body, 0.1)} strokeWidth="5" strokeLinecap="round" opacity="0" />
+                </g>
 
                 {/* rooster comb */}
-                <g fill={p.comb}>
+                <g data-ms-part="comb" fill={p.comb}>
                   <circle cx="182" cy="176" r="13" />
                   <circle cx="210" cy="163" r="16" />
                   <circle cx="238" cy="176" r="13" />
+                  <circle cx="205" cy="158" r="4" fill={light(p.comb, 0.35)} opacity=".8" />
                 </g>
-                <circle cx="205" cy="158" r="4" fill={light(p.comb, 0.35)} opacity=".8" />
 
                 {/* wattle under the beak */}
-                <circle cx="201" cy="313" r="6.5" fill={p.comb} />
-                <circle cx="219" cy="313" r="6.5" fill={p.comb} />
+                <g data-ms-part="wattle">
+                  <circle cx="201" cy="313" r="6.5" fill={p.comb} />
+                  <circle cx="219" cy="313" r="6.5" fill={p.comb} />
+                </g>
 
                 {/* blush */}
-                <circle cx="140" cy="288" r="11" fill={p.blush} opacity=".55" />
-                <circle cx="280" cy="288" r="11" fill={p.blush} opacity=".55" />
+                <g data-ms-part="blush">
+                  <circle cx="140" cy="288" r="11" fill={p.blush} opacity=".55" />
+                  <circle cx="280" cy="288" r="11" fill={p.blush} opacity=".55" />
+                </g>
 
                 {/* face */}
                 <g key={g.key} className="bd-pop" transform={`translate(${look[0]},${look[1]})`}>
-                  <Brows kind={g.brow} p={p} />
-                  <Eye kind={g.eyeL} x={EYE_L_X} p={p} track={g.track} eyeRefs={eyeRefs.l} />
-                  <Eye kind={g.eyeR} x={EYE_R_X} p={p} track={g.track} eyeRefs={eyeRefs.r} />
+                  <g data-ms-part="brows">
+                    <Brows kind={g.brow} p={p} />
+                  </g>
+                  <g data-ms-part="eyes" className="bd-pupils">
+                    <Eye kind={g.eyeL} x={EYE_L_X} p={p} track={g.track} eyeRefs={eyeRefs.l} />
+                    <Eye kind={g.eyeR} x={EYE_R_X} p={p} track={g.track} eyeRefs={eyeRefs.r} />
+                  </g>
                 </g>
-                <g key={`b-${g.key}`}>
+                <g data-ms-part="beak" key={`b-${g.key}`}>
                   <Beak kind={g.beak} p={p} />
                 </g>
 
                 {/* the prop that removes all doubt */}
-                <g key={`p-${g.key}`} className="bd-pop">
+                <g data-ms-part="props" key={`p-${g.key}`} className="bd-pop">
                   <Props g={g} p={p} />
                 </g>
               </g>
@@ -830,6 +849,11 @@ export default function BudStudio() {
   const theme = themeKey === "custom" ? custom : THEMES[themeKey];
   const p = useMemo(() => derive(theme), [theme]);
   const activeG = byKey(gesture);
+  const { parts, enabledParts, togglePart } = useStudioPartToggles(
+    BUD_PARTS,
+    svgRef,
+    [gesture, glow, themeKey, waving, paused]
+  );
 
   /* honor reduced motion */
   useEffect(() => {
@@ -971,6 +995,15 @@ export default function BudStudio() {
           <p style={{ fontSize: 12.5, color: "#B9AB97", textAlign: "center" }}>
             hover to make him flap &nbsp;·&nbsp; tap for a bounce &amp; feathers &nbsp;·&nbsp; his pupils follow your cursor
           </p>
+
+          <MascotPartsPanel
+            parts={parts}
+            enabledParts={enabledParts}
+            onTogglePart={togglePart}
+            accent={AMBER}
+            pillClassName="bs-pill"
+            eyebrowClassName="bs-eyebrow"
+          />
         </section>
 
         {/* ---------- controls ---------- */}

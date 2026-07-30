@@ -54,6 +54,7 @@ import {
   resolveStudioFeatures,
   type StudioCapabilities,
 } from "@/lib/studio-capabilities";
+import { usePreviewContentProtection } from "@/hooks/use-preview-content-protection";
 
 export type { StudioCapabilities };
 
@@ -261,6 +262,8 @@ export function GeneratedStudio({
       mascotId,
       hasMascotChangeHandler: Boolean(onMascotChange),
     });
+  const previewProtected = !canExport;
+  usePreviewContentProtection(previewProtected);
   const svgInstanceId = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const parts = useMemo(() => extractPartsFromMascot(mascot), [mascot]);
   const themeKeys = Object.keys(mascot.themes);
@@ -865,6 +868,8 @@ export function GeneratedStudio({
     @keyframes gs-pop{0%{opacity:1;transform:translate(0,0) scale(1)}
       100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.4)}}
     @media (prefers-reduced-motion:reduce){.gs-spark{display:none;animation:none}}
+    .gs-preview-protected [data-mascot-stage] svg,.gs-preview-protected [data-mascot-stage] svg *{
+      user-select:none;-webkit-user-select:none;-webkit-user-drag:none}
   `;
 
   const stageBg = transparent
@@ -872,7 +877,13 @@ export function GeneratedStudio({
     : `radial-gradient(640px 430px at 50% 120%, ${rgba(signalColor, 0.22)}, transparent 62%), ${theme.stage}`;
 
   return (
-    <div className="gs-root">
+    <div
+      className={`gs-root${previewProtected ? " gs-preview-protected" : ""}`}
+      data-preview-protected={previewProtected ? "" : undefined}
+      onContextMenu={
+        previewProtected ? (event) => event.preventDefault() : undefined
+      }
+    >
       <style>{shellCss}</style>
 
       <header className="mx-auto flex max-w-6xl items-center gap-4 px-5 pb-2 pt-8">
@@ -953,6 +964,20 @@ export function GeneratedStudio({
               }
             }}
           >
+            {previewProtected ? (
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center overflow-hidden"
+              >
+                {/* Preview watermark — visible in saves/screenshots, not in normal browsing */}
+                <span
+                  className="gs-display select-none text-[clamp(3rem,18vw,7rem)] font-bold uppercase tracking-[0.35em] text-white/[0.07]"
+                  style={{ transform: "rotate(-24deg)" }}
+                >
+                  Preview
+                </span>
+              </div>
+            ) : null}
             <div
               className="mx-auto"
               style={{ maxWidth: 350, padding: "10px 10px 0" }}
