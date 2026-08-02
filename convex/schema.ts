@@ -244,6 +244,7 @@ export default defineSchema({
       v.literal("archived")
     ),
     pack,
+    /** Denormalized cache written on upsert; list/detail recompute via previewSvgForCard. */
     previewSvg: v.string(),
     /**
      * @deprecated Previews used to render a built-in studio component for

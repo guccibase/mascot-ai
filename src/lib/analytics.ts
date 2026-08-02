@@ -50,6 +50,8 @@ type Events = {
 
   /** The moment a customer takes real value out of the product. */
   mascot_downloaded: { kind: "pose" | "pack"; gestures: number };
+  /** Format detail for downloads (split to fit the 2-key analytics budget). */
+  mascot_export_detail: { format: string; scale: string };
 
   /** App icon / favicon / PWA asset exports. */
   app_assets_downloaded: { kind: "single" | "pack" };
