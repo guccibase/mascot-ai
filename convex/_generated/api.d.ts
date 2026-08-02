@@ -22,6 +22,7 @@ import type * as lib_billingPolicy from "../lib/billingPolicy.js";
 import type * as lib_marketplace from "../lib/marketplace.js";
 import type * as lib_marketplaceCategories from "../lib/marketplaceCategories.js";
 import type * as lib_plans from "../lib/plans.js";
+import type * as lib_previewSvg from "../lib/previewSvg.js";
 import type * as lib_publicExamples from "../lib/publicExamples.js";
 import type * as lib_revenueCatSubscriber from "../lib/revenueCatSubscriber.js";
 import type * as lib_serverAuth from "../lib/serverAuth.js";
@@ -60,6 +61,7 @@ declare const fullApi: ApiFromModules<{
   "lib/marketplace": typeof lib_marketplace;
   "lib/marketplaceCategories": typeof lib_marketplaceCategories;
   "lib/plans": typeof lib_plans;
+  "lib/previewSvg": typeof lib_previewSvg;
   "lib/publicExamples": typeof lib_publicExamples;
   "lib/revenueCatSubscriber": typeof lib_revenueCatSubscriber;
   "lib/serverAuth": typeof lib_serverAuth;

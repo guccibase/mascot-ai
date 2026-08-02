@@ -9,7 +9,11 @@ import {
 } from "./lib/auth";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
-import { assertPack, packFingerprint } from "./lib/marketplace";
+import {
+  assertPack,
+  packFingerprint,
+  previewSvgForCard,
+} from "./lib/marketplace";
 import { validators } from "./schema";
 
 /** Reject unpaid copies of live marketplace packs (insert + update). */
@@ -84,8 +88,6 @@ export const listMine = query({
     return {
       ...result,
       page: result.page.map((m) => {
-        const idle =
-          m.pack.gestures.find((g) => g.key === "idle") ?? m.pack.gestures[0]!;
         return {
           _id: m._id,
           _creationTime: m._creationTime,
@@ -95,7 +97,7 @@ export const listMine = query({
           source: m.source,
           gestureCount: m.pack.gestures.length,
           accent: m.pack.accent,
-          previewSvg: idle.svg,
+          previewSvg: previewSvgForCard(m.pack),
           updatedAt: m.updatedAt,
           createdAt: m.createdAt,
         };

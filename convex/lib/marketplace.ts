@@ -3,6 +3,7 @@ import {
   MARKETPLACE_CATEGORY_LABELS,
   type MarketplaceCategory,
 } from "./marketplaceCategories";
+import { type PreviewTheme } from "./previewSvg";
 
 export {
   MARKETPLACE_CATEGORIES,
@@ -10,6 +11,11 @@ export {
   marketplaceCategoryValidator,
   type MarketplaceCategory,
 } from "./marketplaceCategories";
+
+export {
+  previewSvgFromPack,
+  previewSvgForCard,
+} from "./previewSvg";
 
 export const MARKETPLACE_SKUS = ["remix", "buy_to_own"] as const;
 export type MarketplaceSku = (typeof MARKETPLACE_SKUS)[number];
@@ -31,13 +37,14 @@ type PackLike = {
   product?: string;
   accent: string;
   glowLabel?: string;
-  themes: Record<string, { name: string }>;
+  themes: Record<string, PreviewTheme>;
   instrument: {
     label: string;
     description: string;
     lowLabel: string;
     midLabel: string;
     highLabel: string;
+    defaultValue: number;
     ramp: string[];
   };
   gestures: Array<{
@@ -89,13 +96,6 @@ export function assertPack(pack: PackLike) {
       "Mascot pack is too large to save. Remove a gesture or simplify SVGs."
     );
   }
-}
-
-export function previewSvgFromPack(pack: PackLike): string {
-  const idle =
-    pack.gestures.find((g) => g.key === "idle") ?? pack.gestures[0];
-  if (!idle?.svg) throw new Error("Pack has no previewable gesture");
-  return idle.svg;
 }
 
 /** Denormalized lowercase text so marketplace search hits poses, parts, etc. */

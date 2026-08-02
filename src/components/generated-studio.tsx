@@ -58,6 +58,17 @@ import {
   type StudioCapabilities,
 } from "@/lib/studio-capabilities";
 import { usePreviewContentProtection } from "@/hooks/use-preview-content-protection";
+import {
+  downloadBlobFile,
+  downloadPoseBytes,
+  encodeAnimatedPair,
+  encodePoseRaster,
+  estimatePackRasterMegabytes,
+  estimatePackRasterSeconds,
+  supportsWebpEncode,
+  type PoseExportFormat,
+  type RasterScale,
+} from "@/lib/export-animated";
 
 export type { StudioCapabilities };
 
@@ -285,6 +296,32 @@ export function GeneratedStudio({
   const signalAnim = useAnimatedNumber(signal);
   const [sparks, setSparks] = useState<Spark[]>([]);
   const [copied, setCopied] = useState(false);
+  const [exportFormat, setExportFormat] = useState<PoseExportFormat>("svg");
+  const [exportScale, setExportScale] = useState<RasterScale>("1x");
+  const [exportBusy, setExportBusy] = useState(false);
+  /** Fail closed until capability probe resolves — avoids pack/WebP races. */
+  const [webpExportOk, setWebpExportOk] = useState(false);
+  const exportAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void supportsWebpEncode().then((ok) => {
+      if (!cancelled) setWebpExportOk(ok);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!webpExportOk && exportFormat === "webp") setExportFormat("apng");
+  }, [webpExportOk, exportFormat]);
+
+  useEffect(() => {
+    return () => {
+      exportAbortRef.current?.abort();
+    };
+  }, []);
   const [addingGesture, setAddingGesture] = useState(false);
   const [showAddGesture, setShowAddGesture] = useState(false);
   const [customGestureLabel, setCustomGestureLabel] = useState("");
@@ -655,77 +692,245 @@ export function GeneratedStudio({
     return bakeGestureExport(active.svg, exportOpts(gestureKey));
   }, [active.svg, exportOpts, gestureKey]);
 
-  const downloadPose = () => {
+  const downloadPose = async () => {
     if (!canExport) {
       toast.error("Purchase this mascot to download files");
       return;
     }
-    const blob = new Blob([buildExport()], { type: "image/svg+xml" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${slug}-${gestureKey}-${Math.round(signal)}.svg`;
-    a.click();
-    URL.revokeObjectURL(url);
-    trackEvent("mascot_downloaded", { kind: "pose", gestures: 1 });
+    if (exportBusy) return;
+    const filenameBase = `${slug}-${gestureKey}-${Math.round(signal)}`;
+    const svgMarkup = buildExport();
+
+    if (exportFormat === "svg") {
+      downloadBlobFile(svgMarkup, `${filenameBase}.svg`, "image/svg+xml");
+      trackEvent("mascot_downloaded", { kind: "pose", gestures: 1 });
+      trackEvent("mascot_export_detail", { format: "svg", scale: exportScale });
+      return;
+    }
+
+    if (exportFormat === "webp" && !webpExportOk) {
+      toast.error("This browser cannot encode WebP — use APNG instead");
+      return;
+    }
+
+    if (exportScale === "2x") {
+      const ok = window.confirm(
+        `High-res ${exportFormat.toUpperCase()} export (2× / 840×1040) may take longer and use more memory.\n\nContinue?`
+      );
+      if (!ok) return;
+    }
+
+    // Animated rasters always capture motion, even if the stage is paused.
+    const animatedMarkup = bakeGestureExport(active.svg, {
+      ...exportOpts(gestureKey),
+      paused: false,
+    });
+
+    setExportBusy(true);
+    const abort = new AbortController();
+    exportAbortRef.current = abort;
+    const toastId = toast.loading(
+      `Rendering ${exportFormat.toUpperCase()} (${exportScale})…`
+    );
+    try {
+      const bytes = await encodePoseRaster(animatedMarkup, exportFormat, {
+        scale: exportScale,
+        signal: abort.signal,
+        onProgress: (progress, label) => {
+          toast.loading(label, {
+            id: toastId,
+            description: `${Math.round(progress * 100)}%`,
+          });
+        },
+      });
+      downloadPoseBytes({
+        format: exportFormat,
+        filenameBase,
+        bytes,
+      });
+      trackEvent("mascot_downloaded", { kind: "pose", gestures: 1 });
+      trackEvent("mascot_export_detail", {
+        format: exportFormat,
+        scale: exportScale,
+      });
+      toast.success(`Downloaded ${exportFormat.toUpperCase()}`, { id: toastId });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        toast.message("Download cancelled", { id: toastId });
+      } else {
+        console.error(error);
+        toast.error(
+          error instanceof Error ? error.message : "Animated export failed",
+          { id: toastId }
+        );
+      }
+    } finally {
+      exportAbortRef.current = null;
+      setExportBusy(false);
+    }
   };
 
-  const downloadPack = () => {
+  const downloadPack = async () => {
     if (!canExport) {
       toast.error("Purchase this mascot to download files");
       return;
     }
-    const files: Record<string, Uint8Array> = {};
-    for (const g of mascot.gestures) {
-      const markup =
-        g.key === gestureKey
-          ? buildExport()
-          : bakeGestureExport(g.svg, exportOpts(g.key));
-      files[`gestures/${g.key}.svg`] = strToU8(markup);
+    if (exportBusy) return;
+
+    const poseCount = mascot.gestures.length;
+    // Pack follows the pose format picker: SVG-only by default (fast); rasters
+    // only when APNG/WebP is selected — avoids always encoding every pose.
+    const includeApng = exportFormat === "apng" || exportFormat === "webp";
+    const includeWebp = exportFormat === "webp" && webpExportOk;
+    const includeRaster = includeApng || includeWebp;
+    const formatLabel = includeWebp
+      ? "SVG + APNG + WebP"
+      : includeApng
+        ? "SVG + APNG"
+        : "SVG";
+    if (includeRaster) {
+      const etaSec = estimatePackRasterSeconds(
+        poseCount,
+        exportScale,
+        includeWebp
+      );
+      const etaMb = estimatePackRasterMegabytes(
+        poseCount,
+        exportScale,
+        includeWebp
+      );
+      if (exportScale === "2x") {
+        const ok = window.confirm(
+          `High-res pack export (~${etaMb} MB, about ${etaSec}s on this device).\n\nContinue with 2× ${formatLabel} for all ${poseCount} poses?`
+        );
+        if (!ok) return;
+      } else if (poseCount >= 12) {
+        const ok = window.confirm(
+          `Pack export includes ${formatLabel} for ${poseCount} poses (~${etaMb} MB, about ${etaSec}s).\n\nContinue?`
+        );
+        if (!ok) return;
+      }
     }
-    files["pack.json"] = strToU8(
-      JSON.stringify(
-        {
-          name: mascot.name,
-          tagline: mascot.tagline,
-          product: mascot.product,
-          accent: mascot.accent,
-          glowLabel: mascot.glowLabel,
-          instrument: mascot.instrument,
-          themes: mascot.themes,
-          parts: parts.filter((part) => enabledParts.has(part.key)),
-          gestures: mascot.gestures.map((g) => ({
-            key: g.key,
-            label: g.label,
-            cat: g.cat,
-            tip: g.tip,
-            use: g.use,
-            track: g.track,
-            delight: g.delight,
-            signal: g.signal,
-            file: `gestures/${g.key}.svg`,
-          })),
-          exportedAt: new Date().toISOString(),
-          exportSignal: Math.round(signal),
-          exportTheme: themeKey,
-        },
-        null,
-        2
-      )
-    );
-    const zipped = zipSync(files, { level: 6 });
-    const blob = new Blob([zipped], { type: "application/zip" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${slug}-studio-pack.zip`;
-    a.click();
-    URL.revokeObjectURL(url);
-    trackEvent("mascot_downloaded", {
-      kind: "pack",
-      gestures: mascot.gestures.length,
-    });
-    toast.success(`Pack downloaded (${mascot.gestures.length} poses)`);
+
+    setExportBusy(true);
+    const abort = new AbortController();
+    exportAbortRef.current = abort;
+    const toastId = toast.loading(`Building pack (${formatLabel})…`);
+
+    try {
+      const files: Record<string, Uint8Array> = {};
+      const gestureMeta: Array<Record<string, unknown>> = [];
+
+      for (let i = 0; i < mascot.gestures.length; i++) {
+        if (abort.signal.aborted) {
+          throw new DOMException("Animated export aborted", "AbortError");
+        }
+        const g = mascot.gestures[i]!;
+        // Pack SVG respects stage pause; rasters always capture live motion.
+        const svgMarkup = bakeGestureExport(g.svg, exportOpts(g.key));
+        files[`gestures/${g.key}.svg`] = strToU8(svgMarkup);
+
+        const meta: Record<string, unknown> = {
+          key: g.key,
+          label: g.label,
+          cat: g.cat,
+          tip: g.tip,
+          use: g.use,
+          track: g.track,
+          delight: g.delight,
+          signal: g.signal,
+          file: `gestures/${g.key}.svg`,
+        };
+
+        if (includeRaster) {
+          const rasterMarkup = bakeGestureExport(g.svg, {
+            ...exportOpts(g.key),
+            paused: false,
+          });
+          const pair = await encodeAnimatedPair(rasterMarkup, {
+            scale: exportScale,
+            signal: abort.signal,
+            includeWebp,
+            onProgress: (progress, label) => {
+              const overall = (i + progress) / poseCount;
+              toast.loading(`${g.key}: ${label}`, {
+                id: toastId,
+                description: `Pose ${i + 1}/${poseCount} · ${Math.round(overall * 100)}%`,
+              });
+            },
+          });
+          files[`animated/apng/${g.key}.png`] = pair.apng;
+          meta.motion = pair.hasMotion;
+          meta.apng = `animated/apng/${g.key}.png`;
+          if (pair.webp) {
+            files[`animated/webp/${g.key}.webp`] = pair.webp;
+            meta.webp = `animated/webp/${g.key}.webp`;
+          }
+        }
+
+        gestureMeta.push(meta);
+      }
+
+      const formats = [
+        "svg",
+        ...(includeApng ? (["apng"] as const) : []),
+        ...(includeWebp ? (["webp"] as const) : []),
+      ];
+      files["pack.json"] = strToU8(
+        JSON.stringify(
+          {
+            name: mascot.name,
+            tagline: mascot.tagline,
+            product: mascot.product,
+            accent: mascot.accent,
+            glowLabel: mascot.glowLabel,
+            instrument: mascot.instrument,
+            themes: mascot.themes,
+            parts: parts.filter((part) => enabledParts.has(part.key)),
+            gestures: gestureMeta,
+            formats,
+            rasterScale: includeRaster ? exportScale : undefined,
+            exportedAt: new Date().toISOString(),
+            exportSignal: Math.round(signal),
+            exportTheme: themeKey,
+          },
+          null,
+          2
+        )
+      );
+
+      const zipped = zipSync(files, { level: 6 });
+      downloadBlobFile(
+        zipped,
+        `${slug}-studio-pack.zip`,
+        "application/zip"
+      );
+      trackEvent("mascot_downloaded", {
+        kind: "pack",
+        gestures: poseCount,
+      });
+      trackEvent("mascot_export_detail", {
+        format: `pack-${formats.join("-")}`,
+        scale: includeRaster ? exportScale : "1x",
+      });
+      toast.success(
+        `Pack downloaded (${poseCount} poses · ${formatLabel})`,
+        { id: toastId }
+      );
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        toast.message("Pack download cancelled", { id: toastId });
+      } else {
+        console.error(error);
+        toast.error(
+          error instanceof Error ? error.message : "Pack export failed",
+          { id: toastId }
+        );
+      }
+    } finally {
+      exportAbortRef.current = null;
+      setExportBusy(false);
+    }
   };
 
   const copySVG = async () => {
@@ -1455,37 +1660,108 @@ export function GeneratedStudio({
           <div className="flex flex-col gap-2">
             {canExport ? (
               <>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="gs-eyebrow">Pose format</span>
+                  <div className="flex flex-wrap justify-end gap-1.5">
+                    {(
+                      [
+                        ["svg", "SVG"],
+                        ["apng", "APNG"],
+                        ["webp", "WebP"],
+                      ] as const
+                    ).map(([value, label]) => {
+                      const disabled =
+                        exportBusy || (value === "webp" && !webpExportOk);
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          className={`gs-pill ${exportFormat === value ? "on" : ""}`}
+                          aria-pressed={exportFormat === value}
+                          disabled={disabled}
+                          title={
+                            value === "webp" && !webpExportOk
+                              ? "WebP encode not supported in this browser"
+                              : undefined
+                          }
+                          onClick={() => setExportFormat(value)}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="gs-eyebrow">Raster size</span>
+                  <button
+                    type="button"
+                    className={`gs-pill ${exportScale === "2x" ? "on" : ""}`}
+                    aria-pressed={exportScale === "2x"}
+                    disabled={exportBusy || exportFormat === "svg"}
+                    onClick={() =>
+                      setExportScale((s) => (s === "1x" ? "2x" : "1x"))
+                    }
+                  >
+                    {exportScale === "2x" ? "High res (2×)" : "Studio (1×)"}
+                  </button>
+                </div>
                 <div className="flex gap-3">
                   <button
                     type="button"
                     className="gs-btn flex-1"
-                    onClick={downloadPose}
+                    disabled={exportBusy}
+                    onClick={() => void downloadPose()}
                   >
-                    Download pose
+                    {exportBusy ? (
+                      <span className="inline-flex items-center justify-center gap-2">
+                        <Loader2 className="size-4 animate-spin" />
+                        Exporting…
+                      </span>
+                    ) : (
+                      `Download ${exportFormat.toUpperCase()}`
+                    )}
                   </button>
                   <button
                     type="button"
                     className="gs-btn ghost flex-1"
-                    onClick={downloadPack}
+                    disabled={exportBusy}
+                    onClick={() => void downloadPack()}
                   >
                     Download pack
                   </button>
                 </div>
+                {exportBusy && (
+                  <button
+                    type="button"
+                    className="gs-btn ghost w-full"
+                    onClick={() => exportAbortRef.current?.abort()}
+                  >
+                    Cancel export
+                  </button>
+                )}
                 <button
                   type="button"
                   className="gs-btn ghost w-full"
+                  disabled={exportBusy}
                   onClick={copySVG}
                 >
                   {copied ? "Copied ✓" : "Copy pose SVG"}
                 </button>
                 <p style={{ fontSize: 11.5, color: "#8D8472", lineHeight: 1.5 }}>
-                  Pose exports the selected gesture at the current{" "}
+                  Pose downloads the selected gesture as SVG, APNG, or animated
+                  WebP at the current{" "}
                   {(showSignal
                     ? instrument.label
                     : mascot.glowLabel || "glow"
                   ).toLowerCase()}
-                  . Pack is a zip of every pose
-                  plus <code style={{ color: "#C6BCA7" }}>pack.json</code>.
+                  . Pack zips every pose as SVG by default; choose APNG or WebP
+                  above to include matching animated rasters, plus{" "}
+                  <code style={{ color: "#C6BCA7" }}>pack.json</code>. Rasters
+                  bake motion in your browser (loop up to ~6s).
+                  {!webpExportOk
+                    ? " WebP encode is unavailable in this browser."
+                    : null}
                 </p>
               </>
             ) : (

@@ -139,7 +139,7 @@ export default function MarketplacePage() {
                   className="group overflow-hidden rounded-[1.5rem] border border-white/10 bg-[var(--brand-panel)] transition hover:-translate-y-0.5 hover:border-[color-mix(in_oklab,var(--brand-accent)_40%,transparent)]"
                 >
                   <div
-                    className="flex h-44 items-center justify-center bg-[#0b1020] p-4"
+                    className="flex h-44 items-center justify-center bg-[#0b1020] p-4 [&_svg]:h-auto [&_svg]:max-h-full [&_svg]:w-full"
                     style={{
                       background: `radial-gradient(70% 80% at 50% 20%, ${listing.accent}33, #0b1020 70%)`,
                     }}
