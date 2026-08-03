@@ -103,8 +103,16 @@ export default function RootLayout({
       <html
         lang="en"
         className={`${display.variable} ${sans.variable} h-full antialiased`}
+        suppressHydrationWarning
       >
-        <body className="min-h-full font-sans text-[var(--brand-ink)]">
+        {/*
+          suppressHydrationWarning: browser extensions (e.g. Grammarly) inject
+          attributes on <body> before React hydrates, which is harmless noise.
+        */}
+        <body
+          className="min-h-full font-sans text-[var(--brand-ink)]"
+          suppressHydrationWarning
+        >
           <AppProviders>
             {children}
             <Toaster />

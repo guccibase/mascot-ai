@@ -16,6 +16,8 @@ export const runtime = "nodejs";
 export const maxDuration = 90;
 
 const MAX_BODY_BYTES = 32_000;
+const SAMPLE_VIEWBOX_RE =
+  /<svg\b[^>]*\bviewBox="0(?:[\s,]+)0(?:[\s,]+)420(?:[\s,]+)520"/i;
 
 function isSamples(value: unknown): value is { samples: MascotSample[] } {
   if (!value || typeof value !== "object") return false;
@@ -155,7 +157,7 @@ export async function POST(req: Request) {
         rationale: s.rationale || "",
         svg: sanitizeSvg(s.svg),
       }))
-      .filter((s) => s.svg.length > 0);
+      .filter((s) => s.svg.length > 0 && SAMPLE_VIEWBOX_RE.test(s.svg));
 
     if (samples.length === 0) {
       meter.forgive();

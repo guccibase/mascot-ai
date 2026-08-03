@@ -10,6 +10,7 @@ const themeSwatch = v.object({
   core: v.string(),
   stage: v.string(),
   features: v.optional(v.string()),
+  blush: v.optional(v.string()),
 });
 
 const instrument = v.object({

@@ -16,4 +16,8 @@ describe("Clerk public routes", () => {
     expect(proxy).toMatch(/["']\/pricing["']/);
     expect(proxy).toMatch(/["']\/studio\(\.\*\)["']/);
   });
+
+  it("keeps the blog public for crawlers and footer links", () => {
+    expect(proxy).toMatch(/["']\/blog\(\.\*\)["']/);
+  });
 });

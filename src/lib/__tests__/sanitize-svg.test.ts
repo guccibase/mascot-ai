@@ -46,4 +46,23 @@ describe("sanitizeSvg", () => {
     const out = sanitizeSvg(broken);
     expect(out).toMatch(/<\/g>\s*<\/svg>$/);
   });
+
+  it("repairs JSON-escaped attribute quotes without bypassing URL filtering", () => {
+    const input = String.raw`<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 420 520\"><defs><linearGradient id=\"g\"><stop offset=\"0%\"/></linearGradient></defs><rect x=\"10\" y=\"20\" width=\"40\" height=\"50\" fill=\"url(#g)\"/><use href=\"javascript:alert(1)\"/></svg>`;
+    const out = sanitizeSvg(input);
+
+    expect(out).toContain('viewBox="0 0 420 520"');
+    expect(out).toContain('offset="0%"');
+    expect(out).toContain('x="10"');
+    expect(out).toContain('height="50"');
+    expect(out).not.toContain("javascript:");
+    expect(out).not.toContain("\\");
+  });
+
+  it("does not rewrite escaped quotes in SVG text content", () => {
+    const input = String.raw`<svg viewBox=\"0 0 420 520\"><text>Keep \"quoted\" text</text></svg>`;
+    const out = sanitizeSvg(input);
+
+    expect(out).toContain(String.raw`Keep \"quoted\" text`);
+  });
 });

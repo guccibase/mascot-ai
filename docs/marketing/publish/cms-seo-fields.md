@@ -1,6 +1,6 @@
 # CMS fields (paste into SEO / social settings — not into the post body)
 
-Use these when publishing on your blog host (Ghost, WordPress, Hashnode, Substack, etc.). Canonical URLs below assume you publish under `https://appmascot.ai/blog/…` on that host or via reverse proxy — they are **not** Next.js app routes today.
+Canonical URLs below match the in-app blog at `https://appmascot.ai/blog/…` (see `content/blog/` + `src/app/blog/`). Keep this table as a checklist when adding posts.
 
 ## Post 1 — Why app mascots matter
 

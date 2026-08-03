@@ -24,9 +24,13 @@ import type {
 } from "@/lib/types";
 
 export const runtime = "nodejs";
-export const maxDuration = 180;
+// A studio performs a bible call, an idle call, then pose batches. Match the
+// cross-plan Fluid Compute ceiling and leave time to settle before termination.
+export const maxDuration = 300;
 
 const MAX_BODY_BYTES = 200_000;
+const SETTLE_BUFFER_MS = 15_000;
+const MODEL_DEADLINE_MS = maxDuration * 1_000 - SETTLE_BUFFER_MS;
 
 const SVG_INSTRUCTIONS = SVG_GESTURE_INSTRUCTIONS;
 
@@ -66,16 +70,37 @@ type BiblePack = {
   metaphor?: string;
 };
 
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
 function isBible(value: unknown): value is BiblePack {
-  if (!value || typeof value !== "object") return false;
+  if (!isObjectRecord(value)) return false;
   const v = value as BiblePack;
   return (
     typeof v.name === "string" &&
     typeof v.tagline === "string" &&
     typeof v.accent === "string" &&
-    !!v.themes?.primary &&
-    !!v.instrument?.label &&
+    isObjectRecord(v.themes) &&
+    isObjectRecord(v.themes.primary) &&
+    isObjectRecord(v.instrument) &&
+    typeof v.instrument.label === "string" &&
+    v.instrument.label.length > 0 &&
     typeof v.silhouette === "string"
+  );
+}
+
+function isGestureRequest(value: unknown): value is GestureRequest {
+  if (!isObjectRecord(value)) return false;
+  return (
+    typeof value.key === "string" &&
+    value.key.length > 0 &&
+    value.key.length <= 40 &&
+    typeof value.label === "string" &&
+    value.label.length > 0 &&
+    typeof value.cat === "string" &&
+    typeof value.tip === "string" &&
+    typeof value.use === "string"
   );
 }
 
@@ -109,6 +134,9 @@ function coerceGesture(
 }
 
 export async function POST(req: Request) {
+  const deadlineSignal = AbortSignal.timeout(MODEL_DEADLINE_MS);
+  const modelSignal = AbortSignal.any([req.signal, deadlineSignal]);
+
   const limited = await rateLimit(req, {
     name: "generate",
     limit: 5,
@@ -132,7 +160,7 @@ export async function POST(req: Request) {
   const name = boundedText(body.name, 80);
   const description = boundedText(body.description, 1200);
   const look = boundedText(body.look, 1200);
-  const gestures = body.gestures ?? [];
+  const gestures = Array.isArray(body.gestures) ? body.gestures : [];
   const selectedSample = body.selectedSample;
 
   if (!name || !description || !look) {
@@ -141,7 +169,14 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
-  if (!selectedSample?.svg?.includes("<svg")) {
+  if (
+    !isObjectRecord(selectedSample) ||
+    typeof selectedSample.id !== "string" ||
+    typeof selectedSample.title !== "string" ||
+    typeof selectedSample.rationale !== "string" ||
+    typeof selectedSample.svg !== "string" ||
+    !selectedSample.svg.includes("<svg")
+  ) {
     return NextResponse.json(
       { error: "A selected look sample is required" },
       { status: 400 }
@@ -155,6 +190,23 @@ export async function POST(req: Request) {
       {
         error: `Select between 1 and ${MAX_CREATE_GESTURES} gestures`,
       },
+      { status: 400 }
+    );
+  }
+  if (!gestures.every(isGestureRequest)) {
+    return NextResponse.json(
+      {
+        error:
+          "Every gesture needs a valid key, label, category, tip, and use",
+      },
+      { status: 400 }
+    );
+  }
+  if (
+    new Set(gestures.map((gesture) => gesture.key)).size !== gestures.length
+  ) {
+    return NextResponse.json(
+      { error: "Gesture keys must be unique" },
       { status: 400 }
     );
   }
@@ -233,6 +285,7 @@ export async function POST(req: Request) {
       images: visionImages,
       maxOutputTokens: 8000,
       reasoningEffort: "low",
+      signal: modelSignal,
     });
     let bible: BiblePack;
     try {
@@ -302,6 +355,7 @@ export async function POST(req: Request) {
       images: visionImages,
       maxOutputTokens: 16000,
       reasoningEffort: "low",
+      signal: modelSignal,
     });
 
     let idleParsed: GeneratedGesture;
@@ -362,6 +416,7 @@ export async function POST(req: Request) {
             ].join("\n\n"),
             maxOutputTokens: 14000,
             reasoningEffort: "low",
+            signal: modelSignal,
           });
 
           const coerced = coerceGesture(parseJsonObject(run.text), g);
@@ -387,6 +442,12 @@ export async function POST(req: Request) {
         }
       }
     );
+
+    // Pose failures are normally tolerable, but a route-wide timeout must stay
+    // atomic rather than becoming a silently incomplete saved studio.
+    if (deadlineSignal.aborted) {
+      throw new Error("Studio generation deadline exceeded");
+    }
 
     const otherGestures: GeneratedGesture[] = [];
     for (const item of settled) {
@@ -450,6 +511,15 @@ export async function POST(req: Request) {
     meter.forgive();
     const message = err instanceof Error ? err.message : "Generation failed";
     console.error("generate error:", message);
+    if (deadlineSignal.aborted) {
+      return NextResponse.json(
+        {
+          error: "Studio generation took too long. Please try again.",
+          code: "STUDIO_TIMEOUT",
+        },
+        { status: 504 }
+      );
+    }
     return NextResponse.json({ error: message }, { status: 500 });
   } finally {
     // Charges only the phases that completed and frees the rest of the hold.
