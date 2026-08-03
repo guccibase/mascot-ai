@@ -5,6 +5,7 @@ import { SITE_NAME, SITE_TAGLINE } from "@/lib/seo";
 
 const FOOTER_LINKS = [
   { href: "/marketplace", label: "Marketplace" },
+  { href: "/blog", label: "Blog" },
   { href: "/#examples", label: "Examples" },
   { href: "/pricing", label: "Pricing" },
   { href: "/sign-up", label: "Get started" },

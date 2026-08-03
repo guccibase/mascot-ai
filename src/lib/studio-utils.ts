@@ -237,6 +237,36 @@ function normalizeHex(input: unknown, fallback: string) {
   return `#${s.toUpperCase()}`;
 }
 
+function stringOrFallback(value: unknown, fallback: string): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+function nonEmptyStringOrFallback(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+const THEME_STRING_FIELDS = [
+  "name",
+  "top",
+  "mid",
+  "base",
+  "core",
+  "stage",
+  "features",
+  "blush",
+] as const;
+
+function isThemeCandidate(value: unknown): value is Record<string, unknown> {
+  return (
+    isObjectRecord(value) &&
+    THEME_STRING_FIELDS.some((field) => typeof value[field] === "string")
+  );
+}
+
 function themeVarsStyle(theme: ThemeSwatch, accent: string) {
   const features = normalizeHex(theme.features ?? "#2A1A0C", "#2A1A0C");
   const blush = theme.blush
@@ -414,55 +444,80 @@ export function normalizeGeneratedMascot(
     use: string;
   }>
 ): GeneratedMascot {
-  const themeEntries = Object.entries(raw.themes ?? {});
+  if (!isObjectRecord(raw) || typeof raw.name !== "string" || !raw.name) {
+    throw new Error("Mascot pack missing name");
+  }
+  if (typeof raw.tagline !== "string") {
+    throw new Error("Mascot pack missing tagline");
+  }
+  const themeEntries = isObjectRecord(raw.themes)
+    ? Object.entries(raw.themes)
+    : [];
   if (themeEntries.length === 0) {
     throw new Error("Mascot pack missing themes");
   }
 
   const themes: Record<string, ThemeSwatch> = {};
+  let firstThemeKey: string | null = null;
   for (const [key, t] of themeEntries) {
+    if (!key || !isThemeCandidate(t)) continue;
+    firstThemeKey ??= key;
     themes[key] = {
-      name: t.name || key,
+      name: nonEmptyStringOrFallback(t.name, key),
       top: normalizeHex(t.top, "#FFE9AE"),
       mid: normalizeHex(t.mid, "#FFB35C"),
       base: normalizeHex(t.base, "#F4744E"),
       core: normalizeHex(t.core, "#FFF6CF"),
       stage: normalizeHex(t.stage, "#1A2438"),
-      features: t.features
+      features: typeof t.features === "string"
         ? normalizeHex(t.features, "#2A1A0C")
         : "#2A1A0C",
-      ...(t.blush
+      ...(typeof t.blush === "string"
         ? { blush: normalizeHex(t.blush, "#E8A8A0") }
         : {}),
     };
+  }
+  if (!firstThemeKey) {
+    throw new Error("Mascot pack missing themes");
   }
 
   // Studio / theme contract expect themes.primary. Example packs sometimes
   // name the first swatch differently (amber, dawn, …) — alias it.
   if (!themes.primary) {
-    const firstKey = themeEntries[0]![0]!;
-    themes.primary = themes[firstKey]!;
+    themes.primary = themes[firstThemeKey]!;
   }
 
   const primary = themes.primary!;
   const accent = normalizeHex(raw.accent, primary.mid);
-  const instrumentHidden = raw.instrument?.hidden === true;
+  const product = typeof raw.product === "string" ? raw.product : undefined;
+  const defaults = defaultInstrument(product);
+  const rawInstrument = raw.instrument;
   const instrument: StudioInstrument = {
-    ...defaultInstrument(raw.product),
-    ...(raw.instrument ?? {}),
+    label: stringOrFallback(rawInstrument?.label, defaults.label),
+    description: stringOrFallback(
+      rawInstrument?.description,
+      defaults.description
+    ),
+    lowLabel: stringOrFallback(rawInstrument?.lowLabel, defaults.lowLabel),
+    midLabel: stringOrFallback(rawInstrument?.midLabel, defaults.midLabel),
+    highLabel: stringOrFallback(rawInstrument?.highLabel, defaults.highLabel),
     ramp:
-      raw.instrument?.ramp?.length === 5
-        ? (raw.instrument.ramp.map((c) =>
+      Array.isArray(rawInstrument?.ramp) && rawInstrument.ramp.length === 5
+        ? (rawInstrument.ramp.map((c) =>
             normalizeHex(c, accent)
           ) as StudioInstrument["ramp"])
         : DEFAULT_RAMP,
-    defaultValue: normalizeInstrumentDefault(raw.instrument?.defaultValue),
-    // Spreading defaults must not resurrect a Signal slider the pack hid.
-    hidden: instrumentHidden ? true : raw.instrument?.hidden,
+    defaultValue: normalizeInstrumentDefault(rawInstrument?.defaultValue),
+    hidden:
+      typeof rawInstrument?.hidden === "boolean"
+        ? rawInstrument.hidden
+        : defaults.hidden,
   };
 
   const byKey = new Map(
-    (raw.gestures ?? []).map((g) => [g.key, g] as const)
+    (Array.isArray(raw.gestures) ? raw.gestures : []).map(
+      (g) => [g.key, g] as const
+    )
   );
 
   const gestures: GeneratedGesture[] = requested.map((req) => {
@@ -503,13 +558,38 @@ export function normalizeGeneratedMascot(
   const draft: GeneratedMascot = {
     name: raw.name,
     tagline: raw.tagline,
-    product: raw.product,
+    product,
     accent,
-    glowLabel: raw.glowLabel || "Spotlight",
+    glowLabel: nonEmptyStringOrFallback(raw.glowLabel, "Spotlight"),
     themes,
     instrument,
     gestures,
-    parts: raw.parts ?? [],
+    // Model output is untrusted at runtime. Keep the persistence contract exact
+    // while preserving every supported part field.
+    parts: (Array.isArray(raw.parts) ? raw.parts : []).flatMap((part) => {
+      if (
+        !part ||
+        typeof part.key !== "string" ||
+        !part.key ||
+        typeof part.label !== "string" ||
+        typeof part.category !== "string"
+      ) {
+        return [];
+      }
+      return [
+        {
+          key: part.key,
+          label: part.label,
+          category: part.category,
+          ...(typeof part.description === "string"
+            ? { description: part.description }
+            : {}),
+          ...(typeof part.essential === "boolean"
+            ? { essential: part.essential }
+            : {}),
+        },
+      ];
+    }),
   };
 
   return {

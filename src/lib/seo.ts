@@ -45,6 +45,12 @@ type PageMetaInput = {
    * template). Needed for the root page, where the template is not applied.
    */
   absoluteTitle?: boolean;
+  /** Defaults to website; use article for blog posts. */
+  ogType?: "website" | "article";
+  /** Optional OG/Twitter image override (path or absolute URL). */
+  image?: { url: string; width?: number; height?: number; alt?: string };
+  publishedTime?: string;
+  modifiedTime?: string;
 };
 
 /** Shared page metadata: relative canonical (via metadataBase), OG, Twitter, robots. */
@@ -54,6 +60,10 @@ export function buildPageMetadata({
   path,
   index = true,
   absoluteTitle = false,
+  ogType = "website",
+  image,
+  publishedTime,
+  modifiedTime,
 }: PageMetaInput): Metadata {
   const brandedTitle = absoluteTitle ? `${title} | ${SITE_NAME}` : title;
   const robots = index
@@ -70,6 +80,15 @@ export function buildPageMetadata({
       }
     : { index: false, follow: false };
 
+  const ogImage = image
+    ? {
+        url: image.url,
+        width: image.width ?? 1200,
+        height: image.height ?? 630,
+        alt: image.alt ?? brandedTitle,
+      }
+    : OG_IMAGE;
+
   return {
     title: absoluteTitle ? { absolute: brandedTitle } : brandedTitle,
     description,
@@ -81,15 +100,21 @@ export function buildPageMetadata({
       description,
       url: path === "/" ? "/" : path,
       siteName: SITE_NAME,
-      type: "website",
+      type: ogType,
       locale: "en_US",
-      images: [OG_IMAGE],
+      images: [ogImage],
+      ...(ogType === "article"
+        ? {
+            publishedTime,
+            modifiedTime: modifiedTime ?? publishedTime,
+          }
+        : {}),
     },
     twitter: {
       card: "summary_large_image",
       title: brandedTitle,
       description,
-      images: [OG_IMAGE.url],
+      images: [ogImage.url],
     },
   };
 }
@@ -106,11 +131,13 @@ export function publicSitemapEntries(): Array<{
   path: string;
   changeFrequency: "weekly" | "monthly";
   priority: number;
+  lastModified?: Date;
 }> {
   return [
     { path: "/", changeFrequency: "weekly", priority: 1 },
     { path: "/pricing", changeFrequency: "monthly", priority: 0.8 },
     { path: "/marketplace", changeFrequency: "weekly", priority: 0.85 },
+    { path: "/blog", changeFrequency: "weekly", priority: 0.85 },
     { path: "/privacy", changeFrequency: "monthly", priority: 0.3 },
     { path: "/terms", changeFrequency: "monthly", priority: 0.3 },
     ...PUBLIC_EXAMPLES.map((mascot) => ({

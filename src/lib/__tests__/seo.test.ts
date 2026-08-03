@@ -20,6 +20,7 @@ describe("seo helpers", () => {
       "/",
       "/pricing",
       "/marketplace",
+      "/blog",
       "/privacy",
       "/terms",
       "/studio/lyra",

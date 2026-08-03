@@ -18,6 +18,7 @@ const isPublicRoute = createRouteMatcher([
   "/studio(.*)",
   ...MARKETPLACE_PUBLIC_ROUTE_PATTERNS,
   "/pricing",
+  "/blog(.*)",
   "/robots.txt",
   "/sitemap.xml",
   "/manifest.webmanifest",

@@ -40,6 +40,7 @@ import {
   MAX_CREATE_GESTURES,
 } from "@/lib/token-pricing";
 import { useAffordability } from "@/lib/use-affordability";
+import { responseJson } from "@/lib/response-json";
 import { sanitizeSvg } from "@/lib/sanitize-svg";
 import type {
   GeneratedMascot,
@@ -430,16 +431,22 @@ export default function CreatePage() {
           referenceId,
         }),
       });
-      const data = (await res.json()) as {
+      const data = await responseJson<{
         samples?: MascotSample[];
         error?: string;
         code?: string;
-      };
+      }>(res);
       if (!res.ok) {
-        errorCode = data.code;
-        throw new Error(data.error || "Sample generation failed");
+        errorCode =
+          data?.code ?? (res.status === 504 ? "SAMPLES_TIMEOUT" : undefined);
+        throw new Error(
+          data?.error ||
+            (res.status === 504
+              ? "Sample generation took too long. Please try again."
+              : "Sample generation failed")
+        );
       }
-      if (!data.samples?.length) throw new Error("No samples returned");
+      if (!data?.samples?.length) throw new Error("No samples returned");
       setSamples(data.samples);
       setStep("samples");
       trackEvent("generate_completed", { action: "samples", model });
@@ -495,7 +502,7 @@ export default function CreatePage() {
           referenceId,
         }),
       });
-      const data = (await res.json()) as GeneratedMascot & {
+      const data = await responseJson<GeneratedMascot & {
         error?: string;
         code?: string;
         _meta?: {
@@ -504,11 +511,18 @@ export default function CreatePage() {
           warnings?: string[];
           skippedGestures?: string[];
         };
-      };
+      }>(res);
       if (!res.ok) {
-        errorCode = data.code;
-        throw new Error(data.error || "Generation failed");
+        errorCode =
+          data?.code ?? (res.status === 504 ? "STUDIO_TIMEOUT" : undefined);
+        throw new Error(
+          data?.error ||
+            (res.status === 504
+              ? "Studio generation took too long. Please try again."
+              : "Generation failed")
+        );
       }
+      if (!data) throw new Error("Generation returned an invalid response");
       const { _meta, ...mascot } = data;
       setResult(mascot);
       setStep("studio");

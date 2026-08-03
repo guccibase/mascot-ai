@@ -164,13 +164,60 @@ function sanitizeCssText(css: string): string {
 }
 
 /**
+ * Models occasionally leave JSON-style quote escapes in otherwise valid SVG
+ * markup (for example, `viewBox=\"0 0 420 520\"`). Backslashes do not escape
+ * XML attribute delimiters, so browsers parse those attributes as `\\` and
+ * render an empty image. Repair only quote delimiters inside tags; text and CSS
+ * content remain byte-for-byte unchanged and still pass through the sanitizer.
+ */
+function normalizeEscapedTagQuotes(input: string): string {
+  let output = "";
+  let inTag = false;
+  let quote: '"' | "'" | null = null;
+
+  for (let i = 0; i < input.length; i++) {
+    const char = input[i]!;
+
+    if (!inTag) {
+      output += char;
+      if (char === "<") inTag = true;
+      continue;
+    }
+
+    if (char === "\\") {
+      let quoteIndex = i;
+      while (input[quoteIndex] === "\\") quoteIndex++;
+      const escapedQuote = input[quoteIndex];
+
+      if (escapedQuote === '"' || escapedQuote === "'") {
+        output += escapedQuote;
+        if (quote === escapedQuote) quote = null;
+        else if (quote === null) quote = escapedQuote;
+        i = quoteIndex;
+        continue;
+      }
+    }
+
+    output += char;
+    if (char === '"' || char === "'") {
+      if (quote === char) quote = null;
+      else if (quote === null) quote = char;
+    } else if (char === ">" && quote === null) {
+      inTag = false;
+    }
+  }
+
+  return output;
+}
+
+/**
  * Returns sanitized SVG markup, or an empty string when nothing salvageable
  * remains. Callers should treat "" as a generation failure.
  */
 export function sanitizeSvg(input: string): string {
   if (typeof input !== "string" || !input.includes("<svg")) return "";
 
-  const tokens = tokenize(input);
+  const tokens = tokenize(normalizeEscapedTagQuotes(input));
   const pieces: string[] = [];
 
   let dropDepth = 0;
