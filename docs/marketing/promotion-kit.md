@@ -100,7 +100,7 @@ MascotAI is a **visual, creator/founder SaaS**. Paid works best after organic me
 
 ### Tracking
 
-1. Install analytics + conversion on signup / first create  
+1. Google Ads tag `AW-869374788` on every page; **Subscribe** on plan activation (`/pricing`), **Purchase** on token top-ups + marketplace checkout success  
 2. UTM every ad and directory  
 3. Optimize for **signups who reach create**, not clicks  
 
@@ -397,7 +397,7 @@ Images are intentionally **text-free**. Add headlines in the ad platform so you 
 - [ ] UTMs on every link  
 - [ ] Official logo on review directories  
 - [ ] PH gallery = trio + 2 real screenshots + demo video  
-- [ ] Pixel / analytics before paid spend  
+- [x] Pixel / analytics before paid spend (Google Ads + Vercel Analytics)  
 - [ ] One primary CTA everywhere: **Build your mascot** → `/sign-up` or `/create`  
 - [ ] Refresh pack on marketplace listings before promoting specific mascots for sale  
 

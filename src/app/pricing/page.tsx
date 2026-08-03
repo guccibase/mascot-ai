@@ -11,7 +11,10 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { PriceSkeleton } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
-import { trackGoogleAdsSubscribeConversion } from "@/components/google-ads-tag";
+import {
+  trackGoogleAdsPurchaseConversion,
+  trackGoogleAdsSubscribeConversion,
+} from "@/components/google-ads-tag";
 import { useRevenueCat } from "@/components/providers/revenuecat-provider";
 import { trackEvent } from "@/lib/analytics";
 import { MASCOT_MODEL_OPTIONS } from "@/lib/mascot-model-options";
@@ -231,6 +234,10 @@ export default function PricingPage() {
   });
   // Guard against Strict Mode / balance ticks double-firing the Ads conversion.
   const adsSubscribeSent = useRef(false);
+  const adsPurchaseSent = useRef(false);
+  const pendingPurchaseValue = useRef<{ value: number; currency: string } | null>(
+    null
+  );
 
   useEffect(() => {
     if (!awaiting || !balance) return;
@@ -255,6 +262,12 @@ export default function PricingPage() {
       toast.success("You're in. Let's build your mascot.");
       router.push("/create");
     } else {
+      if (kind === "topup" && credited && !adsPurchaseSent.current) {
+        adsPurchaseSent.current = true;
+        trackGoogleAdsPurchaseConversion(
+          pendingPurchaseValue.current ?? undefined
+        );
+      }
       toast.success(`${formatTokens(balance.total)} tokens ready to spend.`);
     }
   }, [awaiting, balance, router]);
@@ -293,6 +306,11 @@ export default function PricingPage() {
       total: balance?.total ?? 0,
       planId: balance?.planId ?? null,
     };
+    const price = getPrice(productId);
+    pendingPurchaseValue.current = price
+      ? { value: price.amountUsd, currency: "USD" }
+      : null;
+    if (kind === "topup") adsPurchaseSent.current = false;
     trackEvent("checkout_started", { product: productId, kind });
     const ok = await purchase(productId);
     if (!ok) return;

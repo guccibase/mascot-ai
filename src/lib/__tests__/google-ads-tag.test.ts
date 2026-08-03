@@ -3,7 +3,9 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   GOOGLE_ADS_ID,
+  GOOGLE_ADS_PURCHASE_SEND_TO,
   GOOGLE_ADS_SUBSCRIBE_SEND_TO,
+  trackGoogleAdsPurchaseConversion,
   trackGoogleAdsSubscribeConversion,
 } from "@/components/google-ads-tag";
 
@@ -13,9 +15,12 @@ describe("Google Ads tag", () => {
   });
 
   it("defaults to the configured AW conversion ID", () => {
-    expect(GOOGLE_ADS_ID).toMatch(/^AW-\d+$/);
-    expect(GOOGLE_ADS_SUBSCRIBE_SEND_TO).toMatch(
-      /^AW-\d+\/[A-Za-z0-9_-]+$/
+    expect(GOOGLE_ADS_ID).toBe("AW-869374788");
+    expect(GOOGLE_ADS_SUBSCRIBE_SEND_TO).toBe(
+      "AW-869374788/_amCC0Sh1ogcENWkvLwo"
+    );
+    expect(GOOGLE_ADS_PURCHASE_SEND_TO).toBe(
+      "AW-869374788/FWLSC0eh1ogcENWkvLwo"
     );
   });
 
@@ -43,12 +48,34 @@ describe("Google Ads tag", () => {
     });
   });
 
-  it("pricing page fires Subscribe conversion only for plan activation", () => {
+  it("fires the Purchase conversion with value and currency", () => {
+    const gtag = vi.fn();
+    vi.stubGlobal("window", { gtag, dataLayer: [] });
+    trackGoogleAdsPurchaseConversion({ value: 19.0, currency: "USD" });
+    expect(gtag).toHaveBeenCalledWith("event", "conversion", {
+      send_to: GOOGLE_ADS_PURCHASE_SEND_TO,
+      value: 19.0,
+      currency: "USD",
+    });
+  });
+
+  it("pricing page fires Subscribe for plans and Purchase for top-ups", () => {
     const pricing = readFileSync(
       join(process.cwd(), "src/app/pricing/page.tsx"),
       "utf8"
     );
     expect(pricing).toMatch(/trackGoogleAdsSubscribeConversion/);
+    expect(pricing).toMatch(/trackGoogleAdsPurchaseConversion/);
     expect(pricing).toMatch(/kind === "plan" && activated/);
+    expect(pricing).toMatch(/kind === "topup" && credited/);
+  });
+
+  it("marketplace success page fires Purchase conversion", () => {
+    const success = readFileSync(
+      join(process.cwd(), "src/app/marketplace/checkout/success/page.tsx"),
+      "utf8"
+    );
+    expect(success).toMatch(/trackGoogleAdsPurchaseConversion/);
+    expect(success).toMatch(/amountCents/);
   });
 });

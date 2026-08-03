@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useAction, useQuery } from "convex/react";
+import { trackGoogleAdsPurchaseConversion } from "@/components/google-ads-tag";
 import { SiteHeader } from "@/components/site-header";
 import { CheckoutConfirmSkeleton } from "@/components/skeletons";
 import { buttonVariants } from "@/components/ui/button";
@@ -21,6 +22,7 @@ export default function MarketplaceCheckoutSuccessPage() {
   );
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(true);
+  const adsPurchaseSent = useRef(false);
 
   useEffect(() => {
     if (!orderId) {
@@ -62,6 +64,17 @@ export default function MarketplaceCheckoutSuccessPage() {
       cancelled = true;
     };
   }, [confirm, orderId]);
+
+  useEffect(() => {
+    if (!order || order.status !== "fulfilled" || adsPurchaseSent.current) {
+      return;
+    }
+    adsPurchaseSent.current = true;
+    trackGoogleAdsPurchaseConversion({
+      value: order.amountCents / 100,
+      currency: "USD",
+    });
+  }, [order]);
 
   const status = order?.status;
   const fulfilled = status === "fulfilled";
