@@ -1,8 +1,7 @@
 import type { MetadataRoute } from "next";
-import { getSiteUrl } from "@/lib/seo";
+import { absoluteUrl } from "@/lib/seo";
 
 export default function robots(): MetadataRoute.Robots {
-  const origin = getSiteUrl();
   return {
     rules: [
       {
@@ -20,8 +19,6 @@ export default function robots(): MetadataRoute.Robots {
         ],
       },
     ],
-    sitemap: `${origin}/sitemap.xml`,
-    // Hostname only — Yandex Host directive; Google ignores this field.
-    host: new URL(origin).host,
+    sitemap: absoluteUrl("/sitemap.xml"),
   };
 }

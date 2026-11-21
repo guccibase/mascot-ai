@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Outfit, Manrope } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { shadcn } from "@clerk/ui/themes";
 import { Analytics } from "@vercel/analytics/next";
@@ -10,22 +9,10 @@ import {
   DEFAULT_DESCRIPTION,
   SITE_NAME,
   SITE_TAGLINE,
-  getSiteUrl,
+  SITE_URL,
 } from "@/lib/seo";
 import "./globals.css";
-
-const display = Outfit({
-  variable: "--font-display",
-  subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
-  display: "swap",
-});
-
-const sans = Manrope({
-  variable: "--font-sans",
-  subsets: ["latin"],
-  display: "swap",
-});
+import "./fonts.css";
 
 export const viewport: Viewport = {
   themeColor: [
@@ -38,7 +25,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL(getSiteUrl()),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: `Animated SVG mascot studios | ${SITE_NAME}`,
     template: `%s | ${SITE_NAME}`,
@@ -49,9 +36,6 @@ export const metadata: Metadata = {
   creator: SITE_NAME,
   publisher: SITE_NAME,
   category: "technology",
-  alternates: {
-    canonical: "/",
-  },
   robots: {
     index: true,
     follow: true,
@@ -69,7 +53,6 @@ export const metadata: Metadata = {
     siteName: SITE_NAME,
     locale: "en_US",
     type: "website",
-    url: "/",
   },
   twitter: {
     card: "summary_large_image",
@@ -102,9 +85,25 @@ export default function RootLayout({
     >
       <html
         lang="en"
-        className={`${display.variable} ${sans.variable} h-full antialiased`}
+        className="h-full antialiased"
         suppressHydrationWarning
       >
+        <head>
+          <link
+            rel="preload"
+            href="/fonts/outfit-latin.woff2"
+            as="font"
+            type="font/woff2"
+            crossOrigin="anonymous"
+          />
+          <link
+            rel="preload"
+            href="/fonts/manrope-latin.woff2"
+            as="font"
+            type="font/woff2"
+            crossOrigin="anonymous"
+          />
+        </head>
         {/*
           suppressHydrationWarning: browser extensions (e.g. Grammarly) inject
           attributes on <body> before React hydrates, which is harmless noise.

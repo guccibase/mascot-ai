@@ -44,8 +44,10 @@ function renderWithParts(gesture: string, parts: Record<string, boolean>) {
         dim: "#8D8472",
       },
       glow: 0.45,
+      paused: false,
       waving: false,
       gesture,
+      svgRef: { current: null },
       eyeRef: {},
       parts,
     })

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { PUBLIC_EXAMPLES, type MascotMeta } from "@/lib/mascots";
 
 export const SITE_NAME = "MascotAI";
+export const SITE_URL = "https://www.appmascot.ai";
 
 export const SITE_TAGLINE =
   "Animated SVG mascot studios for web and mobile apps";
@@ -16,18 +17,8 @@ const OG_IMAGE = {
   alt: "MascotAI — animated SVG mascot studios",
 } as const;
 
-/** Absolute site origin used for sitemap, robots, and JSON-LD. */
-export function getSiteUrl(): string {
-  const configured = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
-  if (configured) return configured;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return "http://localhost:3000";
-}
-
 export function absoluteUrl(path = "/"): string {
-  const base = getSiteUrl();
-  if (!path || path === "/") return base;
-  return `${base}${path.startsWith("/") ? path : `/${path}`}`;
+  return new URL(path, SITE_URL).href;
 }
 
 export function studioPath(slug: string): string {
@@ -83,8 +74,8 @@ export function buildPageMetadata({
   const ogImage = image
     ? {
         url: image.url,
-        width: image.width ?? 1200,
-        height: image.height ?? 630,
+        width: image.width,
+        height: image.height,
         alt: image.alt ?? brandedTitle,
       }
     : OG_IMAGE;
@@ -92,13 +83,12 @@ export function buildPageMetadata({
   return {
     title: absoluteTitle ? { absolute: brandedTitle } : brandedTitle,
     description,
-    // Relative so metadataBase resolves correctly in every environment.
-    alternates: { canonical: path === "/" ? "/" : path },
+    alternates: { canonical: path },
     robots,
     openGraph: {
       title: brandedTitle,
       description,
-      url: path === "/" ? "/" : path,
+      url: path,
       siteName: SITE_NAME,
       type: ogType,
       locale: "en_US",
@@ -121,7 +111,7 @@ export function buildPageMetadata({
 
 export function studioMetadata(mascot: MascotMeta): Metadata {
   return buildPageMetadata({
-    title: `${mascot.name} studio`,
+    title: `${mascot.name} Studio · Animated SVG Mascot`,
     description: `${mascot.blurb} Interactive animated SVG mascot for ${mascot.product} — ${mascot.poseCount} gestures you can explore live.`,
     path: studioPath(mascot.slug),
   });
@@ -150,43 +140,26 @@ export function publicSitemapEntries(): Array<{
 
 /** Single @graph for the homepage — one script tag, multiple entities. */
 export function homeJsonLd() {
-  const origin = getSiteUrl();
+  const home = absoluteUrl();
   return {
     "@context": "https://schema.org",
     "@graph": [
       {
         "@type": "Organization",
-        "@id": `${origin}/#organization`,
+        "@id": `${home}#organization`,
         name: SITE_NAME,
-        url: origin,
+        url: home,
         logo: absoluteUrl("/brand/icon-512.png"),
         description: SITE_TAGLINE,
       },
       {
         "@type": "WebSite",
-        "@id": `${origin}/#website`,
+        "@id": `${home}#website`,
         name: SITE_NAME,
-        url: origin,
+        url: home,
         description: DEFAULT_DESCRIPTION,
-        publisher: { "@id": `${origin}/#organization` },
+        publisher: { "@id": `${home}#organization` },
         inLanguage: "en",
-      },
-      {
-        "@type": "SoftwareApplication",
-        "@id": `${origin}/#app`,
-        name: SITE_NAME,
-        applicationCategory: "DesignApplication",
-        operatingSystem: "Web",
-        url: origin,
-        description: DEFAULT_DESCRIPTION,
-        isPartOf: { "@id": `${origin}/#website` },
-        offers: {
-          "@type": "Offer",
-          url: absoluteUrl("/pricing"),
-          priceCurrency: "USD",
-          description:
-            "Explore live example studios free; paid token plans for generation",
-        },
       },
       {
         "@type": "ItemList",
@@ -203,19 +176,14 @@ export function homeJsonLd() {
   };
 }
 
-export function studioSoftwareJsonLd(mascot: MascotMeta) {
+export function studioJsonLd(mascot: MascotMeta) {
   return {
     "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
+    "@type": "WebPage",
     name: `${mascot.name} — ${SITE_NAME} studio`,
-    applicationCategory: "DesignApplication",
-    operatingSystem: "Web",
     url: absoluteUrl(studioPath(mascot.slug)),
     description: mascot.blurb,
-    isPartOf: {
-      "@type": "WebSite",
-      name: SITE_NAME,
-      url: getSiteUrl(),
-    },
+    inLanguage: "en",
+    isPartOf: { "@id": `${absoluteUrl()}#website` },
   };
 }

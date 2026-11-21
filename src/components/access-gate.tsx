@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { usePathname, useRouter } from "next/navigation";
 import { useConvexAuth, useQuery } from "convex/react";
 import { PageShellSkeleton } from "@/components/skeletons";
@@ -27,6 +28,7 @@ const UNGATED_PATHS = [
   "/privacy",
   "/terms",
   "/studio",
+  "/blog",
 ];
 
 /**
@@ -53,10 +55,12 @@ function isPlanGatedRemixPath(pathname: string) {
 export function AccessGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { isSignedIn } = useAuth();
   const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
 
   const ungated =
     pathname === "/" ||
+    (pathname === PRICING_PATH && isSignedIn !== true) ||
     matches(pathname, UNGATED_PATHS) ||
     isMarketplaceBrowsePath(pathname) ||
     isMarketplaceFulfillmentPath(pathname);
@@ -79,9 +83,9 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
   const balance = useTokenBalance(needsBalance);
   // balanceClock() ticks every minute; a fresh undefined must not remount paid
   // flows (create/remix) that can run longer than 60s.
-  const balanceReadyRef = useRef(false);
-  if (balance !== undefined) {
-    balanceReadyRef.current = true;
+  const [balanceReady, setBalanceReady] = useState(false);
+  if (!balanceReady && balance !== undefined) {
+    setBalanceReady(true);
   }
 
   const loading =
@@ -91,7 +95,7 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
         isAccessGateBalancePending(
           needsBalance,
           balance,
-          balanceReadyRef.current
+          balanceReady
         )));
 
   // `me === null` means the Convex row has not synced yet; EnsureConvexUser is

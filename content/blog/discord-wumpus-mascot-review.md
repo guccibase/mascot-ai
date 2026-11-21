@@ -1,8 +1,8 @@
 ---
-title: "Discord’s Wumpus: The Empty-State Mascot That Built a Community Face"
-description: "App review: Wumpus shows how a friendly product character in empty states, errors, and community lore helps a chat app feel human — with Discord’s official scale metrics and sourced imagery."
+title: "Who Is Wumpus? Meet Discord’s Mascot"
+description: "Discord’s mascot is named Wumpus. See official sticker art, learn how Wumpus relates to Clyde, and see what app designers can learn from Discord’s empty states."
 date: "2026-08-02"
-updated: "2026-08-02"
+updated: "2026-11-21"
 cover: "/blog/figures/discord/wumpus-stickers-hero.png"
 coverAlt: "Wumpus and friends in official Discord sticker launch art — Discord blog."
 category: review
@@ -23,13 +23,13 @@ metrics:
     value: "Host empty UX"
 ---
 
-Discord is a utility for talking. Wumpus is how that utility keeps a face.
+**Discord’s mascot is named Wumpus.** You can spot the small, leaf-topped character in [Discord’s official sticker art](https://discord.com/blog/peeling-back-the-wrapping-on-stickers). Clyde is the name of Discord’s controller-shaped logo.
 
 Unlike Duo’s streak-guilt engine or Freddie’s send-button ritual, Wumpus often shows up when the product would otherwise feel empty, broken, or purely infrastructural — loading screens, error pages, onboarding moments, and community lore. That makes Discord the best case study for **mascots as empty-state hosts**.
 
-## Who Wumpus is (and who Wumpus is not)
+## What Wumpus looks like
 
-Wumpus has been Discord’s character mascot since the platform launched in **May 2015**. The name nods to the 1973 text game *Hunt the Wumpus*; Discord’s team has described the early character as “a character with no friends” in splash copy — which fits the empty-state job.
+The name echoes the 1973 text game *Hunt the Wumpus*. Discord launched in May 2015 and still uses Wumpus as a character in its own writing, including its [tenth anniversary post](https://discord.com/blog/thank-you-for-ten-years).
 
 Design-wise, Wumpus is a lilac creature with a floating leaf, stub legs, and a simple snout. They use **they/them** pronouns in community-facing material. Wumpus waves when someone joins a server or starts a direct message — a small host gesture that turns “nobody here yet” into “someone is waiting.”
 

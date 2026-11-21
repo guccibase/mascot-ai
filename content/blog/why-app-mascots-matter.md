@@ -80,7 +80,7 @@ Then define a **lexicon**: the small set of expressions and props the character 
 
 Emotional range should cover the product states you ship and stop before the brand voice breaks. A meditation app rarely needs a rage face. A competitive game might.
 
-Treat color like design tokens. Map fills to theme variables where you can, so seasonal campaigns and accessibility themes do not force a full redraw. Studios that already think in theme contracts (including the swappable palettes in [MascotAI](https://appmascot.ai)) make later iteration less painful.
+Treat color like design tokens. Map fills to theme variables where you can, so seasonal campaigns and accessibility themes do not force a full redraw. Studios that already think in theme contracts (including the swappable palettes in [MascotAI](/)) make later iteration less painful.
 
 Lock proportions early. If week-one Duo had been a different owl every sprint, Duolingo would have trained forgetfulness.
 
@@ -102,7 +102,7 @@ Marketing falls in love with glossy hero renders. Engineering needs assets that 
 
 The strategic question is whether you are buying a single illustration or a **pose system**. Single illustrations age into nostalgia posters. Pose systems become product infrastructure.
 
-That gap still trips a lot of “AI mascot generator” workflows. They emit a pretty still. Two weeks later the team needs writing, celebrating, apologizing, and waving, and the still cannot stretch. Exportable pose packs (the model behind [MascotAI](https://appmascot.ai)’s studios) treat the character as a kit from day one: gestures, themes, parts, downloadable SVG that can live in a repo.
+That gap still trips a lot of “AI mascot generator” workflows. They emit a pretty still. Two weeks later the team needs writing, celebrating, apologizing, and waving, and the still cannot stretch. Exportable pose packs (the model behind [MascotAI](/)’s studios) treat the character as a kit from day one: gestures, themes, parts, downloadable SVG that can live in a repo.
 
 Ship what your surfaces require. A settings page that needed a quiet nod does not need a cinematic loop.
 
@@ -154,7 +154,7 @@ A workable modern path looks like this:
 5. Drop the character into real screens early (dark mode, small sizes, next to dense tables).
 6. Iterate themes and parts without redrawing the whole creature.
 
-Interactive example studios help teams feel the craft before they commit. [MascotAI](https://appmascot.ai) publishes live studios you can click through with no account, then lets you generate from a brief or pull a ready pack from the marketplace when you want ownership without starting from a blank canvas. The value is compression: less distance between “we should have a mascot” and “we have a system in the repo.”
+Interactive example studios help teams feel the craft before they commit. [MascotAI](/) publishes live studios you can click through with no account, then lets you generate from a brief or pull a ready pack from the marketplace when you want ownership without starting from a blank canvas. The value is compression: less distance between “we should have a mascot” and “we have a system in the repo.”
 
 Token-metered generation helps operationally because you see cost before you burn a sprint exploring dead ends. Craft judgment still belongs to the human who rejects the wrong eyes and keeps the right silhouette.
 
@@ -178,7 +178,7 @@ Because faces and personas are easier to remember than abstract logos. Research 
 
 ### How do I create an app mascot?
 
-Write a brief, lock a silhouette, ship a small pose set for the surfaces you already have, then expand. You can commission an illustrator or use a studio that exports a pose system (for example [MascotAI](https://appmascot.ai)) so you are not stuck with a single pretty still.
+Write a brief, lock a silhouette, ship a small pose set for the surfaces you already have, then expand. You can commission an illustrator or use a studio that exports a pose system (for example [MascotAI](/)) so you are not stuck with a single pretty still.
 
 ### What file format should a product mascot use?
 
@@ -209,7 +209,7 @@ Steal this scaffold. Keep it ugly and honest.
 
 Fill it before you open any generator. Then generate or commission against the brief. If a candidate fails the silhouette test or the Tuesday-tired-user test, kill it early.
 
-When you want to move from brief to a full gesture studio quickly, run that same brief through [MascotAI](https://appmascot.ai), pick a direction, and export the pack into design and engineering. Keep the brief in your hand while you judge. Tools accelerate production. Taste still decides what ships.
+When you want to move from brief to a full gesture studio quickly, run that same brief through [MascotAI](/), pick a direction, and export the pack into design and engineering. Keep the brief in your hand while you judge. Tools accelerate production. Taste still decides what ships.
 
 ## Where to go from here
 
@@ -219,7 +219,7 @@ The fluent-device research keeps pointing at memory and long-term commercial eff
 
 Ship a face that can idle, celebrate, and recover with the same bones. Put it where users hesitate. Keep the silhouette honest. Expand the surface map after the character earns trust.
 
-Try the live studios and build from a short brief at [appmascot.ai](https://appmascot.ai).
+Try the live studios and build from a short brief at [appmascot.ai](/).
 
 ## References
 
@@ -229,4 +229,4 @@ Try the live studios and build from a short brief at [appmascot.ai](https://appm
 4. Design4Users, “How to Use the Power of Mascots in Branding and UI Design” — [article](https://design4users.com/how-to-use-mascots-in-design/)
 5. Duolingo Q4/FY 2025 and Q1 2026 shareholder letters (SEC) — [investors.duolingo.com](https://investors.duolingo.com/); see also [How Duolingo’s Duo works](/blog/duolingo-duo-mascot-review)
 6. Distinctive brand asset discussion of characters vs logos — [White Bear overview](https://whitebearstudio.com/article/the-white-bear-effect-how-mascots-create-unforgettable-brand-recognition/)
-7. MascotAI — [https://appmascot.ai](https://appmascot.ai)
+7. MascotAI — [https://appmascot.ai](/)

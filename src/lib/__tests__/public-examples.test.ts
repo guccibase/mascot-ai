@@ -7,6 +7,7 @@ import {
   MASCOTS,
   PUBLIC_EXAMPLE_SLUGS,
   PUBLIC_EXAMPLES,
+  type MascotSlug,
 } from "@/lib/mascots";
 import {
   loadPublicExampleIdlePreview,
@@ -36,7 +37,7 @@ describe("public example allowlist", () => {
   });
 
   it("partitions the full catalog without gaps or overlap", () => {
-    const publicSlugs = new Set(PUBLIC_EXAMPLES.map((m) => m.slug));
+    const publicSlugs = new Set<MascotSlug>(PUBLIC_EXAMPLES.map((m) => m.slug));
     const adminSlugs = new Set(ADMIN_GENERATED_EXAMPLES.map((m) => m.slug));
 
     expect(publicSlugs.size + adminSlugs.size).toBe(MASCOTS.length);

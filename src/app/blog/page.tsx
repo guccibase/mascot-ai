@@ -6,7 +6,7 @@ import { blogIndexJsonLd } from "@/lib/blog-seo";
 import { buildPageMetadata } from "@/lib/seo";
 
 export const metadata = buildPageMetadata({
-  title: "Blog",
+  title: "App Mascot Design Guides & Examples",
   description:
     "App mascot reviews and guides: how characters like Duo, Freddie, and Wumpus help products earn downloads, retention, and revenue — plus how to build your own.",
   path: "/blog",
