@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 520" width="100%" role="img" aria-label="Sol the sunrise blob: Idle" class="sd-svg sd-g-idle " style="--g:0.5;cursor:pointer"><title>Sol, the sunrise blob</title><style>
+  .sd-svg{display:block;user-select:none;-webkit-user-select:none;--gf:1}
+  .sd-g-flare{--gf:1.9}
+  .sd-g-sunrise{--gf:1.55}
+  .sd-g-celebrate{--gf:1.4}
+  .sd-g-love{--gf:1.25}
+  .sd-g-grumpy{--gf:.55}
+  .sd-g-snooze{--gf:.35}
+  .sd-g-sleepy{--gf:.45}
+  .sd-g-sad{--gf:.5}
+  .sd-g-night{--gf:.2}
+  .sd-float{animation:sd-float 4s ease-in-out infinite}
+  .sd-g-night .sd-float{animation-duration:8s}
+  .sd-g-sleepy .sd-float{animation-duration:6.4s}
+  .sd-g-flare .sd-float{animation:none}
+  .sd-g-celebrate .sd-float{animation-duration:2s}
+  .sd-poolO{animation:sd-poolO 4s ease-in-out infinite}
+  .sd-glow{animation:sd-glow 3.2s ease-in-out infinite}
+  .sd-g-flare .sd-glow{animation-duration:.8s}
+  .sd-wave-on .sd-glow{animation-duration:1.5s}
+  .sd-gleam{animation:sd-gleam 6.5s ease-in-out infinite}
+  .sd-wave-on .sd-gleam{animation-duration:2.2s}
+  .sd-eyes{transition:transform .12s ease-out}
+  .sd-pop{animation:sd-pop .3s ease-out}
+  .sd-flicker{animation:sd-flicker 1.7s linear infinite}
+  .sd-ripple{animation:sd-ripple 1.6s ease-out infinite}
+  .sd-zzz{animation:sd-zzz 3.2s ease-in-out infinite}
+  .sd-rise{animation:sd-rise 2.6s ease-out infinite}
+  .sd-fall{animation:sd-fall 2.8s linear infinite}
+  .sd-twinkle{animation:sd-twinkle 1.4s ease-in-out infinite}
+  .sd-drip{animation:sd-drip 2.6s ease-in infinite}
+  .sd-ray{animation:sd-ray 2.4s ease-in-out infinite}
+  .sd-tick{animation:sd-tick .5s ease-out infinite}
+  .sd-cloud{animation:sd-cloud 6s ease-in-out infinite}
+  .sd-note{animation:sd-note 2.2s ease-out infinite}
+  .sd-svg[data-paused] *{animation-play-state:paused !important}
+  @keyframes sd-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+  @keyframes sd-poolO{0%,100%{opacity:.85}50%{opacity:.5}}
+  @keyframes sd-glow{0%,100%{opacity:calc(var(--g,.5)*var(--gf,1)*.5)}50%{opacity:calc(var(--g,.5)*var(--gf,1))}}
+  @keyframes sd-gleam{0%,30%,100%{transform:translateX(-96px);opacity:0}9%{opacity:.5}20%{transform:translateX(96px);opacity:0}}
+  @keyframes sd-pop{from{opacity:0}to{opacity:1}}
+  @keyframes sd-flicker{0%,100%{opacity:1}7%{opacity:.5}11%{opacity:1}39%{opacity:.55}44%{opacity:1}71%{opacity:.7}76%{opacity:1}}
+  @keyframes sd-ripple{0%{opacity:.8}70%{opacity:0}100%{opacity:0}}
+  @keyframes sd-zzz{0%{opacity:0;transform:translate(0,8px)}25%{opacity:.95}72%{opacity:.5}100%{opacity:0;transform:translate(12px,-26px)}}
+  @keyframes sd-rise{0%{transform:translateY(12px);opacity:0}22%{opacity:1}100%{transform:translateY(-46px);opacity:0}}
+  @keyframes sd-fall{0%{transform:translateY(-24px);opacity:0}12%{opacity:1}82%{opacity:.9}100%{transform:translateY(150px);opacity:0}}
+  @keyframes sd-twinkle{0%,100%{opacity:.25}50%{opacity:1}}
+  @keyframes sd-drip{0%{opacity:0;transform:translateY(0) scale(.7)}16%{opacity:1;transform:translateY(6px) scale(1)}
+    82%{opacity:.9}100%{opacity:0;transform:translateY(58px) scale(.9)}}
+  @keyframes sd-ray{0%,100%{opacity:.15;transform:translateY(4px)}50%{opacity:.85;transform:translateY(-4px)}}
+  @keyframes sd-tick{0%{opacity:0}25%{opacity:1}100%{opacity:0}}
+  @keyframes sd-cloud{0%,100%{transform:translateX(0)}50%{transform:translateX(10px)}}
+  @keyframes sd-note{0%{opacity:0;transform:translate(0,6px)}20%{opacity:1}100%{opacity:0;transform:translate(16px,-34px)}}
+
+* { animation: none !important; transition: none !important; }
+</style><defs><filter id="sd-grain" x="-25%" y="-15%" width="150%" height="130%"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="11" result="n"></feTurbulence><feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.1 0" result="a"></feColorMatrix><feComposite in="a" in2="SourceGraphic" operator="in" result="gg"></feComposite><feMerge><feMergeNode in="SourceGraphic"></feMergeNode><feMergeNode in="gg"></feMergeNode></feMerge></filter><linearGradient id="sd-bodyG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFE9AE"></stop><stop offset=".52" stop-color="#FFB35C"></stop><stop offset="1" stop-color="#F4744E"></stop></linearGradient><radialGradient id="sd-coreG" cx="50%" cy="42%" r="62%"><stop offset="0" stop-color="#FFF6CF"></stop><stop offset=".72" stop-color="#FFF6CF" stop-opacity=".85"></stop><stop offset="1" stop-color="#FFF6CF" stop-opacity="0"></stop></radialGradient><radialGradient id="sd-haloG" cx="50%" cy="48%" r="58%"><stop offset="0" stop-color="#FFB35C" stop-opacity=".9"></stop><stop offset="1" stop-color="#FFB35C" stop-opacity="0"></stop></radialGradient><radialGradient id="sd-poolG" cx="50%" cy="50%" r="52%"><stop offset="0" stop-color="#FFB35C" stop-opacity=".85"></stop><stop offset="1" stop-color="#FFB35C" stop-opacity="0"></stop></radialGradient><clipPath id="sd-clip"><path d="M210,435 C171.8,435 136.4,412.7 117.3,376.5 C98.2,340.3 98.2,295.7 117.3,259.5 C136.4,223.3 171.8,201 210,201 C248.2,201 283.6,223.3 302.7,259.5 C321.8,295.7 321.8,340.3 302.7,376.5 C283.6,412.7 248.2,435 210,435 Z"></path></clipPath></defs><g data-ms-part="pool" transform="translate(210,466)"><ellipse class="sd-poolO" cx="0" cy="0" rx="108" ry="12" fill="url(#sd-poolG)"></ellipse><ellipse cx="0" cy="0" rx="46" ry="5" fill="#FFF6CF" opacity=".35"></ellipse></g><g class="sd-float"><g transform="translate(210,466)"><g transform="translate(-210,-466)"><g><g id="sd-hit" filter="url(#sd-grain)"><ellipse data-ms-part="halo" class="sd-glow ms-glow-halo" cx="210" cy="300" rx="164" ry="158" fill="url(#sd-haloG)"></ellipse><path data-ms-part="body" d="M210,442 C169.3,442 131.6,418.4 111.3,380 C90.9,341.6 90.9,294.4 111.3,256 C131.6,217.6 169.3,194 210,194 C250.7,194 288.4,217.6 308.7,256 C329.1,294.4 329.1,341.6 308.7,380 C288.4,418.4 250.7,442 210,442 Z" fill="url(#sd-bodyG)"></path><g data-ms-part="core" class="sd-pop"><circle cx="210" cy="322" r="58" fill="url(#sd-coreG)"></circle><circle cx="193.76" cy="302.28" r="9.28" fill="#FFF6CF" opacity=".9"></circle></g><g data-ms-part="gleam" clip-path="url(#sd-clip)"><ellipse class="sd-gleam" cx="210" cy="300" rx="13" ry="132" fill="#fff1cb" opacity="0"></ellipse></g><g data-ms-part="blush"><circle cx="138" cy="326" r="11" fill="#f8a991" opacity=".6"></circle><circle cx="282" cy="326" r="11" fill="#f8a991" opacity=".6"></circle></g><g class="sd-eyes ms-eyes"><g class="sd-pop" transform="translate(0,0)"><g data-ms-part="brows"></g><g data-ms-part="eyes"><g transform="translate(170,300)"><ellipse cx="0" cy="0" rx="12.5" ry="17.5" fill="#4A2611"></ellipse><circle cx="-3.8" cy="-5.4" r="3.8" fill="#FFF6CF" opacity=".95"></circle><circle cx="3.4" cy="3.4" r="1.7" fill="#FFF6CF" opacity=".55"></circle></g><g transform="translate(250,300)"><ellipse cx="0" cy="0" rx="12.5" ry="17.5" fill="#4A2611"></ellipse><circle cx="-3.8" cy="-5.4" r="3.8" fill="#FFF6CF" opacity=".95"></circle><circle cx="3.4" cy="3.4" r="1.7" fill="#FFF6CF" opacity=".55"></circle></g></g></g></g><g data-ms-part="mouth" class="sd-pop"><path d="M186,336 Q210,360 234,336.4" fill="none" stroke="#4A2611" stroke-width="8" stroke-linecap="round"></path><path d="M184,335 Q210,365 236,335.5 Q210,344 184,335 Z" fill="#4A2611" opacity="0"></path></g><g data-ms-part="props" class="sd-pop"></g></g></g></g></g></g></svg>

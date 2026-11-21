@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import { ExampleIdlePreview } from "@/components/example-idle-preview";
 import type { PublicExampleMeta } from "@/lib/mascots";

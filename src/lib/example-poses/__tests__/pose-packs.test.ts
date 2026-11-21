@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { sanitizeSvgOrThrow } from "@/lib/sanitize-svg";
 import { GESTURE_PRESETS } from "@/lib/gesture-presets";
 import {
   finalizeMarketplacePack,
@@ -86,14 +87,24 @@ describe("example pose packs", () => {
         const idle =
           pack.poses.find((pose) => pose.key === "idle") ?? pack.poses[0];
         expect(idle).toBeTruthy();
-        const extract = {
-          slug,
-          css: pack.css,
-          svg: idle!.svg,
-        };
-        await expect(JSON.stringify(extract, null, 2) + "\n").toMatchFileSnapshot(
-          `../idle-previews/${slug}.json`
+        const animated = sanitizeSvgOrThrow(
+          restoreSharedCss(idle!.svg, pack.css),
+          slug
         );
+        // React serializes these declarative timing elements with separate
+        // opening and closing tags. Keep all underlying pose geometry intact.
+        const still = animated
+          .replace(
+            /<(animate(?:Transform|Motion)?|set)\b[^>]*?(?:\/>|>[\s\S]*?<\/\1>)/gi,
+            ""
+          )
+          .replace(
+            "</style>",
+            "\n* { animation: none !important; transition: none !important; }\n</style>"
+          );
+        const dir = "../../../../public/previews";
+        await expect(animated + "\n").toMatchFileSnapshot(`${dir}/${slug}.svg`);
+        await expect(still + "\n").toMatchFileSnapshot(`${dir}/${slug}-still.svg`);
       });
     }
   });
