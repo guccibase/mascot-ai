@@ -3,11 +3,10 @@ import { blogSitemapEntries } from "@/lib/blog-seo";
 import { absoluteUrl, publicSitemapEntries } from "@/lib/seo";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const fallbackModified = new Date();
   const entries = [...publicSitemapEntries(), ...blogSitemapEntries()];
   return entries.map((entry) => ({
     url: absoluteUrl(entry.path),
-    lastModified: entry.lastModified ?? fallbackModified,
+    lastModified: entry.lastModified,
     changeFrequency: entry.changeFrequency,
     priority: entry.priority,
   }));

@@ -18,7 +18,7 @@ Duolingo has Duo. Mailchimp has Freddie. Those characters do more than decorate 
 
 Plenty of teams know they want that kind of presence. Then the quote from an illustrator lands, or the timeline stretches into “next quarter,” or someone pastes a one-off AI image into Figma and discovers it cannot wave, celebrate, apologize, or recolor for dark mode. A single pretty still is a poster. Product work needs a system.
 
-That gap is why [MascotAI](https://appmascot.ai) exists.
+That gap is why [MascotAI](/) exists.
 
 ## What MascotAI is
 
@@ -30,7 +30,7 @@ A few things that matter in practice:
 
 - **Studios, not single images.** Poses for idle, celebration, and the awkward middle moments products actually have.
 - **SVG-first output.** Crisp on every screen density, friendlier to theme swaps than a baked PNG hero.
-- **Interactive examples before signup.** You can open live studios on [appmascot.ai](https://appmascot.ai) and click around with no account.
+- **Interactive examples before signup.** You can open live studios on [appmascot.ai](/) and click around with no account.
 - **Visible token costs.** Plans meter generation across several models from OpenAI and Anthropic, and you see the cost before you hit create.
 
 If you have been searching for an app mascot generator that thinks like product infrastructure rather than a sticker machine, this is the lane MascotAI is built for.
@@ -59,7 +59,7 @@ When you create your own mascot, it lives in your library as something you own a
 
 There is also a marketplace path for teams that want a ready-made pack. Listings preview the same pack a buyer receives. Buy-to-own copies that pack into the buyer’s library as their own record. Remix unlocks a different, time-bound path for generation. Preview surfaces stay honest about what you can and cannot export before purchase.
 
-For founders who hate buying a mystery box, that parity matters. What you play with on [appmascot.ai/marketplace](https://appmascot.ai/marketplace) should match what lands in the library after checkout.
+For founders who hate buying a mystery box, that parity matters. What you play with on [appmascot.ai/marketplace](/marketplace) should match what lands in the library after checkout.
 
 ## Who MascotAI is for (and when to skip it)
 
@@ -88,7 +88,7 @@ MascotAI does not invent that research. It tries to make the production path sho
 
 If you want the fastest honest evaluation, do this:
 
-1. Go to [https://appmascot.ai](https://appmascot.ai).
+1. Open the [MascotAI homepage](/).
 2. Open one of the live example studios with no account. Stress-test themes and gestures.
 3. When you are ready, sign up and build from a short brief on the create flow.
 4. Export the pack, drop a pose into an empty state or onboarding screen, and see if the character still feels right next to your real UI.
@@ -96,10 +96,10 @@ If you want the fastest honest evaluation, do this:
 
 Pricing is token-based across weekly, monthly, and yearly plans, with multiple models available and costs shown before generation. That transparency is intentional. Creative exploration should not feel like a surprise invoice.
 
-Give your app a face that can idle, celebrate, and recover with the same bones. Build it at [appmascot.ai](https://appmascot.ai).
+Give your app a face that can idle, celebrate, and recover with the same bones. Build it at [appmascot.ai](/).
 
 ## References
 
-1. [MascotAI](https://appmascot.ai)
+1. [MascotAI](/)
 2. System1 fluent devices research — [overview](https://pages.system1research.com/fluent_devices), [Fluent Devices 2 (digital)](https://system1group.com/blog/fluent-devices-2-this-time-its-digital)
 3. Duolingo Q4/FY 2025 and Q1 2026 shareholder letters (SEC) — [investors.duolingo.com](https://investors.duolingo.com/); [Duo app review](/blog/duolingo-duo-mascot-review)

@@ -7,15 +7,14 @@ import { SiteHeader } from "@/components/site-header";
 import { MascotExampleCard } from "@/components/mascot-example-card";
 import { buttonVariants } from "@/components/ui/button";
 import { PUBLIC_EXAMPLES } from "@/lib/mascots";
-import { PROOF_POINTS, PROOF_QUOTE } from "@/lib/proof";
 import { buildPageMetadata, homeJsonLd } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import { HomePricingTeaser } from "@/components/home-pricing-teaser";
 
 export const metadata = buildPageMetadata({
-  title: "Give your app a personality",
+  title: "AI Mascot Generator for Apps",
   description:
-    "Generate animated SVG mascots for web and mobile apps. Gestures, themes, and download-ready packs you can ship straight into product.",
+    "Create an animated SVG mascot for your web or mobile app. Explore live examples, generate matching poses, and export SVGs for your product.",
   path: "/",
   absoluteTitle: true,
 });
@@ -29,12 +28,27 @@ const STEPS = [
   {
     icon: Sparkles,
     title: "Pick your look",
-    body: "Three different directions come back in seconds. Choose one and we build the full gesture set around it.",
+    body: "Preview three directions, then choose one to build a matching set of gestures around it.",
   },
   {
     icon: Download,
     title: "Ship it",
     body: "Download animated SVGs and paste them into your codebase. Add gestures or change things later.",
+  },
+] as const;
+
+const USE_CASES = [
+  {
+    title: "Welcome new users",
+    body: "Use a wave on the first screen and a celebration when someone finishes setup. Keep the same character as users move through onboarding.",
+  },
+  {
+    title: "Show what your app is doing",
+    body: "Give loading, success, and retry states distinct poses. Pair the animation with a text label so the status works with motion turned off.",
+  },
+  {
+    title: "Keep the character consistent",
+    body: "Use the same gesture set across your product and landing page. Export individual animated SVGs, or download the whole pack for your team.",
   },
 ] as const;
 
@@ -95,20 +109,19 @@ export default function HomePage() {
         {/* Hero */}
         <Section className="pb-16 pt-10 sm:pt-16">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--brand-accent)]">
-            Animated mascot studios
+            AI mascot generator
           </p>
           <h1 className="mt-4 max-w-3xl font-[family-name:var(--font-display)] text-4xl leading-[1.05] tracking-tight sm:text-6xl lg:text-7xl">
-            Every great app has a personality
+            Create animated SVG mascots for your app
           </h1>
           <div className="mt-6 max-w-xl space-y-4 text-lg leading-relaxed text-[var(--brand-muted)]">
             <p>
-              Duolingo has Duo. Mailchimp has Freddie. Most teams settle for a
-              static logo or a generic AI blob.
+              Describe a character and build a set of matching animations for
+              your web or mobile app.
             </p>
             <p className="text-white/90">
-              We used AI to build mascot studios for real products, then opened
-              the same process to anyone shipping an app. Animated, gestural,
-              downloadable, and ready to drop into product.
+              Preview each gesture, adjust colors and parts in the studio, and
+              download the animated SVGs when you’re ready to use them.
             </p>
           </div>
 
@@ -121,13 +134,12 @@ export default function HomePage() {
                 "border-white/15 bg-transparent text-white hover:bg-white/10"
               )}
             >
-              See {PUBLIC_EXAMPLES.length} we built
+              Explore {PUBLIC_EXAMPLES.length} live examples
             </Link>
           </div>
 
           <p className="mt-4 text-sm text-[var(--brand-muted)]">
-            Nothing to sign up for yet. Every studio below is live, so go poke
-            at them first.
+            Explore the example studios without an account.
           </p>
         </Section>
 
@@ -136,7 +148,7 @@ export default function HomePage() {
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 className="font-[family-name:var(--font-display)] text-3xl tracking-tight sm:text-4xl">
-                {PUBLIC_EXAMPLES.length} we already built
+                Animated app mascot examples
               </h2>
               <p className="mt-3 max-w-xl text-[var(--brand-muted)]">
                 Each of these was made for an actual product. Open one and click
@@ -190,41 +202,33 @@ export default function HomePage() {
           </div>
         </Section>
 
-        {/* Proof */}
+        {/* Use cases */}
         <Section className="py-16">
           <h2 className="font-[family-name:var(--font-display)] text-3xl tracking-tight sm:text-4xl">
-            Why bother with a mascot?
+            Where to use an app mascot
           </h2>
-          <p className="mt-3 max-w-2xl text-[var(--brand-muted)]">
-            Brand research keeps finding the same thing: characters stick.
-          </p>
-
           <div className="mt-8 grid gap-4 md:grid-cols-3">
-            {PROOF_POINTS.map((item) => (
+            {USE_CASES.map((item) => (
               <div
-                key={item.stat}
+                key={item.title}
                 className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-6 backdrop-blur"
               >
-                <p className="font-[family-name:var(--font-display)] text-4xl tabular-nums text-[var(--brand-accent)]">
-                  {item.stat}
-                </p>
-                <p className="mt-2 font-medium">{item.claim}</p>
+                <h3 className="font-[family-name:var(--font-display)] text-xl">
+                  {item.title}
+                </h3>
                 <p className="mt-2 text-sm leading-relaxed text-[var(--brand-muted)]">
-                  {item.detail}
-                </p>
-                <p className="mt-3 text-[11px] uppercase tracking-[0.14em] text-white/35">
-                  {item.source}
+                  {item.body}
                 </p>
               </div>
             ))}
           </div>
-
-          <blockquote className="mt-8 max-w-2xl border-l-2 border-[var(--brand-accent)]/60 pl-5 text-[15px] leading-relaxed text-white/85">
-            “{PROOF_QUOTE.text}”
-            <footer className="mt-2 text-sm text-[var(--brand-muted)]">
-              {PROOF_QUOTE.attribution}
-            </footer>
-          </blockquote>
+          <Link
+            href="/blog/why-app-mascots-matter"
+            className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[var(--brand-accent)] hover:underline"
+          >
+            Read the guide to designing app mascots
+            <ArrowRight className="size-4" aria-hidden />
+          </Link>
         </Section>
 
         {/* Pricing teaser */}

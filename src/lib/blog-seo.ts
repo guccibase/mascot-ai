@@ -4,8 +4,8 @@ import { toBlogIsoDate } from "@/lib/blog-utils";
 import {
   absoluteUrl,
   buildPageMetadata,
-  getSiteUrl,
   SITE_NAME,
+  SITE_URL,
 } from "@/lib/seo";
 
 /** Server-only blog SEO helpers (reads the filesystem via `@/lib/blog`). */
@@ -35,8 +35,6 @@ export function blogPostMetadata(post: BlogPostMeta): Metadata {
     image: post.cover
       ? {
           url: post.cover,
-          width: 1200,
-          height: 630,
           alt: post.coverAlt ?? post.title,
         }
       : undefined,
@@ -44,7 +42,6 @@ export function blogPostMetadata(post: BlogPostMeta): Metadata {
 }
 
 export function blogPostingJsonLd(post: BlogPostMeta) {
-  const origin = getSiteUrl();
   const url = absoluteUrl(`/blog/${post.slug}`);
   return {
     "@context": "https://schema.org",
@@ -61,12 +58,12 @@ export function blogPostingJsonLd(post: BlogPostMeta) {
     author: {
       "@type": "Organization",
       name: SITE_NAME,
-      url: origin,
+      url: absoluteUrl(),
     },
     publisher: {
       "@type": "Organization",
       name: SITE_NAME,
-      url: origin,
+      url: absoluteUrl(),
       logo: {
         "@type": "ImageObject",
         url: absoluteUrl("/brand/icon-512.png"),
@@ -74,7 +71,7 @@ export function blogPostingJsonLd(post: BlogPostMeta) {
     },
     isPartOf: {
       "@type": "Blog",
-      "@id": `${origin}/blog#blog`,
+      "@id": `${SITE_URL}/blog#blog`,
       name: `${SITE_NAME} Blog`,
       url: absoluteUrl("/blog"),
     },
@@ -82,11 +79,10 @@ export function blogPostingJsonLd(post: BlogPostMeta) {
 }
 
 export function blogIndexJsonLd(posts: BlogPostMeta[]) {
-  const origin = getSiteUrl();
   return {
     "@context": "https://schema.org",
     "@type": "Blog",
-    "@id": `${origin}/blog#blog`,
+    "@id": `${SITE_URL}/blog#blog`,
     name: `${SITE_NAME} Blog`,
     description:
       "App mascot reviews and guides: how characters help products earn downloads, retention, and revenue.",
@@ -94,7 +90,7 @@ export function blogIndexJsonLd(posts: BlogPostMeta[]) {
     publisher: {
       "@type": "Organization",
       name: SITE_NAME,
-      url: origin,
+      url: absoluteUrl(),
     },
     blogPost: posts.map((post) => ({
       "@type": "BlogPosting",

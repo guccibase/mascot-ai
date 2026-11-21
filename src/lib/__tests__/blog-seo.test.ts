@@ -8,15 +8,18 @@ describe("blog SEO", () => {
     expect(post).toBeTruthy();
 
     const meta = blogPostMetadata(post!);
-    expect(meta.openGraph?.type).toBe("article");
-    expect(meta.openGraph?.publishedTime).toBe("2026-08-01T00:00:00.000Z");
-    expect(meta.openGraph?.modifiedTime).toBe("2026-08-02T00:00:00.000Z");
+    expect(meta.openGraph).toMatchObject({
+      type: "article",
+      publishedTime: "2026-08-01T00:00:00.000Z",
+      modifiedTime: "2026-08-02T00:00:00.000Z",
+      images: [{ url: "/blog/figures/duolingo/duo-notifications-cover.png" }],
+    });
     expect(meta.alternates?.canonical).toBe(
       "/blog/duolingo-duo-mascot-review"
     );
-    expect(meta.openGraph?.images?.[0]).toMatchObject({
-      url: "/blog/figures/duolingo/duo-notifications-cover.png",
-    });
+    expect(meta.openGraph?.images).toEqual([
+      expect.objectContaining({ width: undefined, height: undefined }),
+    ]);
   });
 
   it("serializes BlogPosting JSON-LD with ISO dates", () => {

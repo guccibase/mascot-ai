@@ -10,7 +10,7 @@ import {
   DEFAULT_DESCRIPTION,
   SITE_NAME,
   SITE_TAGLINE,
-  getSiteUrl,
+  SITE_URL,
 } from "@/lib/seo";
 import "./globals.css";
 
@@ -38,7 +38,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL(getSiteUrl()),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: `Animated SVG mascot studios | ${SITE_NAME}`,
     template: `%s | ${SITE_NAME}`,
@@ -49,9 +49,6 @@ export const metadata: Metadata = {
   creator: SITE_NAME,
   publisher: SITE_NAME,
   category: "technology",
-  alternates: {
-    canonical: "/",
-  },
   robots: {
     index: true,
     follow: true,
@@ -69,7 +66,6 @@ export const metadata: Metadata = {
     siteName: SITE_NAME,
     locale: "en_US",
     type: "website",
-    url: "/",
   },
   twitter: {
     card: "summary_large_image",
