@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import MarketplaceListingPage, { generateMetadata } from "./[slug]/page";
 import MarketplacePage from "./page";
+import { GET as marketplaceSitemap } from "./sitemap.xml/route";
 
 vi.mock("convex/nextjs", () => ({ fetchQuery: vi.fn() }));
 vi.mock("convex/react", () => ({
@@ -79,5 +80,21 @@ describe("Marketplace search rendering", () => {
     fetchPublicListings.mockRejectedValue(failure);
 
     await expect(MarketplaceListingPage(listingProps())).rejects.toBe(failure);
+  });
+
+  it("publishes all available listing URLs across catalog pages", async () => {
+    fetchPublicListings
+      .mockResolvedValueOnce({ page: [{ slug: "first-pack" }], isDone: false, continueCursor: "next" })
+      .mockResolvedValueOnce({ page: [{ slug: "older-pack" }], isDone: true });
+
+    const response = await marketplaceSitemap();
+    const xml = await response.text();
+
+    expect(response.headers.get("Content-Type")).toContain("application/xml");
+    expect(xml).toContain("<loc>https://www.appmascot.ai/marketplace/first-pack</loc>");
+    expect(xml).toContain("<loc>https://www.appmascot.ai/marketplace/older-pack</loc>");
+    expect(fetchPublicListings).toHaveBeenLastCalledWith(expect.anything(), {
+      paginationOpts: { cursor: "next", numItems: 12 },
+    });
   });
 });
