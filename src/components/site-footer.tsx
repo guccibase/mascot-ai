@@ -35,7 +35,7 @@ export function SiteFooter() {
             className="grid gap-8 sm:grid-cols-2 sm:gap-12"
           >
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
                 Product
               </p>
               <ul className="mt-3 space-y-2">
@@ -52,7 +52,7 @@ export function SiteFooter() {
               </ul>
             </div>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
                 Studios
               </p>
               <ul className="mt-3 space-y-2">
@@ -71,7 +71,7 @@ export function SiteFooter() {
           </nav>
         </div>
 
-        <div className="flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-white/35 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-white/60 sm:flex-row sm:items-center sm:justify-between">
           <p>
             © {new Date().getFullYear()} {SITE_NAME}. All rights reserved.
           </p>

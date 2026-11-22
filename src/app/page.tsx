@@ -186,7 +186,7 @@ export default function HomePage() {
                     <span className="flex size-9 items-center justify-center rounded-xl border border-[var(--brand-accent)]/30 bg-[var(--brand-accent)]/10">
                       <Icon className="size-4 text-[var(--brand-accent)]" />
                     </span>
-                    <span className="text-xs font-semibold uppercase tracking-[0.18em] text-white/35">
+                    <span className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60">
                       Step {index + 1}
                     </span>
                   </div>
