@@ -1,43 +1,17 @@
 import type { Metadata } from "next";
-import { JsonLd } from "@/components/json-ld";
-import { absoluteUrl, buildPageMetadata, SITE_NAME } from "@/lib/seo";
-import { PLANS } from "../../../convex/lib/plans";
+import { buildPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildPageMetadata({
-  title: "Pricing",
+  title: "Mascot Generator Pricing & Plans",
   description:
-    "MascotAI plans and token top-ups. Every plan includes OpenAI and Anthropic models. Pay only for what you generate.",
+    "Compare MascotAI weekly, monthly, and yearly plans and token top-ups for creating and editing animated SVG mascots.",
   path: "/pricing",
 });
-
-function pricingJsonLd() {
-  return {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: SITE_NAME,
-    description:
-      "Animated SVG mascot generation with token-based plans for web and mobile apps.",
-    brand: { "@type": "Brand", name: SITE_NAME },
-    url: absoluteUrl("/pricing"),
-    offers: PLANS.map((plan) => ({
-      "@type": "Offer",
-      name: plan.name,
-      url: absoluteUrl("/pricing"),
-      availability: "https://schema.org/InStock",
-      description: `${plan.tokensPerCycle.toLocaleString()} tokens per ${plan.cycle}. Price shown at checkout.`,
-    })),
-  };
-}
 
 export default function PricingLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <>
-      <JsonLd data={pricingJsonLd()} />
-      {children}
-    </>
-  );
+  return children;
 }

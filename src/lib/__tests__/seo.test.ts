@@ -6,12 +6,19 @@ import {
   publicSitemapEntries,
   studioMetadata,
 } from "@/lib/seo";
+import robots from "@/app/robots";
+import sitemap from "@/app/sitemap";
 import { getMascot } from "@/lib/mascots";
 
 describe("seo helpers", () => {
-  it("builds absolute URLs from the site origin", () => {
-    expect(absoluteUrl("/")).toMatch(/^https?:\/\//);
-    expect(absoluteUrl("/pricing")).toMatch(/\/pricing$/);
+  it("uses the serving host in absolute URLs, robots and sitemap", () => {
+    expect(absoluteUrl("/")).toBe("https://www.appmascot.ai/");
+    expect(robots().sitemap).toBe("https://www.appmascot.ai/sitemap.xml");
+    const urls = sitemap();
+    expect(urls.every(({ url }) => url.startsWith("https://www.appmascot.ai/"))).toBe(true);
+    expect(urls.find(({ url }) => url.endsWith("/pricing"))?.lastModified).toBeUndefined();
+    expect(urls.find(({ url }) => url.endsWith("/why-app-mascots-matter"))?.lastModified)
+      .toEqual(new Date("2026-08-02"));
   });
 
   it("lists only public indexable routes in the sitemap", () => {
@@ -68,21 +75,20 @@ describe("seo helpers", () => {
     const lyra = getMascot("lyra");
     expect(lyra).toBeTruthy();
     const meta = studioMetadata(lyra!);
-    expect(meta.title).toBe("Lyra studio");
+    expect(meta.title).toBe("Lyra Studio · Animated SVG Mascot");
     expect(meta.alternates?.canonical).toBe("/studio/lyra");
     expect(meta.openGraph?.images).toBeTruthy();
   });
 
   it("builds a single homepage @graph for lean JSON-LD", () => {
     const graph = homeJsonLd();
-    expect(graph["@graph"]).toHaveLength(4);
+    expect(graph["@graph"]).toHaveLength(3);
     const types = graph["@graph"].map(
       (node: { "@type": string }) => node["@type"]
     );
     expect(types).toEqual([
       "Organization",
       "WebSite",
-      "SoftwareApplication",
       "ItemList",
     ]);
     const list = graph["@graph"].find(

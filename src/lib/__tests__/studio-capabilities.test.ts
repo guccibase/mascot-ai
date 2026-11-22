@@ -172,7 +172,7 @@ describe("studio entry wiring (UI functional matrix)", () => {
   });
 
   it("marketplace listing uses preview capabilities (parts on)", () => {
-    const source = readApp("app/marketplace/[slug]/page.tsx");
+    const source = readApp("app/marketplace/[slug]/listing-preview.tsx");
     expect(source).toMatch(/MARKETPLACE_PREVIEW_CAPABILITIES/);
     expect(source).toMatch(
       /capabilities=\{MARKETPLACE_PREVIEW_CAPABILITIES\}/

@@ -11,7 +11,7 @@ import {
   type MascotSlug,
 } from "@/lib/mascots";
 import { loadExampleMarketplacePack } from "@/lib/marketplace/example-packs";
-import { studioMetadata, studioSoftwareJsonLd } from "@/lib/seo";
+import { studioJsonLd, studioMetadata } from "@/lib/seo";
 import { normalizeGeneratedMascot } from "@/lib/studio-utils";
 import { StudioClient } from "./studio-client";
 
@@ -94,7 +94,7 @@ export default async function StudioPage({
 
   return (
     <div className="relative min-h-screen bg-[var(--brand-bg)] text-[var(--brand-ink)]">
-      {isPublic ? <JsonLd data={studioSoftwareJsonLd(mascot)} /> : null}
+      {isPublic ? <JsonLd data={studioJsonLd(mascot)} /> : null}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[820px] bg-[radial-gradient(900px_480px_at_20%_-10%,rgba(245,179,79,0.16),transparent_55%),radial-gradient(700px_420px_at_90%_0%,rgba(88,140,255,0.12),transparent_50%)]" />
       <div className="relative">
         <SiteHeader />
