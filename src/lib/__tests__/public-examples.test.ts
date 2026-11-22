@@ -1,3 +1,6 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { ExampleIdlePreview } from "@/components/example-idle-preview";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -9,11 +12,6 @@ import {
   PUBLIC_EXAMPLES,
   type MascotSlug,
 } from "@/lib/mascots";
-import {
-  loadPublicExampleIdlePreview,
-  PUBLIC_IDLE_PREVIEW_SLUGS,
-} from "@/lib/public-example-idle-preview";
-import { restoreSharedCss } from "@/lib/example-poses/types";
 import { PUBLIC_EXAMPLE_SLUGS as CONVEX_PUBLIC_EXAMPLE_SLUGS } from "../../../convex/lib/publicExamples";
 
 describe("public example allowlist", () => {
@@ -67,20 +65,13 @@ describe("public example allowlist", () => {
   });
 });
 
-describe("public example idle previews", () => {
-  it("loads restored idle SVG for every public slug", async () => {
-    expect([...PUBLIC_IDLE_PREVIEW_SLUGS]).toEqual([...PUBLIC_EXAMPLE_SLUGS]);
-
-    for (const slug of PUBLIC_EXAMPLE_SLUGS) {
-      const markup = await loadPublicExampleIdlePreview(slug);
-      expect(markup).toBeTruthy();
-      expect(markup).toContain("<svg");
-      expect(markup).toContain("@keyframes");
-
-      const preview = (
-        await import(`@/lib/example-poses/idle-previews/${slug}.json`)
-      ).default as { css: string; svg: string };
-      expect(markup).toBe(restoreSharedCss(preview.svg, preview.css));
-    }
-  });
+it("includes animated and reduced-motion artwork before hydration", () => {
+  for (const { slug, accent, stage } of PUBLIC_EXAMPLES) {
+    const html = renderToStaticMarkup(
+      createElement(ExampleIdlePreview, { slug, accent, stage })
+    );
+    expect(html).toContain(`src="/previews/${slug}.svg"`);
+    expect(html).toContain('media="(prefers-reduced-motion: reduce)"');
+    expect(html).toContain(`srcSet="/previews/${slug}-still.svg"`);
+  }
 });
