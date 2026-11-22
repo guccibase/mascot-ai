@@ -13,7 +13,10 @@ import { getMascot } from "@/lib/mascots";
 describe("seo helpers", () => {
   it("uses the serving host in absolute URLs, robots and sitemap", () => {
     expect(absoluteUrl("/")).toBe("https://www.appmascot.ai/");
-    expect(robots().sitemap).toBe("https://www.appmascot.ai/sitemap.xml");
+    expect(robots().sitemap).toEqual([
+      "https://www.appmascot.ai/sitemap.xml",
+      "https://www.appmascot.ai/marketplace/sitemap.xml",
+    ]);
     const urls = sitemap();
     expect(urls.every(({ url }) => url.startsWith("https://www.appmascot.ai/"))).toBe(true);
     expect(urls.find(({ url }) => url.endsWith("/pricing"))?.lastModified).toBeUndefined();
