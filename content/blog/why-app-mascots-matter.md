@@ -219,7 +219,7 @@ The fluent-device research keeps pointing at memory and long-term commercial eff
 
 Ship a face that can idle, celebrate, and recover with the same bones. Put it where users hesitate. Keep the silhouette honest. Expand the surface map after the character earns trust.
 
-Try the live studios and build from a short brief at [appmascot.ai](/).
+Explore the [live mascot studios](/#examples) or pick a ready-made pack from the [animated SVG marketplace](/marketplace). Once you have a pose, follow the [guide to embedding an animated SVG mascot](/blog/add-animated-svg-mascot-to-web-app) to add it to your web app.
 
 ## References
 

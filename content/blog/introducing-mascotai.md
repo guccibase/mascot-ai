@@ -80,7 +80,7 @@ Passion for mascots is easy. Evidence helps when you are asking a team to spend 
 
 Brand research on recurring characters (System1’s work on “fluent devices,” drawing on IPA long-term campaign data) has repeatedly found that character-led campaigns are more likely to deliver large commercial effects than campaigns without them. Public summaries often cite higher odds of profit gain, market share gain, and customer gain. System1 Ad Ratings work has also noted how rare coherent character work remains, which is part of why a good mascot still feels distinctive in a sea of gradient logos.
 
-Duolingo’s SEC-filed letters tie mascot-led marketing to user growth at scale — for example, **Q1 2026 DAU of 56.5M** (+21% YoY) following a **Q1 2025** quarter that benefited from the “Death of Duo” stunt. Filings do not isolate “Duo in notifications” as a single KPI. The product lesson is stable: a face in the tray feels personal. A generic bell does. See [How Duolingo’s Duo works](/blog/duolingo-duo-mascot-review) for sourced metrics and imagery.
+Duolingo’s SEC-filed letters tie mascot-led marketing to user growth at scale — for example, **Q1 2026 DAU of 56.5M** (+21% YoY) following a **Q1 2025** quarter that benefited from the “Death of Duo” stunt. Filings do not isolate “Duo in notifications” as a single KPI. A recognizable character gives a notification a familiar face. See [how Duolingo uses Duo](/blog/duolingo-duo-mascot-review) for sourced metrics and imagery.
 
 MascotAI does not invent that research. It tries to make the production path short enough that more apps can act on it: brief in, studio out, SVG in the repo.
 

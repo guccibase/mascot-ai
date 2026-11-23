@@ -362,7 +362,7 @@ export default function PricingPage() {
               Pricing
             </p>
             <h1 className="mt-2 font-[family-name:var(--font-display)] text-4xl tracking-tight sm:text-5xl">
-              Give your app a face
+              Mascot generator pricing
             </h1>
             <p className="mt-3 text-[var(--brand-muted)]">
               Every plan includes all six models. You spend tokens only when you
