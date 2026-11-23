@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildPageMetadata({
-  title: "Marketplace",
+  title: "Animated SVG Mascot Marketplace",
   description:
     "Browse ready-made animated SVG mascot packs. Preview themes, gestures, and parts, then remix or buy to own.",
   path: "/marketplace",

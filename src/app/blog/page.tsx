@@ -8,7 +8,7 @@ import { buildPageMetadata } from "@/lib/seo";
 export const metadata = buildPageMetadata({
   title: "App Mascot Design Guides & Examples",
   description:
-    "App mascot reviews and guides: how characters like Duo, Freddie, and Wumpus help products earn downloads, retention, and revenue — plus how to build your own.",
+    "Explore how apps use mascots like Duo, Freddie, and Wumpus, then learn to design and integrate animated SVG characters in your own app.",
   path: "/blog",
 });
 
@@ -19,16 +19,12 @@ export default function BlogIndexPage() {
     <BlogShell>
       <JsonLd data={blogIndexJsonLd(posts)} />
       <header className="max-w-3xl">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--brand-accent)]">
-          Blog
-        </p>
-        <h1 className="mt-3 font-[family-name:var(--font-display)] text-4xl tracking-tight sm:text-6xl">
-          Why mascots win apps
+        <h1 className="font-[family-name:var(--font-display)] text-4xl tracking-tight sm:text-6xl">
+          App mascot design guides and examples
         </h1>
         <p className="mt-5 text-lg leading-relaxed text-white/75">
-          Reviews of high-traction apps that treat characters as product
-          infrastructure — plus practical guides for shipping your own gesture
-          system.
+          See how real apps use mascots in onboarding, notifications, and empty
+          states. Then build an animated character for your own product.
         </p>
       </header>
 

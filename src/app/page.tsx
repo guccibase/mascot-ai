@@ -167,6 +167,13 @@ export default function HomePage() {
               />
             ))}
           </div>
+          <Link
+            href="/marketplace"
+            className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[var(--brand-accent)] hover:underline"
+          >
+            Browse ready-made animated SVG mascots
+            <ArrowRight className="size-4" aria-hidden />
+          </Link>
         </Section>
 
         {/* How it works */}
@@ -222,13 +229,17 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-          <Link
-            href="/blog/why-app-mascots-matter"
-            className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[var(--brand-accent)] hover:underline"
-          >
-            Read the guide to designing app mascots
-            <ArrowRight className="size-4" aria-hidden />
-          </Link>
+          <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-[var(--brand-accent)]">
+            <Link href="/blog/why-app-mascots-matter" className="hover:underline">
+              Design an app mascot
+            </Link>
+            <Link
+              href="/blog/add-animated-svg-mascot-to-web-app"
+              className="hover:underline"
+            >
+              Add an animated SVG mascot to your web app
+            </Link>
+          </div>
         </Section>
 
         {/* Pricing teaser */}

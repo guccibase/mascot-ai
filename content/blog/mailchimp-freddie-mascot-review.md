@@ -106,7 +106,7 @@ Marketing fell in love with glossy Freddie renders. Product teams need assets th
 
 That is why **pose systems** beat one-off illustrations. Idle, success, waiting, error — same bones. SVG gesture packs are especially friendly for themeable product UI; PNG still wins for some push/store surfaces.
 
-[MascotAI](/) is built around that studio model: brief → pick a look → downloadable animated SVG packs with themes and parts, plus live examples you can click before signup.
+[MascotAI](/) is built around that studio model: brief → pick a look → downloadable animated SVG packs with themes and parts, plus [live mascot examples](/#examples) you can explore before signup. See [how to embed a celebration pose in your web app](/blog/add-animated-svg-mascot-to-web-app) once you have an export.
 
 ## Verdict
 

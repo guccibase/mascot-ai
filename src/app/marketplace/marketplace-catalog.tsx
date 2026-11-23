@@ -83,7 +83,7 @@ export function MarketplaceCatalog({
               Marketplace
             </p>
             <h1 className="mt-2 font-[family-name:var(--font-display)] text-4xl tracking-tight sm:text-5xl">
-              Ready-made mascots
+              Ready-made animated SVG mascots
             </h1>
             <p className="mt-3 text-[var(--brand-muted)]">
               Preview every pose. Remix for $4.99, or buy to own for $49.99 —

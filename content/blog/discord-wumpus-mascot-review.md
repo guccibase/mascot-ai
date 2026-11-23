@@ -131,7 +131,7 @@ You do not need Discord’s illustration team to get the *structure* right:
 4. Put them in the product before you commission a launch film
 5. Keep formats practical — SVG packs for UI, PNG for store/push
 
-[MascotAI](/create) compresses that path into a studio: short brief, pick a direction, export an animated SVG gesture pack with themes and parts. Start from [live examples](/#examples) if you want to feel the craft with no account.
+[MascotAI](/create) compresses that path into a studio: short brief, pick a direction, export an animated SVG gesture pack with themes and parts. Start from [live examples](/#examples) if you want to feel the craft with no account. When your welcome or retry pose is ready, follow the [animated SVG integration guide](/blog/add-animated-svg-mascot-to-web-app) to embed it alongside the state’s text.
 
 ## Verdict
 
